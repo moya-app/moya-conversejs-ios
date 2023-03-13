@@ -1,0 +1,19 @@
+{
+  "name": "@converse/headless",
+  "version": "1.0.0",
+  "description": "Custom headless build of converse",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/binuadmin/moya-conversejs-ios.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Dylan-Schwikkard/conversejs-ios/issues"
+  },
+  "homepage": "https://github.com/Dylan-Schwikkard/conversejs-ios#readme"
+}

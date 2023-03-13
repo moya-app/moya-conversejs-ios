@@ -1,0 +1,53 @@
+{
+  "_from": "@converse/openpromise@0.0.1",
+  "_id": "@converse/openpromise@0.0.1",
+  "_inBundle": false,
+  "_integrity": "sha512-oA1TKrm6H838isYZJxMWXpXyOUezkD49eMJ6bkI+FfL2MsVuOV3ZbhBV+c07mLSknKXO7pUbWTVa5f7bXJXYjQ==",
+  "_location": "/@converse/openpromise",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "@converse/openpromise@0.0.1",
+    "name": "@converse/openpromise",
+    "escapedName": "@converse%2fopenpromise",
+    "scope": "@converse",
+    "rawSpec": "0.0.1",
+    "saveSpec": null,
+    "fetchSpec": "0.0.1"
+  },
+  "_requiredBy": [
+    "/mergebounce"
+  ],
+  "_resolved": "https://registry.npmjs.org/@converse/openpromise/-/openpromise-0.0.1.tgz",
+  "_shasum": "cfa352423b6c830df199f824784f2d6b0d9161b1",
+  "_spec": "@converse/openpromise@0.0.1",
+  "_where": "/Users/dylanschwikkard/Documents/Repositories/moya-ios-app/moya-ios/node_modules/mergebounce",
+  "author": {
+    "name": "JC Brand"
+  },
+  "bugs": {
+    "url": "https://github.com/conversejs/openpromise/issues"
+  },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "An open promise is a promise which can be resolved or rejected outside of its closure",
+  "devDependencies": {
+    "eslint": "^7.25.0"
+  },
+  "homepage": "https://github.com/conversejs/openpromise#readme",
+  "keywords": [
+    "promise"
+  ],
+  "license": "MIT",
+  "main": "openpromise.js",
+  "name": "@converse/openpromise",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conversejs/openpromise.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.0.1"
+}
