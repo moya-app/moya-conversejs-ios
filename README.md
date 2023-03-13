@@ -1,4 +1,4 @@
-#Custom Converse-JS headless build
+# Custom Converse-JS headless build
 
 To install this build, use the following command:
 
