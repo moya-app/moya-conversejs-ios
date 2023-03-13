@@ -1,5 +1,5 @@
 {
-  "name": "@converse/headless",
+  "name": "@converse",
   "version": "1.0.0",
   "description": "Custom headless build of converse",
   "main": "index.js",
