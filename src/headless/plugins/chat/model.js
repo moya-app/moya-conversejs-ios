@@ -737,6 +737,8 @@ class ChatBox extends ModelWithContact {
     }
 
     sendReceiptStanza (to_jid, id) {
+        //TOFIND REMOVE DEFAULT RECEIPT CONVERSE (Manually handled)
+        return;
         const receipt_stanza = $msg({
             'from': api.connection.get().jid,
             'id': u.getUniqueId(),
@@ -905,8 +907,9 @@ class ChatBox extends ModelWithContact {
      * @param { Object } attrs
      */
     async createMessage (attrs, options) {
+        //TOFIND COMMENTED OUT await this.messages.fetched added null;
         attrs.time = attrs.time || (new Date()).toISOString();
-        await this.messages.fetched;
+        null// await this.messages.fetched;
         return this.messages.create(attrs, options);
     }
 

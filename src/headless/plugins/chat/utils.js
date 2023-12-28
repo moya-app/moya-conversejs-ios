@@ -132,7 +132,8 @@ export async function handleMessageStanza (stanza) {
     }
     // XXX: Need to take XEP-428 <fallback> into consideration
     const has_body = !!(attrs.body || attrs.plaintext)
-    const chatbox = await api.chats.get(attrs.contact_jid, { 'nickname': attrs.nick }, has_body);
+    //TOFIND (attrs? attrs.contact_jid : null) was (attrs.contact_jid)
+    const chatbox = await api.chats.get(attrs? attrs.contact_jid : null, { 'nickname': attrs.nick }, has_body);
     await chatbox?.queueMessage(attrs);
     /**
      * @typedef { Object } MessageData

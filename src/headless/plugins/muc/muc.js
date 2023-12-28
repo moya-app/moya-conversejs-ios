@@ -195,6 +195,8 @@ class MUC extends ChatBox {
             }
             return this;
         }
+        //TOFIND blocked from sending converse presence
+        return
         api.send(await this.constructJoinPresence(password));
         return this;
     }
@@ -1949,6 +1951,8 @@ class MUC extends ChatBox {
      * @returns {Promise<boolean>}
      */
     async isJoined () {
+             //TOFIND Returning true(Ping doesnt work on current server)
+             return true;
         if (!this.isEntered()) {
             log.info(`isJoined: not pinging MUC ${this.get('jid')} since we're not entered`);
             return false;

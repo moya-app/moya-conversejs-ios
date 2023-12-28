@@ -31,6 +31,8 @@ export function rejectMessage (stanza, text) {
  * @param { String } msg_type
  */
 export function sendMarker (to_jid, id, type, msg_type) {
+    //TOFIND Removed Markers
+    return;
     const stanza = $msg({
         'from': api.connection.get().jid,
         'id': u.getUniqueId(),

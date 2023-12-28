@@ -349,6 +349,8 @@ class RosterContacts extends Collection {
     }
 
     handleIncomingSubscription (presence) {
+         //TOFIND Return and handle subs manually
+         return;
         const jid = presence.getAttribute('from'),
             bare_jid = Strophe.getBareJidFromJid(jid),
             contact = this.get(bare_jid);

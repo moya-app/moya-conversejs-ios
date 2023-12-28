@@ -37,6 +37,7 @@ export default {
          * }).
          */
         async set (jid, data) {
+            return;
             if (!jid) {
                 throw Error("No jid provided for the VCard data");
             }
@@ -85,6 +86,7 @@ export default {
          * });
          */
          get (model, force) {
+            //TOFIND Added return. Preventing converse fetching vcards (We've been handling that manually)
             if (typeof model === 'string') {
                 return getVCard(model);
             }
@@ -119,6 +121,7 @@ export default {
          * });
          */
         async update (model, force) {
+            //TOFIND Added return. Preventing converse fetching vcards (We've been handling that manually)
             const data = await this.get(model, force);
             model = typeof model === 'string' ? _converse.vcards.get(model) : model;
             if (!model) {

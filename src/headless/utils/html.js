@@ -1,4 +1,4 @@
-import DOMPurify from 'dompurify';
+
 import { Strophe } from 'strophe.js';
 
 /**
@@ -82,7 +82,6 @@ const element = document.createElement('div');
  */
 export function decodeHTMLEntities (str) {
     if (str && typeof str === 'string') {
-        element.innerHTML = DOMPurify.sanitize(str);
         str = element.textContent;
         element.textContent = '';
     }

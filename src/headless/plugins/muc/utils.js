@@ -38,6 +38,8 @@ export function getAssignableRoles (occupant) {
 }
 
 export function registerDirectInvitationHandler () {
+    //TOFIND RETURN SO ADDHANDLER FOR INVITES DOESNT KICK IN
+    return;
     api.connection.get().addHandler(
         message => {
             _converse.onDirectMUCInvitation(message);

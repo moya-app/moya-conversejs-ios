@@ -126,6 +126,8 @@ class DiscoEntity extends Model {
         try {
             stanza = await api.disco.info(this.get('jid'), null);
         } catch (iq) {
+             //TOFIND (BLOCKING QUERIES FROM THROWING ERRORS IN CONVERSE)
+             return;
             iq === null ? log.error(`Timeout for disco#info query for ${this.get('jid')}`) : log.error(iq);
             this.waitUntilFeaturesDiscovered.resolve(this);
             return;

@@ -91,6 +91,10 @@ export function convertASCII2Emoji (str) {
 }
 
 export function getShortnameReferences (text) {
+     //TOFIND
+      //if (!Xu.emojis.initialized) throw new Error("getShortnameReferences called before emojis are initialized. To avoid this problem, first await the converse.emojis.initilaized_promise.");
+      //TOFIND (ADDED EMPTY ARRAY AS WE CHECK FOR EMOJIS MANUALLY LATER)
+      return [];
     if (!converse.emojis.initialized) {
         throw new Error(
             'getShortnameReferences called before emojis are initialized. '+
