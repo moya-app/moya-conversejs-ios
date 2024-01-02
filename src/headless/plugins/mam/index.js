@@ -17,8 +17,7 @@ import {
     fetchNewestMessages,
     handleMAMResult
 } from './utils.js';
-import sizzle from 'sizzle';
-console.log({sizzle})
+
 const { NS } = Strophe;
 
 converse.plugins.add('converse-mam', {

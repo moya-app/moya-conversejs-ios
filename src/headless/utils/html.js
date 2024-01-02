@@ -82,6 +82,8 @@ const element = document.createElement('div');
  */
 export function decodeHTMLEntities (str) {
     if (str && typeof str === 'string') {
+        //TOFIND REMOVED SANITIZER
+        // element.innerHTML = DOMPurify.sanitize(str);
         str = element.textContent;
         element.textContent = '';
     }

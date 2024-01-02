@@ -413,6 +413,15 @@ Object.defineProperty(DOMElement.prototype, 'textContent', {
     }
 });
 
+Object.defineProperty(DOMText.prototype, 'nodeValue', {
+    get: function() {
+        return this._nodeValue + "";
+    },
+    set: function(value) {
+        this._nodeValue = value;
+    }
+});
+
 
 Object.defineProperty(DOMElement.prototype, 'outerHTML', {
     get: function() {
@@ -523,10 +532,10 @@ DOMDocument.prototype.createTreeWalker = function() {
   }
 
 DOMDocument.prototype.addEventListener= function (...args){
-    console.log("added empty event listener",args);
+    // console.log("added empty event listener",args);
 }
 DOMDocument.prototype.removeEventListener= function (...args){
-    console.log("removed empty event listener",args);
+    // console.log("removed empty event listener",args);
 }
 
 function makeIterable(obj, arrayName = '_nodes'){
@@ -545,7 +554,6 @@ function makeIterable(obj, arrayName = '_nodes'){
 makeIterable(DOMNodeList);
 
 if (self['auto_init_mock']) {
-    console.log(DOMElement.prototype.getAttribute + "")
     self.Element = DOMElement;
     self.HTMLElement = DOMElement;
     self.Node = DOMNode;

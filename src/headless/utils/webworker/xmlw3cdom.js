@@ -103,7 +103,7 @@ DOMImplementation = function() {
 
   this.preserveWhiteSpace = false;  // by default, ignore whitespace
 
-  //TOFIND Made both false
+
   this.namespaceAware = true;       // by default, handle namespaces
   this.errorChecking  = true;       // by default, test for exceptions
 };

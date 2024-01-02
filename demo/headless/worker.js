@@ -5,6 +5,7 @@ self['auto_init_mock'] = true;
 console.log('worker.js', { self, doc: self.document });
 async function init() {
     try {
+        await importScripts('/src/headless/utils/libsignal-protocol.min.js');
         await importScripts('/src/headless/utils/webworker/xmlw3cdom.js');
         await importScripts('/src/headless/utils/webworker/xmlsax.js');
         console.log("%cImportted xmlw3cdom.js", 'color: green; font-size: 20px');
@@ -16,19 +17,11 @@ async function init() {
         
     }
 
-    setTimeout(() => {
-        console.log('---------------------');
-        console.log('SET SELF DOCUMENT', document);
-        console.log('SET SELF DOCUMENT', document.createElement);
-        console.log('SET SELF DOCUMENT', self.document.createElement);
-        console.log('---------------------');
-    },1000);
+   
     importScripts('../../src/headless/dist/converse-headless.js');
     console.log("POST", self)
-    let converseInit = self.converse.initConverse;
-    let converseObj = converseInit(0);
-
-    let { converse, _converse, api } = converseObj;
+    let converseModule = window.converse;
+    let { converse, _converse, api } = converseModule;
     // console.clear();
     console.log('converse', converse);
 
@@ -41,7 +34,7 @@ async function init() {
       authentication: 'login',
       auto_join_on_invite: true,
       auto_login: true,
-      auto_reconnect: false,
+      auto_reconnect: true,
       allow_non_roster_messaging: true,
       discover_connection_methods: false,
       jid: '27794915044@binu-test.m.in-app.io',
@@ -49,6 +42,9 @@ async function init() {
       omemo_default: true,
       persistent_store: 'IndexedDB',
       password: 'UOfxZIiIds',
+      whitelisted_plugins: [
+        'converse-omemo',
+      ],
     })
 }
 init();

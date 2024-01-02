@@ -4,16 +4,37 @@ function makeAttributesIteratable(doc){
         makeAttributesIteratable(node);
     })
 }
+// DOMNamedNodeMap.prototype.properlySetArray = function () {
+//     if(!this._indexes){
+//         Object.defineProperty(this, '_indexes', {
+//             value: [],
+//             writable: true,
+//             enumerable: false,
+//             configurable: true
+//         });
+//     }
+//     this._indexes.forEach((index=>{
+//         delete this[index];
+//     })) 
+//     this._indexes = [];
+//     let array = this._nodes;
+//     array.forEach((node,index)=>{
+//         this._indexes.push(index);
+//         this[index]=node;
+//     });
+// }
+
+
 let oldAppend = DOMNode.prototype.appendChild;
 DOMNode.prototype.appendChild = function (node) {
     let old = oldAppend.call(this, node);
+    node.parentElement = this;
     makeAttributesIteratable(node);
     return old;
 }
 
 export class MockDOMParser {
     parseFromString(str, contentType) {
-        console.log("Parse from string", {str})
         // This method will create a simplified mock DOM based on the input string.
         // It doesn't fully parse the HTML/XML string due to the complexity of real parsing,
         // but will provide a basic implementation for demonstration purposes.
@@ -24,7 +45,6 @@ export class MockDOMParser {
         // Create a new MockDocument
         if(['text/xml','text/html'].includes(contentType) ){
             let doc = new DOMImplementation().loadXML(str);
-            console.log(doc)
             makeAttributesIteratable(doc);
             return doc;
         }

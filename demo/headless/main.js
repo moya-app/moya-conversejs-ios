@@ -2,12 +2,10 @@ console.log('Hello World');
 
 
 async function init(){
+    console.log("INIT")
     // await import('../../src/headless/dist/converse-headless.js');
     let converseModule = window.converse;
-    console.log('converseModule', converseModule);
-    let converseInit = converseModule.initConverse;
-    let converseObj = converseInit(0);
-    let { converse, _converse, api } = converseObj;
+    let { converse, _converse, api } = converseModule;
     converse.initialize({
         // websocket_url: 'ws://34.241.102.241:5080/ws', // Please use this connection manager only for testing purposes
      websocket_url: "wss://xmpp.systest.moya.app:5443/ws", // Please use this connection manager only for testing purposes
@@ -25,6 +23,9 @@ async function init(){
      omemo_default: true,
      persistent_store: 'IndexedDB',
      password: 'UOfxZIiIds',
+     whitelisted_plugins: [
+        'converse-omemo',
+      ],
    })
 }
 

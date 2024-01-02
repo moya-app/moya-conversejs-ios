@@ -3,6 +3,7 @@
  * @license Mozilla Public License (MPLv2)
  * @description This is the core utilities module.
  */
+
 import log, { LEVELS } from '../log.js';
 import { Model } from '@converse/skeletor/src/model.js';
 import { toStanza } from 'strophe.js';
