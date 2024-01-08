@@ -15,3 +15,12 @@ The main distribution of Converse relies on the headless build.
 
 The file [src/headless/index.js](https://github.com/jcbrand/converse.js/blob/master/src/headless/index.js)
 is used to determine which plugins are included in the build.
+
+## Webworker Mode added
+
+Added Demo in `/demo/headless/worker.js`
+
+### Requires:
+ - XML For Script( `xmlw3cdom.js && xmlsax.js`)
+ - Webworker compatibility file to be run : `/src/headless/utils/webworker/webworker-compatibility.js`
+ - Certain constants to be set (`self.window = self`)

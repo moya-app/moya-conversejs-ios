@@ -13,30 +13,30 @@ if(self['auto_init_mock']){
 
 Manual Implementation End */
 
-
-DOMImplementation.prototype.createDocument = function (namespaceURI, qualifiedNameStr, documentType){
+DOMImplementation.prototype.createDocument = function (namespaceURI, qualifiedNameStr, documentType) {
     let imp = new DOMImplementation();
     imp.errorChecking = false;
-    let doc =  imp.loadXML(`<${qualifiedNameStr}></${qualifiedNameStr}>`);
+    let doc = imp.loadXML(`<${qualifiedNameStr}></${qualifiedNameStr}>`);
     doc.nodeType = documentType || 9;
     return doc;
-
-}
-
+};
 
 Object.defineProperty(DOMDocument.prototype, 'firstElementChild', {
-    get: function() {
-        return this.childNodes._nodes.find((node)=>node.nodeType === 1);
-    }
-    
+    get: function () {
+        return this.childNodes._nodes.find((node) => node.nodeType === 1);
+    },
 });
+let implementation = new DOMImplementation();
+let defaultDoc = implementation.loadXML('<html><head></head></html>');
+defaultDoc.head = {
+    appendChild: function (node) {
+        if (node.tagName.toLowerCase() === 'script' && node.src) {
+            console.warn('Trying to load script in webworker mode:', node.src);
+        }
+    },
+};
 
-
-
-if(self['auto_init_mock']){
-    let implementation = new DOMImplementation();
-    implementation.errorChecking = false;
-    self.document= implementation.loadXML('<xml></xml>');
-    //  = new DOMDocument();
+if (self['auto_init_mock']) {
+    self.document = defaultDoc;
 }
 export const didSet = self.document;
