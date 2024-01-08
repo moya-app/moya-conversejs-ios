@@ -7503,9 +7503,7 @@ function $iq(attrs) {
  * @return {Builder} A new Strophe.Builder object.
  */
 function $pres(attrs) {
-  let presB = new Builder('presence', attrs);
-  console.trace("PRES CREATED");
-  return presB;
+  return new Builder('presence', attrs);
 }
 
 /**
@@ -8586,7 +8584,6 @@ class Connection {
         });
       }
     }
-    console.log('xxxxxxxxxxxxxxxx',el)
     this.send(el);
     return id;
   }
@@ -8785,8 +8782,6 @@ class Connection {
    * @param {string} [reason] - The reason the disconnect is occuring.
    */
   disconnect(reason) {
-    console.trace();
-    console.log("DISCONNECT REASON : ", reason)
     this._changeConnectStatus(_constants_js__WEBPACK_IMPORTED_MODULE_3__.Status.DISCONNECTING, reason);
     if (reason) {
       _core_js__WEBPACK_IMPORTED_MODULE_4__["default"].warn('Disconnect was called because: ' + reason);
@@ -9020,7 +9015,6 @@ class Connection {
     if (!bodyWrap) {
       return;
     }
-    console.log({bodyWrap})
     if (this.xmlInput !== _core_js__WEBPACK_IMPORTED_MODULE_4__["default"].Connection.prototype.xmlInput) {
       if (bodyWrap.nodeName === this._proto.strip && bodyWrap.childNodes.length) {
         this.xmlInput(bodyWrap.childNodes[0]);
@@ -9043,12 +9037,7 @@ class Connection {
     // Check for the stream:features tag
     let hasFeatures;
     if (bodyWrap.getElementsByTagNameNS) {
-      console.log("ABOUT TO CALL ORIG")
-      console.log(bodyWrap.outerHTML)
-      console.log((_core_js__WEBPACK_IMPORTED_MODULE_4__["default"].NS.STREAM));
       hasFeatures = bodyWrap.getElementsByTagNameNS(_core_js__WEBPACK_IMPORTED_MODULE_4__["default"].NS.STREAM, 'features').length > 0;
-      console.log("Has features:");
-      console.log(bodyWrap.getElementsByTagNameNS(_core_js__WEBPACK_IMPORTED_MODULE_4__["default"].NS.STREAM, 'features'));
     } else {
       hasFeatures = bodyWrap.getElementsByTagName('stream:features').length > 0 || bodyWrap.getElementsByTagName('features').length > 0;
     }
@@ -9057,7 +9046,6 @@ class Connection {
       return;
     }
     const matched = Array.from(bodyWrap.getElementsByTagName('mechanism')).map(m => this.mechanisms[m.textContent]).filter(m => m);
-    console.log({hasFeatures, matched : bodyWrap.getElementsByTagName('mechanism')})
     if (matched.length === 0) {
       if (bodyWrap.getElementsByTagName('auth').length === 0) {
         // There are no matching SASL mechanisms and also no legacy
@@ -11803,19 +11791,9 @@ function xmlunescape(text) {
 function serialize(elem) {
   if (!elem) return null;
   const el = elem instanceof _builder_js__WEBPACK_IMPORTED_MODULE_3__["default"] ? elem.tree() : elem;
-  console.trace();
-  const names = [...Array(el.attributes.length).keys()].map(i => {
-    let attr = el.attributes[i];
-    console.trace();
-    console.log({el,attr,i});
-    return el.attributes[i].nodeName
-  });
-  console.log({names});
+  const names = [...Array(el.attributes.length).keys()].map(i => el.attributes[i].nodeName);
   names.sort();
-  let result = names.reduce((a, n) => {
-    console.log({a, n,})
-    return `${a} ${n}="${xmlescape(el.attributes.getNamedItem(n).value)}"`}, `<${el.nodeName}`);
-  console.log({result});
+  let result = names.reduce((a, n) => `${a} ${n}="${xmlescape(el.attributes.getNamedItem(n).value)}"`, `<${el.nodeName}`);
   if (el.childNodes.length > 0) {
     result += '>';
     for (let i = 0; i < el.childNodes.length; i++) {
@@ -11827,8 +11805,7 @@ function serialize(elem) {
           break;
         case _constants_js__WEBPACK_IMPORTED_MODULE_2__.ElementType.TEXT:
           // text element to escape values
-          console.log(child)
-          result += xmlescape(child.nodeValue + "");
+          result += xmlescape(child.nodeValue);
           break;
         case _constants_js__WEBPACK_IMPORTED_MODULE_2__.ElementType.CDATA:
           // cdata section so don't escape values
@@ -12074,7 +12051,6 @@ class Websocket {
    * @return {Builder} - A Strophe.Builder with a <stream> element.
    */
   _buildStream() {
-    console.log("BUILD STREAM");
     return (0,_builder_js__WEBPACK_IMPORTED_MODULE_1__.$build)('open', {
       'xmlns': _core__WEBPACK_IMPORTED_MODULE_2__["default"].NS.FRAMING,
       'to': this._conn.domain,
@@ -12212,9 +12188,6 @@ class Websocket {
     } else if (ver !== '1.0') {
       error = 'Wrong version in <open />: ' + ver;
     }
-    console.log({message,ver : ver, ns, SHOULDBE_NS :_core__WEBPACK_IMPORTED_MODULE_2__["default"].NS.FRAMING });
-    console.log(message.outerHTML);
-    console.log({error})
     if (error) {
       this._conn._changeConnectStatus(_core__WEBPACK_IMPORTED_MODULE_2__["default"].Status.CONNFAIL, error);
       this._conn._doDisconnect();
@@ -12231,14 +12204,11 @@ class Websocket {
    * @param {MessageEvent} message
    */
   _onInitialMessage(message) {
-
     if (message.data.indexOf('<open ') === 0 || message.data.indexOf('<?xml') === 0) {
       // Strip the XML Declaration, if there is one
       const data = message.data.replace(/^(<\?.*?\?>\s*)*/, '');
       if (data === '') return;
-      console.log({message,data});
       const streamStart = new _shims__WEBPACK_IMPORTED_MODULE_0__.DOMParser().parseFromString(data, 'text/xml').documentElement;
-      console.log({streamStart :streamStart.outerHTML})
       this._conn.xmlInput(streamStart);
       this._conn.rawInput(message.data);
 
@@ -12273,7 +12243,6 @@ class Websocket {
       this._replaceMessageHandler();
       const string = this._streamWrap(message.data);
       const elem = new _shims__WEBPACK_IMPORTED_MODULE_0__.DOMParser().parseFromString(string, 'text/xml').documentElement;
-      console.log({elem, message, data : message?.data});
       this._conn._connect_cb(elem, null, message.data);
     }
   }
@@ -12509,7 +12478,6 @@ class Websocket {
   _onOpen() {
     _core__WEBPACK_IMPORTED_MODULE_2__["default"].debug('Websocket open');
     const start = this._buildStream();
-    console.log({start});
     this._conn.xmlOutput(start.tree());
     const startString = _core__WEBPACK_IMPORTED_MODULE_2__["default"].serialize(start);
     this._conn.rawOutput(startString);
@@ -15721,87 +15689,77 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/punycode v1.4.0 by @mathia
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   initConverse: () => (/* binding */ initConverse)
+/* harmony export */   _converse: () => (/* reexport safe */ _shared_converse__WEBPACK_IMPORTED_MODULE_3__["default"]),
+/* harmony export */   api: () => (/* reexport safe */ _shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__["default"]),
+/* harmony export */   converse: () => (/* reexport safe */ _shared_api_public_js__WEBPACK_IMPORTED_MODULE_6__.converse),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   i18n: () => (/* reexport safe */ _shared_i18n__WEBPACK_IMPORTED_MODULE_5__["default"]),
+/* harmony export */   log: () => (/* reexport safe */ _log_js__WEBPACK_IMPORTED_MODULE_24__["default"])
 /* harmony export */ });
 /* harmony import */ var _shared_constants_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shared/constants.js */ "./src/headless/shared/constants.js");
 /* harmony import */ var dayjs_plugin_advancedFormat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! dayjs/plugin/advancedFormat */ "./node_modules/dayjs/plugin/advancedFormat.js");
 /* harmony import */ var dayjs_plugin_advancedFormat__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(dayjs_plugin_advancedFormat__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./shared/api/index.js */ "./src/headless/shared/api/index.js");
-/* harmony import */ var _utils_index_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./utils/index.js */ "./src/headless/utils/index.js");
-/* harmony import */ var _shared_converse__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./shared/_converse */ "./src/headless/shared/_converse.js");
-/* harmony import */ var dayjs__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! dayjs */ "./node_modules/dayjs/dayjs.min.js");
-/* harmony import */ var dayjs__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(dayjs__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var _shared_i18n__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./shared/i18n */ "./src/headless/shared/i18n.js");
-/* harmony import */ var _shared_api_public_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./shared/api/public.js */ "./src/headless/shared/api/public.js");
-/* harmony import */ var _log_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./log.js */ "./src/headless/log.js");
-/* harmony import */ var _plugins_bookmarks_index_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./plugins/bookmarks/index.js */ "./src/headless/plugins/bookmarks/index.js");
-/* harmony import */ var _plugins_bosh_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./plugins/bosh.js */ "./src/headless/plugins/bosh.js");
-/* harmony import */ var _plugins_caps_index_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./plugins/caps/index.js */ "./src/headless/plugins/caps/index.js");
-/* harmony import */ var _plugins_chat_index_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./plugins/chat/index.js */ "./src/headless/plugins/chat/index.js");
-/* harmony import */ var _plugins_chatboxes_index_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./plugins/chatboxes/index.js */ "./src/headless/plugins/chatboxes/index.js");
-/* harmony import */ var _plugins_disco_index_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./plugins/disco/index.js */ "./src/headless/plugins/disco/index.js");
-/* harmony import */ var _plugins_adhoc_index_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./plugins/adhoc/index.js */ "./src/headless/plugins/adhoc/index.js");
-/* harmony import */ var _plugins_headlines_index_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./plugins/headlines/index.js */ "./src/headless/plugins/headlines/index.js");
-/* harmony import */ var _plugins_mam_index_js__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ./plugins/mam/index.js */ "./src/headless/plugins/mam/index.js");
-/* harmony import */ var _plugins_muc_index_js__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ./plugins/muc/index.js */ "./src/headless/plugins/muc/index.js");
-/* harmony import */ var _plugins_pubsub_js__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ./plugins/pubsub.js */ "./src/headless/plugins/pubsub.js");
-/* harmony import */ var _plugins_roster_index_js__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ./plugins/roster/index.js */ "./src/headless/plugins/roster/index.js");
-/* harmony import */ var _plugins_smacks_index_js__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(/*! ./plugins/smacks/index.js */ "./src/headless/plugins/smacks/index.js");
-/* harmony import */ var _plugins_status_index_js__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(/*! ./plugins/status/index.js */ "./src/headless/plugins/status/index.js");
-/* harmony import */ var _plugins_vcard_index_js__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(/*! ./plugins/vcard/index.js */ "./src/headless/plugins/vcard/index.js");
+/* harmony import */ var _shared_converse__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./shared/_converse */ "./src/headless/shared/_converse.js");
+/* harmony import */ var dayjs__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! dayjs */ "./node_modules/dayjs/dayjs.min.js");
+/* harmony import */ var dayjs__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(dayjs__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _shared_i18n__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./shared/i18n */ "./src/headless/shared/i18n.js");
+/* harmony import */ var _shared_api_public_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./shared/api/public.js */ "./src/headless/shared/api/public.js");
+/* harmony import */ var _plugins_bookmarks_index_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./plugins/bookmarks/index.js */ "./src/headless/plugins/bookmarks/index.js");
+/* harmony import */ var _plugins_bosh_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./plugins/bosh.js */ "./src/headless/plugins/bosh.js");
+/* harmony import */ var _plugins_caps_index_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./plugins/caps/index.js */ "./src/headless/plugins/caps/index.js");
+/* harmony import */ var _plugins_chat_index_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./plugins/chat/index.js */ "./src/headless/plugins/chat/index.js");
+/* harmony import */ var _plugins_chatboxes_index_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./plugins/chatboxes/index.js */ "./src/headless/plugins/chatboxes/index.js");
+/* harmony import */ var _plugins_disco_index_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./plugins/disco/index.js */ "./src/headless/plugins/disco/index.js");
+/* harmony import */ var _plugins_adhoc_index_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./plugins/adhoc/index.js */ "./src/headless/plugins/adhoc/index.js");
+/* harmony import */ var _plugins_headlines_index_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./plugins/headlines/index.js */ "./src/headless/plugins/headlines/index.js");
+/* harmony import */ var _plugins_mam_index_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./plugins/mam/index.js */ "./src/headless/plugins/mam/index.js");
+/* harmony import */ var _plugins_muc_index_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./plugins/muc/index.js */ "./src/headless/plugins/muc/index.js");
+/* harmony import */ var _plugins_ping_index_js__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ./plugins/ping/index.js */ "./src/headless/plugins/ping/index.js");
+/* harmony import */ var _plugins_pubsub_js__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ./plugins/pubsub.js */ "./src/headless/plugins/pubsub.js");
+/* harmony import */ var _plugins_roster_index_js__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ./plugins/roster/index.js */ "./src/headless/plugins/roster/index.js");
+/* harmony import */ var _plugins_smacks_index_js__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ./plugins/smacks/index.js */ "./src/headless/plugins/smacks/index.js");
+/* harmony import */ var _plugins_status_index_js__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(/*! ./plugins/status/index.js */ "./src/headless/plugins/status/index.js");
+/* harmony import */ var _plugins_vcard_index_js__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(/*! ./plugins/vcard/index.js */ "./src/headless/plugins/vcard/index.js");
+/* harmony import */ var _plugins_omemo_index_js__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(/*! ./plugins/omemo/index.js */ "./src/headless/plugins/omemo/index.js");
+/* harmony import */ var _log_js__WEBPACK_IMPORTED_MODULE_24__ = __webpack_require__(/*! ./log.js */ "./src/headless/log.js");
 
 
 
 
+_shared_converse__WEBPACK_IMPORTED_MODULE_3__["default"].api = _shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__["default"];
 
 
 
+dayjs__WEBPACK_IMPORTED_MODULE_4___default().extend((dayjs_plugin_advancedFormat__WEBPACK_IMPORTED_MODULE_1___default()));
+
+/* START: Removable components
+ * --------------------
+ * Any of the following components may be removed if they're not needed.
+ */
+
+ // XEP-0199 XMPP Ping
+ // XEP-0206 BOSH
+ // XEP-0115 Entity Capabilities
+ // RFC-6121 Instant messaging
+
+ // XEP-0030 Service discovery
+ // XEP-0050 Ad Hoc Commands
+ // Support for headline messages
+ // XEP-0313 Message Archive Management
+ // XEP-0045 Multi-user chat
+ // XEP-0199 XMPP Ping
+ // XEP-0060 Pubsub
+ // RFC-6121 Contacts Roster
+ // XEP-0198 Stream Management
+
+ // XEP-0054 VCard-temp
+
+/* END: Removable components */
 
 
-dayjs__WEBPACK_IMPORTED_MODULE_5___default().extend((dayjs_plugin_advancedFormat__WEBPACK_IMPORTED_MODULE_1___default()));
 
-// Import plugins and components
-
-
-
-
-
-
-
-
-
-
-//TOFIND  Removed ping module
-// import "./plugins/ping/index.js";
-
-
-
-
-
-// Include any additional plugins you need
-
-const initConverse = function createConverseInstance(index) {
-  const converseIdentifier = 'converse_' + index;
-  const converse = {
-    ..._shared_api_public_js__WEBPACK_IMPORTED_MODULE_7__.converse
-  };
-  _shared_converse__WEBPACK_IMPORTED_MODULE_4__["default"].api = _shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__["default"];
-  // Initialize other components as needed
-
-  // Attach to window with unique identifier
-  window[converseIdentifier] = converse;
-  console.log("IDENTIFIER");
-  return {
-    api: _shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__["default"],
-    converse,
-    _converse: _shared_converse__WEBPACK_IMPORTED_MODULE_4__["default"],
-    i18n: _shared_i18n__WEBPACK_IMPORTED_MODULE_6__["default"],
-    log: _log_js__WEBPACK_IMPORTED_MODULE_8__["default"],
-    u: _utils_index_js__WEBPACK_IMPORTED_MODULE_3__["default"]
-  };
-};
-
-// Optionally export other utilities
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_shared_api_public_js__WEBPACK_IMPORTED_MODULE_6__.converse);
 
 /***/ }),
 
@@ -16740,14 +16698,12 @@ async function generateVerificationString() {
   return (0,_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_2__.arrayBufferToBase64)(ab);
 }
 async function createCapsNode() {
-
-  let capsNode = $build("c", {
+  return $build("c", {
     'xmlns': Strophe.NS.CAPS,
     'hash': "sha-1",
     'node': "https://conversejs.org",
     'ver': await generateVerificationString()
   }).tree();
-  return capsNode
 }
 
 /**
@@ -16756,9 +16712,7 @@ async function createCapsNode() {
  */
 async function addCapsNode(stanza) {
   const caps_el = await createCapsNode();
-  console.log("ADD CAPS", caps_el);
   stanza.root().cnode(caps_el).up();
-
   return stanza;
 }
 
@@ -19874,7 +19828,6 @@ class DiscoEntity extends _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODU
     this.onDiscoItems(stanza);
   }
   async onInfo(stanza) {
-    console.log("stanza", stanza.querySelector)
     Array.from(stanza.querySelectorAll('identity')).forEach(identity => {
       this.identities.create({
         'category': identity.getAttribute('category'),
@@ -20779,7 +20732,9 @@ async function onHeadlineMessage(stanza) {
   if ((0,_shared_parsers_js__WEBPACK_IMPORTED_MODULE_4__.isHeadline)(stanza) || (0,_shared_parsers_js__WEBPACK_IMPORTED_MODULE_4__.isServerMessage)(stanza)) {
     const from_jid = stanza.getAttribute('from');
     await _shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__["default"].waitUntil('rosterInitialized');
-    if (from_jid.includes('@') && _shared_converse_js__WEBPACK_IMPORTED_MODULE_1__["default"].roster && !_shared_converse_js__WEBPACK_IMPORTED_MODULE_1__["default"].roster.get(from_jid) && !_shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__["default"].settings.get("allow_non_roster_messaging")) {
+    if (from_jid.includes('@') &&
+    //TOFIND (Added check that _converse.roster exists)
+    _shared_converse_js__WEBPACK_IMPORTED_MODULE_1__["default"].roster && !_shared_converse_js__WEBPACK_IMPORTED_MODULE_1__["default"].roster.get(from_jid) && !_shared_api_index_js__WEBPACK_IMPORTED_MODULE_2__["default"].settings.get("allow_non_roster_messaging")) {
       return;
     }
     if (stanza.querySelector('body') === null) {
@@ -21174,8 +21129,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _api_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./api.js */ "./src/headless/plugins/mam/api.js");
 /* harmony import */ var strophe_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! strophe.js */ "./node_modules/strophe.js/src/index.js");
 /* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/mam/utils.js");
-/* harmony import */ var sizzle__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! sizzle */ "./node_modules/sizzle/dist/sizzle.js");
-/* harmony import */ var sizzle__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(sizzle__WEBPACK_IMPORTED_MODULE_7__);
 /**
  * @description XEP-0313 Message Archive Management
  * @copyright 2022, the Converse.js contributors
@@ -21188,10 +21141,6 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-
-console.log({
-  sizzle: (sizzle__WEBPACK_IMPORTED_MODULE_7___default())
-});
 const {
   NS
 } = strophe_js__WEBPACK_IMPORTED_MODULE_5__.Strophe;
@@ -26041,6 +25990,2257 @@ Object.assign(_shared_converse_js__WEBPACK_IMPORTED_MODULE_0__["default"], {
 
 /***/ }),
 
+/***/ "./src/headless/plugins/omemo/api.js":
+/*!*******************************************!*\
+  !*** ./src/headless/plugins/omemo/api.js ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/omemo/utils.js");
+
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
+  /**
+   * The "omemo" namespace groups methods relevant to OMEMO
+   * encryption.
+   *
+   * @namespace _converse.api.omemo
+   * @memberOf _converse.api
+   */
+  'omemo': {
+    /**
+     * Returns the device ID of the current device.
+     */
+    async getDeviceID() {
+      await _converse_headless__WEBPACK_IMPORTED_MODULE_0__.api.waitUntil('OMEMOInitialized');
+      return _converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.omemo_store.get('device_id');
+    },
+    /**
+     * The "devicelists" namespace groups methods related to OMEMO device lists
+     *
+     * @namespace _converse.api.omemo.devicelists
+     * @memberOf _converse.api.omemo
+     */
+    'devicelists': {
+      /**
+       * Returns the {@link _converse.DeviceList} for a particular JID.
+       * The device list will be created if it doesn't exist already.
+       * @method _converse.api.omemo.devicelists.get
+       * @param { String } jid - The Jabber ID for which the device list will be returned.
+       * @param { bool } create=false - Set to `true` if the device list
+       *      should be created if it cannot be found.
+       */
+      async get(jid) {
+        let create = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+        const list = _converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.devicelists.get(jid) || (create ? _converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.devicelists.create({
+          jid
+        }) : null);
+        await list?.initialized;
+        return list;
+      }
+    },
+    /**
+     * The "bundle" namespace groups methods relevant to the user's
+     * OMEMO bundle.
+     *
+     * @namespace _converse.api.omemo.bundle
+     * @memberOf _converse.api.omemo
+     */
+    'bundle': {
+      /**
+       * Lets you generate a new OMEMO device bundle
+       *
+       * @method _converse.api.omemo.bundle.generate
+       * @returns {promise} Promise which resolves once we have a result from the server.
+       */
+      'generate': async () => {
+        await _converse_headless__WEBPACK_IMPORTED_MODULE_0__.api.waitUntil('OMEMOInitialized');
+        // Remove current device
+        const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_0__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.bare_jid);
+        const device_id = _converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.omemo_store.get('device_id');
+        if (device_id) {
+          const device = devicelist.devices.get(device_id);
+          _converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.omemo_store.unset(device_id);
+          if (device) {
+            await new Promise(done => device.destroy({
+              'success': done,
+              'error': done
+            }));
+          }
+          devicelist.devices.trigger('remove');
+        }
+        // Generate new device bundle and publish
+        // https://xmpp.org/extensions/attic/xep-0384-0.3.0.html#usecases-announcing
+        await _converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.omemo_store.generateBundle();
+        await devicelist.publishDevices();
+        const device = devicelist.devices.get(_converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.omemo_store.get('device_id'));
+        const fp = (0,_utils_js__WEBPACK_IMPORTED_MODULE_1__.generateFingerprint)(device);
+        await _converse_headless__WEBPACK_IMPORTED_MODULE_0__._converse.omemo_store.publishBundle();
+        return fp;
+      }
+    }
+  }
+});
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/consts.js":
+/*!**********************************************!*\
+  !*** ./src/headless/plugins/omemo/consts.js ***!
+  \**********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   KEY_ALGO: () => (/* binding */ KEY_ALGO),
+/* harmony export */   TAG_LENGTH: () => (/* binding */ TAG_LENGTH),
+/* harmony export */   TRUSTED: () => (/* binding */ TRUSTED),
+/* harmony export */   UNDECIDED: () => (/* binding */ UNDECIDED),
+/* harmony export */   UNTRUSTED: () => (/* binding */ UNTRUSTED)
+/* harmony export */ });
+const UNDECIDED = 0;
+const TRUSTED = 1;
+const UNTRUSTED = -1;
+const TAG_LENGTH = 128;
+const KEY_ALGO = {
+  'name': 'AES-GCM',
+  'length': 128
+};
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/device.js":
+/*!**********************************************!*\
+  !*** ./src/headless/plugins/omemo/device.js ***!
+  \**********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _errors_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./errors.js */ "./src/headless/plugins/omemo/errors.js");
+/* harmony import */ var _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/skeletor/src/model.js */ "./node_modules/@converse/skeletor/src/model.js");
+/* harmony import */ var _consts_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./consts.js */ "./src/headless/plugins/omemo/consts.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var _converse_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @converse/headless/utils/index.js */ "./src/headless/utils/index.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/omemo/utils.js");
+
+
+
+
+
+
+const {
+  Strophe,
+  sizzle,
+  $iq
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_3__.converse.env;
+
+/**
+ * @namespace _converse.Device
+ * @memberOf _converse
+ */
+class Device extends _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODULE_1__.Model {
+  defaults() {
+    // eslint-disable-line class-methods-use-this
+    return {
+      'trusted': _consts_js__WEBPACK_IMPORTED_MODULE_2__.UNDECIDED,
+      'active': true
+    };
+  }
+  getRandomPreKey() {
+    // XXX: assumes that the bundle has already been fetched
+    const bundle = this.get('bundle');
+    return bundle.prekeys[(0,_converse_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_4__.getRandomInt)(bundle.prekeys.length)];
+  }
+  async fetchBundleFromServer() {
+    const stanza = $iq({
+      'type': 'get',
+      'from': _converse_headless__WEBPACK_IMPORTED_MODULE_3__._converse.bare_jid,
+      'to': this.get('jid')
+    }).c('pubsub', {
+      'xmlns': Strophe.NS.PUBSUB
+    }).c('items', {
+      'node': `${Strophe.NS.OMEMO_BUNDLES}:${this.get('id')}`
+    });
+    let iq;
+    try {
+      iq = await _converse_headless__WEBPACK_IMPORTED_MODULE_3__.api.sendIQ(stanza);
+    } catch (iq) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_3__.log.error(`Could not fetch bundle for device ${this.get('id')} from ${this.get('jid')}`);
+      _converse_headless__WEBPACK_IMPORTED_MODULE_3__.log.error(iq);
+      return null;
+    }
+    if (iq.querySelector('error')) {
+      throw new _errors_js__WEBPACK_IMPORTED_MODULE_0__.IQError('Could not fetch bundle', iq);
+    }
+    const publish_el = sizzle(`items[node="${Strophe.NS.OMEMO_BUNDLES}:${this.get('id')}"]`, iq).pop();
+    const bundle_el = sizzle(`bundle[xmlns="${Strophe.NS.OMEMO}"]`, publish_el).pop();
+    const bundle = (0,_utils_js__WEBPACK_IMPORTED_MODULE_5__.parseBundle)(bundle_el);
+    this.save('bundle', bundle);
+    return bundle;
+  }
+
+  /**
+   * Fetch and save the bundle information associated with
+   * this device, if the information is not cached already.
+   * @method _converse.Device#getBundle
+   */
+  getBundle() {
+    if (this.get('bundle')) {
+      return Promise.resolve(this.get('bundle'), this);
+    } else {
+      return this.fetchBundleFromServer();
+    }
+  }
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Device);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/devicelist.js":
+/*!**************************************************!*\
+  !*** ./src/headless/plugins/omemo/devicelist.js ***!
+  \**************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @converse/skeletor/src/model.js */ "./node_modules/@converse/skeletor/src/model.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var _converse_openpromise__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @converse/openpromise */ "./node_modules/@converse/openpromise/openpromise.js");
+/* harmony import */ var _converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @converse/headless/utils/storage.js */ "./src/headless/utils/storage.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/omemo/utils.js");
+
+
+
+
+
+const {
+  Strophe,
+  $build,
+  $iq,
+  sizzle
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_1__.converse.env;
+
+/**
+ * @namespace _converse.DeviceList
+ * @memberOf _converse
+ */
+class DeviceList extends _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODULE_0__.Model {
+  get idAttribute() {
+    // eslint-disable-line class-methods-use-this
+    return 'jid';
+  }
+  async initialize() {
+    super.initialize();
+    this.initialized = (0,_converse_openpromise__WEBPACK_IMPORTED_MODULE_2__.getOpenPromise)();
+    await this.initDevices();
+    this.initialized.resolve();
+  }
+  initDevices() {
+    this.devices = new _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.Devices();
+    const id = `converse.devicelist-${_converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.bare_jid}-${this.get('jid')}`;
+    (0,_converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_3__.initStorage)(this.devices, id);
+    return this.fetchDevices();
+  }
+  async onDevicesFound(collection) {
+    if (collection.length === 0) {
+      let ids = [];
+      try {
+        ids = await this.fetchDevicesFromServer();
+      } catch (e) {
+        if (e === null) {
+          _converse_headless__WEBPACK_IMPORTED_MODULE_1__.log.error(`Timeout error while fetching devices for ${this.get('jid')}`);
+        } else {
+          _converse_headless__WEBPACK_IMPORTED_MODULE_1__.log.error(`Could not fetch devices for ${this.get('jid')}`);
+          _converse_headless__WEBPACK_IMPORTED_MODULE_1__.log.error(e);
+        }
+        this.destroy();
+      }
+      if (this.get('jid') === _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.bare_jid) {
+        this.publishCurrentDevice(ids);
+      }
+    }
+  }
+  fetchDevices() {
+    if (this._devices_promise === undefined) {
+      this._devices_promise = new Promise(resolve => {
+        this.devices.fetch({
+          'success': c => resolve(this.onDevicesFound(c)),
+          'error': (_, e) => {
+            _converse_headless__WEBPACK_IMPORTED_MODULE_1__.log.error(e);
+            resolve();
+          }
+        });
+      });
+    }
+    return this._devices_promise;
+  }
+  async getOwnDeviceId() {
+    let device_id = _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.omemo_store.get('device_id');
+    if (!this.devices.get(device_id)) {
+      // Generate a new bundle if we cannot find our device
+      await _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.omemo_store.generateBundle();
+      device_id = _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.omemo_store.get('device_id');
+    }
+    return device_id;
+  }
+  async publishCurrentDevice(device_ids) {
+    if (this.get('jid') !== _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.bare_jid) {
+      return; // We only publish for ourselves.
+    }
+
+    await (0,_utils_js__WEBPACK_IMPORTED_MODULE_4__.restoreOMEMOSession)();
+    if (!_converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.omemo_store) {
+      // Happens during tests. The connection gets torn down
+      // before publishCurrentDevice has time to finish.
+      _converse_headless__WEBPACK_IMPORTED_MODULE_1__.log.warn('publishCurrentDevice: omemo_store is not defined, likely a timing issue');
+      return;
+    }
+    if (!device_ids.includes(await this.getOwnDeviceId())) {
+      return this.publishDevices();
+    }
+  }
+  async fetchDevicesFromServer() {
+    const stanza = $iq({
+      'type': 'get',
+      'from': _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.bare_jid,
+      'to': this.get('jid')
+    }).c('pubsub', {
+      'xmlns': Strophe.NS.PUBSUB
+    }).c('items', {
+      'node': Strophe.NS.OMEMO_DEVICELIST
+    });
+    const iq = await _converse_headless__WEBPACK_IMPORTED_MODULE_1__.api.sendIQ(stanza);
+    const selector = `list[xmlns="${Strophe.NS.OMEMO}"] device`;
+    const device_ids = sizzle(selector, iq).map(d => d.getAttribute('id'));
+    const jid = this.get('jid');
+    return Promise.all(device_ids.map(id => this.devices.create({
+      id,
+      jid
+    }, {
+      'promise': true
+    })));
+  }
+
+  /**
+   * Send an IQ stanza to the current user's "devices" PEP node to
+   * ensure that all devices are published for potential chat partners to see.
+   * See: https://xmpp.org/extensions/xep-0384.html#usecases-announcing
+   */
+  publishDevices() {
+    const item = $build('item', {
+      'id': 'current'
+    }).c('list', {
+      'xmlns': Strophe.NS.OMEMO
+    });
+    this.devices.filter(d => d.get('active')).forEach(d => item.c('device', {
+      'id': d.get('id')
+    }).up());
+    const options = {
+      'pubsub#access_model': 'open'
+    };
+    return _converse_headless__WEBPACK_IMPORTED_MODULE_1__.api.pubsub.publish(null, Strophe.NS.OMEMO_DEVICELIST, item, options, false);
+  }
+  async removeOwnDevices(device_ids) {
+    if (this.get('jid') !== _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.bare_jid) {
+      throw new Error("Cannot remove devices from someone else's device list");
+    }
+    await Promise.all(device_ids.map(id => this.devices.get(id)).map(d => new Promise(resolve => d.destroy({
+      'success': resolve,
+      'error': (_, e) => {
+        _converse_headless__WEBPACK_IMPORTED_MODULE_1__.log.error(e);
+        resolve();
+      }
+    }))));
+    return this.publishDevices();
+  }
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (DeviceList);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/devicelists.js":
+/*!***************************************************!*\
+  !*** ./src/headless/plugins/omemo/devicelists.js ***!
+  \***************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _devicelist_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./devicelist.js */ "./src/headless/plugins/omemo/devicelist.js");
+/* harmony import */ var _converse_skeletor_src_collection__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/skeletor/src/collection */ "./node_modules/@converse/skeletor/src/collection.js");
+
+
+class DeviceLists extends _converse_skeletor_src_collection__WEBPACK_IMPORTED_MODULE_1__.Collection {
+  constructor() {
+    super();
+    this.model = _devicelist_js__WEBPACK_IMPORTED_MODULE_0__["default"];
+  }
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (DeviceLists);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/devices.js":
+/*!***********************************************!*\
+  !*** ./src/headless/plugins/omemo/devices.js ***!
+  \***********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _device_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./device.js */ "./src/headless/plugins/omemo/device.js");
+/* harmony import */ var _converse_skeletor_src_collection__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/skeletor/src/collection */ "./node_modules/@converse/skeletor/src/collection.js");
+
+
+class Devices extends _converse_skeletor_src_collection__WEBPACK_IMPORTED_MODULE_1__.Collection {
+  constructor() {
+    super();
+    this.model = _device_js__WEBPACK_IMPORTED_MODULE_0__["default"];
+  }
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Devices);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/errors.js":
+/*!**********************************************!*\
+  !*** ./src/headless/plugins/omemo/errors.js ***!
+  \**********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   IQError: () => (/* binding */ IQError)
+/* harmony export */ });
+class IQError extends Error {
+  constructor(message, iq) {
+    super(message, iq);
+    this.name = 'IQError';
+    this.iq = iq;
+  }
+}
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/fingerprints.js":
+/*!****************************************************!*\
+  !*** ./src/headless/plugins/omemo/fingerprints.js ***!
+  \****************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Fingerprints: () => (/* binding */ Fingerprints)
+/* harmony export */ });
+/* harmony import */ var _templates_fingerprints_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./templates/fingerprints.js */ "./src/headless/plugins/omemo/templates/fingerprints.js");
+/* harmony import */ var shared_components_element_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! shared/components/element.js */ "./src/shared/components/element.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+
+
+
+class Fingerprints extends shared_components_element_js__WEBPACK_IMPORTED_MODULE_1__.CustomElement {
+  static get properties() {
+    return {
+      'jid': {
+        type: String
+      }
+    };
+  }
+  async initialize() {
+    this.devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_2__.api.omemo.devicelists.get(this.jid, true);
+    this.listenTo(this.devicelist.devices, 'change:bundle', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'change:trusted', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'remove', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'add', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'reset', () => this.requestUpdate());
+    this.requestUpdate();
+  }
+  render() {
+    return this.devicelist ? (0,_templates_fingerprints_js__WEBPACK_IMPORTED_MODULE_0__["default"])(this) : '';
+  }
+  toggleDeviceTrust(ev) {
+    const radio = ev.target;
+    const device = this.devicelist.devices.get(radio.getAttribute('name'));
+    device.save('trusted', parseInt(radio.value, 10));
+  }
+}
+_converse_headless__WEBPACK_IMPORTED_MODULE_2__.api.elements?.define('converse-omemo-fingerprints', Fingerprints);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/index.js":
+/*!*********************************************!*\
+  !*** ./src/headless/plugins/omemo/index.js ***!
+  \*********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _fingerprints_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./fingerprints.js */ "./src/headless/plugins/omemo/fingerprints.js");
+/* harmony import */ var _profile_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./profile.js */ "./src/headless/plugins/omemo/profile.js");
+/* harmony import */ var _mixins_converse_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./mixins/converse.js */ "./src/headless/plugins/omemo/mixins/converse.js");
+/* harmony import */ var _device_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./device.js */ "./src/headless/plugins/omemo/device.js");
+/* harmony import */ var _devicelist_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./devicelist.js */ "./src/headless/plugins/omemo/devicelist.js");
+/* harmony import */ var _devicelists_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./devicelists.js */ "./src/headless/plugins/omemo/devicelists.js");
+/* harmony import */ var _devices_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./devices.js */ "./src/headless/plugins/omemo/devices.js");
+/* harmony import */ var _store_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./store.js */ "./src/headless/plugins/omemo/store.js");
+/* harmony import */ var _api_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./api.js */ "./src/headless/plugins/omemo/api.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var _converse_headless_utils_session_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @converse/headless/utils/session.js */ "./src/headless/utils/session.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/omemo/utils.js");
+/**
+ * @copyright The Converse.js contributors
+ * @license Mozilla Public License (MPLv2)
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+const {
+  Strophe
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_9__.converse.env;
+_converse_headless__WEBPACK_IMPORTED_MODULE_9__.converse.env.omemo = _utils_js__WEBPACK_IMPORTED_MODULE_11__.omemo;
+Strophe.addNamespace('OMEMO_DEVICELIST', Strophe.NS.OMEMO + '.devicelist');
+Strophe.addNamespace('OMEMO_VERIFICATION', Strophe.NS.OMEMO + '.verification');
+Strophe.addNamespace('OMEMO_WHITELISTED', Strophe.NS.OMEMO + '.whitelisted');
+Strophe.addNamespace('OMEMO_BUNDLES', Strophe.NS.OMEMO + '.bundles');
+_converse_headless__WEBPACK_IMPORTED_MODULE_9__.converse.plugins.add('converse-omemo', {
+  enabled(_converse) {
+    return window.libsignal && _converse.config.get('trusted') && !_converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.settings.get('clear_cache_on_logout') && !_converse.api.settings.get('blacklisted_plugins').includes('converse-omemo');
+  },
+  dependencies: ['converse-chatview', 'converse-pubsub', 'converse-profile'],
+  initialize() {
+    console.log('converse-omemo initialize');
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.settings.extend({
+      'omemo_default': false
+    });
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.promises.add(['OMEMOInitialized']);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.NUM_PREKEYS = 100; // Set here so that tests can override
+
+    Object.assign(_converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse, _mixins_converse_js__WEBPACK_IMPORTED_MODULE_2__["default"]);
+    Object.assign(_converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.api, _api_js__WEBPACK_IMPORTED_MODULE_8__["default"]);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.OMEMOStore = _store_js__WEBPACK_IMPORTED_MODULE_7__["default"];
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.Device = _device_js__WEBPACK_IMPORTED_MODULE_3__["default"];
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.Devices = _devices_js__WEBPACK_IMPORTED_MODULE_6__["default"];
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.DeviceList = _devicelist_js__WEBPACK_IMPORTED_MODULE_4__["default"];
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.DeviceLists = _devicelists_js__WEBPACK_IMPORTED_MODULE_5__["default"];
+
+    /******************** Event Handlers ********************/
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.waitUntil('chatBoxesInitialized').then(_utils_js__WEBPACK_IMPORTED_MODULE_11__.onChatBoxesInitialized);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('getOutgoingMessageAttributes', _utils_js__WEBPACK_IMPORTED_MODULE_11__.getOutgoingMessageAttributes);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('createMessageStanza', async (chat, data) => {
+      try {
+        data = await (0,_utils_js__WEBPACK_IMPORTED_MODULE_11__.createOMEMOMessageStanza)(chat, data);
+      } catch (e) {
+        (0,_utils_js__WEBPACK_IMPORTED_MODULE_11__.handleMessageSendError)(e, chat);
+      }
+      return data;
+    });
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('afterFileUploaded', (msg, attrs) => msg.file.xep454_ivkey ? (0,_utils_js__WEBPACK_IMPORTED_MODULE_11__.setEncryptedFileURL)(msg, attrs) : attrs);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('beforeFileUpload', (chat, file) => chat.get('omemo_active') ? (0,_utils_js__WEBPACK_IMPORTED_MODULE_11__.encryptFile)(file) : file);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('parseMessage', _utils_js__WEBPACK_IMPORTED_MODULE_11__.parseEncryptedMessage);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('parseMUCMessage', _utils_js__WEBPACK_IMPORTED_MODULE_11__.parseEncryptedMessage);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('chatBoxViewInitialized', _utils_js__WEBPACK_IMPORTED_MODULE_11__.onChatInitialized);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('chatRoomViewInitialized', _utils_js__WEBPACK_IMPORTED_MODULE_11__.onChatInitialized);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('connected', _utils_js__WEBPACK_IMPORTED_MODULE_11__.registerPEPPushHandler);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('getToolbarButtons', _utils_js__WEBPACK_IMPORTED_MODULE_11__.getOMEMOToolbarButton);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('statusInitialized', _utils_js__WEBPACK_IMPORTED_MODULE_11__.initOMEMO);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('addClientFeatures', () => _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.disco.own.features.add(`${Strophe.NS.OMEMO_DEVICELIST}+notify`));
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('afterMessageBodyTransformed', _utils_js__WEBPACK_IMPORTED_MODULE_11__.handleEncryptedFiles);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('userDetailsModalInitialized', contact => {
+      const jid = contact.get('jid');
+      _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.generateFingerprints(jid).catch(e => _converse_headless__WEBPACK_IMPORTED_MODULE_9__.log.error(e));
+    });
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('profileModalInitialized', () => {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.generateFingerprints(_converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.bare_jid).catch(e => _converse_headless__WEBPACK_IMPORTED_MODULE_9__.log.error(e));
+    });
+    _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('clearSession', () => {
+      delete _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.omemo_store;
+      if ((0,_converse_headless_utils_session_js__WEBPACK_IMPORTED_MODULE_10__.shouldClearCache)() && _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.devicelists) {
+        _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.devicelists.clearStore();
+        delete _converse_headless__WEBPACK_IMPORTED_MODULE_9__._converse.devicelists;
+      }
+    });
+  }
+});
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/mixins/converse.js":
+/*!*******************************************************!*\
+  !*** ./src/headless/plugins/omemo/mixins/converse.js ***!
+  \*******************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../utils.js */ "./src/headless/plugins/omemo/utils.js");
+
+const ConverseMixins = {
+  async generateFingerprints(jid) {
+    const devices = await (0,_utils_js__WEBPACK_IMPORTED_MODULE_0__.getDevicesForContact)(jid);
+    return Promise.all(devices.map(d => (0,_utils_js__WEBPACK_IMPORTED_MODULE_0__.generateFingerprint)(d)));
+  },
+  getDeviceForContact(jid, device_id) {
+    return (0,_utils_js__WEBPACK_IMPORTED_MODULE_0__.getDevicesForContact)(jid).then(devices => devices.get(device_id));
+  },
+  async contactHasOMEMOSupport(jid) {
+    /* Checks whether the contact advertises any OMEMO-compatible devices. */
+    const devices = await (0,_utils_js__WEBPACK_IMPORTED_MODULE_0__.getDevicesForContact)(jid);
+    return devices.length > 0;
+  }
+};
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ConverseMixins);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/profile.js":
+/*!***********************************************!*\
+  !*** ./src/headless/plugins/omemo/profile.js ***!
+  \***********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Profile: () => (/* binding */ Profile)
+/* harmony export */ });
+/* harmony import */ var _templates_profile_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./templates/profile.js */ "./src/headless/plugins/omemo/templates/profile.js");
+/* harmony import */ var templates_spinner_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! templates/spinner.js */ "./src/templates/spinner.js");
+/* harmony import */ var shared_components_element_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! shared/components/element.js */ "./src/shared/components/element.js");
+/* harmony import */ var i18n__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! i18n */ "./src/i18n/index.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+
+
+
+
+
+const {
+  Strophe,
+  sizzle,
+  u
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_4__.converse.env;
+class Profile extends shared_components_element_js__WEBPACK_IMPORTED_MODULE_2__.CustomElement {
+  async initialize() {
+    this.devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_4__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_4__._converse.bare_jid, true);
+    await this.setAttributes();
+    this.listenTo(this.devicelist.devices, 'change:bundle', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'reset', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'reset', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'remove', () => this.requestUpdate());
+    this.listenTo(this.devicelist.devices, 'add', () => this.requestUpdate());
+    this.requestUpdate();
+  }
+  async setAttributes() {
+    this.device_id = await _converse_headless__WEBPACK_IMPORTED_MODULE_4__.api.omemo.getDeviceID();
+    this.current_device = this.devicelist.devices.get(this.device_id);
+    this.other_devices = this.devicelist.devices.filter(d => d.get('id') !== this.device_id);
+  }
+  render() {
+    return this.devicelist ? (0,_templates_profile_js__WEBPACK_IMPORTED_MODULE_0__["default"])(this) : (0,templates_spinner_js__WEBPACK_IMPORTED_MODULE_1__["default"])();
+  }
+  selectAll(ev) {
+    // eslint-disable-line class-methods-use-this
+    let sibling = u.ancestor(ev.target, 'li');
+    while (sibling) {
+      sibling.querySelector('input[type="checkbox"]').checked = ev.target.checked;
+      sibling = sibling.nextElementSibling;
+    }
+  }
+  async removeSelectedFingerprints(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.target.querySelector('.select-all').checked = false;
+    const device_ids = sizzle('.fingerprint-removal-item input[type="checkbox"]:checked', ev.target).map(c => c.value);
+    try {
+      await this.devicelist.removeOwnDevices(device_ids);
+    } catch (err) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_4__.log.error(err);
+      _converse_headless__WEBPACK_IMPORTED_MODULE_4__._converse.api.alert(Strophe.LogLevel.ERROR, (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Error'), [(0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Sorry, an error occurred while trying to remove the devices.')]);
+    }
+    await this.setAttributes();
+    this.requestUpdate();
+  }
+  async generateOMEMODeviceBundle(ev) {
+    ev.preventDefault();
+    const result = await _converse_headless__WEBPACK_IMPORTED_MODULE_4__.api.confirm((0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Are you sure you want to generate new OMEMO keys? ' + 'This will remove your old keys and all previously ' + 'encrypted messages will no longer be decryptable on this device.'));
+    if (result) {
+      await _converse_headless__WEBPACK_IMPORTED_MODULE_4__.api.omemo.bundle.generate();
+      await this.setAttributes();
+      this.requestUpdate();
+    }
+  }
+}
+_converse_headless__WEBPACK_IMPORTED_MODULE_4__.api.elements?.define('converse-omemo-profile', Profile);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/store.js":
+/*!*********************************************!*\
+  !*** ./src/headless/plugins/omemo/store.js ***!
+  \*********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lodash_es_range__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! lodash-es/range */ "./node_modules/lodash-es/range.js");
+/* harmony import */ var _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @converse/skeletor/src/model.js */ "./node_modules/@converse/skeletor/src/model.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/omemo/utils.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* global libsignal */
+
+
+
+
+const {
+  Strophe,
+  $build,
+  u
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_2__.converse.env;
+class OMEMOStore extends _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODULE_0__.Model {
+  get Direction() {
+    return {
+      SENDING: 1,
+      RECEIVING: 2
+    };
+  }
+  getIdentityKeyPair() {
+    const keypair = this.get('identity_keypair');
+    return Promise.resolve({
+      'privKey': u.base64ToArrayBuffer(keypair.privKey),
+      'pubKey': u.base64ToArrayBuffer(keypair.pubKey)
+    });
+  }
+  getLocalRegistrationId() {
+    return Promise.resolve(parseInt(this.get('device_id'), 10));
+  }
+  isTrustedIdentity(identifier, identity_key, direction) {
+    // eslint-disable-line no-unused-vars
+    if (identifier === null || identifier === undefined) {
+      throw new Error("Can't check identity key for invalid key");
+    }
+    if (!(identity_key instanceof ArrayBuffer)) {
+      throw new Error('Expected identity_key to be an ArrayBuffer');
+    }
+    const trusted = this.get('identity_key' + identifier);
+    if (trusted === undefined) {
+      return Promise.resolve(true);
+    }
+    return Promise.resolve(u.arrayBufferToBase64(identity_key) === trusted);
+  }
+  loadIdentityKey(identifier) {
+    if (identifier === null || identifier === undefined) {
+      throw new Error("Can't load identity_key for invalid identifier");
+    }
+    return Promise.resolve(u.base64ToArrayBuffer(this.get('identity_key' + identifier)));
+  }
+  saveIdentity(identifier, identity_key) {
+    if (identifier === null || identifier === undefined) {
+      throw new Error("Can't save identity_key for invalid identifier");
+    }
+    const address = new libsignal.SignalProtocolAddress.fromString(identifier);
+    const existing = this.get('identity_key' + address.getName());
+    const b64_idkey = u.arrayBufferToBase64(identity_key);
+    this.save('identity_key' + address.getName(), b64_idkey);
+    if (existing && b64_idkey !== existing) {
+      return Promise.resolve(true);
+    } else {
+      return Promise.resolve(false);
+    }
+  }
+  getPreKeys() {
+    return this.get('prekeys') || {};
+  }
+  loadPreKey(key_id) {
+    const res = this.getPreKeys()[key_id];
+    if (res) {
+      return Promise.resolve({
+        'privKey': u.base64ToArrayBuffer(res.privKey),
+        'pubKey': u.base64ToArrayBuffer(res.pubKey)
+      });
+    }
+    return Promise.resolve();
+  }
+  storePreKey(key_id, key_pair) {
+    const prekey = {};
+    prekey[key_id] = {
+      'pubKey': u.arrayBufferToBase64(key_pair.pubKey),
+      'privKey': u.arrayBufferToBase64(key_pair.privKey)
+    };
+    this.save('prekeys', Object.assign(this.getPreKeys(), prekey));
+    return Promise.resolve();
+  }
+  removePreKey(key_id) {
+    const prekeys = {
+      ...this.getPreKeys()
+    };
+    delete prekeys[key_id];
+    this.save('prekeys', prekeys);
+    return Promise.resolve();
+  }
+  loadSignedPreKey(keyId) {
+    // eslint-disable-line no-unused-vars
+    const res = this.get('signed_prekey');
+    if (res) {
+      return Promise.resolve({
+        'privKey': u.base64ToArrayBuffer(res.privKey),
+        'pubKey': u.base64ToArrayBuffer(res.pubKey)
+      });
+    }
+    return Promise.resolve();
+  }
+  storeSignedPreKey(spk) {
+    if (typeof spk !== 'object') {
+      // XXX: We've changed the signature of this method from the
+      // example given in InMemorySignalProtocolStore.
+      // Should be fine because the libsignal code doesn't
+      // actually call this method.
+      throw new Error('storeSignedPreKey: expected an object');
+    }
+    this.save('signed_prekey', {
+      'id': spk.keyId,
+      'privKey': u.arrayBufferToBase64(spk.keyPair.privKey),
+      'pubKey': u.arrayBufferToBase64(spk.keyPair.pubKey),
+      // XXX: The InMemorySignalProtocolStore does not pass
+      // in or store the signature, but we need it when we
+      // publish our bundle and this method isn't called from
+      // within libsignal code, so we modify it to also store
+      // the signature.
+      'signature': u.arrayBufferToBase64(spk.signature)
+    });
+    return Promise.resolve();
+  }
+  removeSignedPreKey(key_id) {
+    if (this.get('signed_prekey')['id'] === key_id) {
+      this.unset('signed_prekey');
+      this.save();
+    }
+    return Promise.resolve();
+  }
+  loadSession(identifier) {
+    return Promise.resolve(this.get('session' + identifier));
+  }
+  storeSession(identifier, record) {
+    return Promise.resolve(this.save('session' + identifier, record));
+  }
+  removeSession(identifier) {
+    return Promise.resolve(this.unset('session' + identifier));
+  }
+  removeAllSessions(identifier) {
+    const keys = Object.keys(this.attributes).filter(key => key.startsWith('session' + identifier) ? key : false);
+    const attrs = {};
+    keys.forEach(key => {
+      attrs[key] = undefined;
+    });
+    this.save(attrs);
+    return Promise.resolve();
+  }
+  publishBundle() {
+    const signed_prekey = this.get('signed_prekey');
+    const node = `${Strophe.NS.OMEMO_BUNDLES}:${this.get('device_id')}`;
+    const item = $build('item').c('bundle', {
+      'xmlns': Strophe.NS.OMEMO
+    }).c('signedPreKeyPublic', {
+      'signedPreKeyId': signed_prekey.id
+    }).t(signed_prekey.pubKey).up().c('signedPreKeySignature').t(signed_prekey.signature).up().c('identityKey').t(this.get('identity_keypair').pubKey).up().c('prekeys');
+    Object.values(this.get('prekeys')).forEach((prekey, id) => item.c('preKeyPublic', {
+      'preKeyId': id
+    }).t(prekey.pubKey).up());
+    const options = {
+      'pubsub#access_model': 'open'
+    };
+    return _converse_headless__WEBPACK_IMPORTED_MODULE_2__.api.pubsub.publish(null, node, item, options, false);
+  }
+  async generateMissingPreKeys() {
+    const prekeyIds = Object.keys(this.getPreKeys());
+    const missing_keys = (0,lodash_es_range__WEBPACK_IMPORTED_MODULE_3__["default"])(0, _converse_headless__WEBPACK_IMPORTED_MODULE_2__._converse.NUM_PREKEYS).map(id => id.toString()).filter(id => !prekeyIds.includes(id));
+    if (missing_keys.length < 1) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_2__.log.warn('No missing prekeys to generate for our own device');
+      return Promise.resolve();
+    }
+    const keys = await Promise.all(missing_keys.map(id => libsignal.KeyHelper.generatePreKey(parseInt(id, 10))));
+    keys.forEach(k => this.storePreKey(k.keyId, k.keyPair));
+    const marshalled_keys = Object.keys(this.getPreKeys()).map(k => ({
+      'id': k.keyId,
+      'key': u.arrayBufferToBase64(k.pubKey)
+    }));
+    const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_2__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_2__._converse.bare_jid);
+    const device = devicelist.devices.get(this.get('device_id'));
+    const bundle = await device.getBundle();
+    device.save('bundle', Object.assign(bundle, {
+      'prekeys': marshalled_keys
+    }));
+  }
+
+  /**
+   * Generates, stores and then returns pre-keys.
+   *
+   * Pre-keys are one half of a X3DH key exchange and are published as part
+   * of the device bundle.
+   *
+   * For a new contact or device to establish an encrypted session, it needs
+   * to use a pre-key, which it chooses randomly from the list of available
+   * ones.
+   */
+  async generatePreKeys() {
+    const amount = _converse_headless__WEBPACK_IMPORTED_MODULE_2__._converse.NUM_PREKEYS;
+    const {
+      KeyHelper
+    } = libsignal;
+    const keys = await Promise.all((0,lodash_es_range__WEBPACK_IMPORTED_MODULE_3__["default"])(0, amount).map(id => KeyHelper.generatePreKey(id)));
+    keys.forEach(k => this.storePreKey(k.keyId, k.keyPair));
+    return keys.map(k => ({
+      'id': k.keyId,
+      'key': u.arrayBufferToBase64(k.keyPair.pubKey)
+    }));
+  }
+
+  /**
+   * Generate the cryptographic data used by the X3DH key agreement protocol
+   * in order to build a session with other devices.
+   *
+   * By generating a bundle, and publishing it via PubSub, we allow other
+   * clients to download it and start asynchronous encrypted sessions with us,
+   * even if we're offline at that time.
+   */
+  async generateBundle() {
+    // The first thing that needs to happen if a client wants to
+    // start using OMEMO is they need to generate an IdentityKey
+    // and a Device ID.
+
+    // The IdentityKey is a Curve25519 public/private Key pair.
+    const identity_keypair = await libsignal.KeyHelper.generateIdentityKeyPair();
+    const identity_key = u.arrayBufferToBase64(identity_keypair.pubKey);
+
+    // The Device ID is a randomly generated integer between 1 and 2^31 - 1.
+    const device_id = await (0,_utils_js__WEBPACK_IMPORTED_MODULE_1__.generateDeviceID)();
+    this.save({
+      'device_id': device_id,
+      'identity_keypair': {
+        'privKey': u.arrayBufferToBase64(identity_keypair.privKey),
+        'pubKey': identity_key
+      },
+      'identity_key': identity_key
+    });
+    const signed_prekey = await libsignal.KeyHelper.generateSignedPreKey(identity_keypair, 0);
+    this.storeSignedPreKey(signed_prekey);
+    const prekeys = await this.generatePreKeys();
+    const bundle = {
+      identity_key,
+      device_id,
+      prekeys
+    };
+    bundle['signed_prekey'] = {
+      'id': signed_prekey.keyId,
+      'public_key': u.arrayBufferToBase64(signed_prekey.keyPair.pubKey),
+      'signature': u.arrayBufferToBase64(signed_prekey.signature)
+    };
+    const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_2__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_2__._converse.bare_jid);
+    const device = await devicelist.devices.create({
+      'id': bundle.device_id,
+      'jid': _converse_headless__WEBPACK_IMPORTED_MODULE_2__._converse.bare_jid
+    }, {
+      'promise': true
+    });
+    device.save('bundle', bundle);
+  }
+  fetchSession() {
+    if (this._setup_promise === undefined) {
+      this._setup_promise = new Promise((resolve, reject) => {
+        this.fetch({
+          'success': () => {
+            if (!this.get('device_id')) {
+              this.generateBundle().then(resolve).catch(reject);
+            } else {
+              resolve();
+            }
+          },
+          'error': (model, resp) => {
+            _converse_headless__WEBPACK_IMPORTED_MODULE_2__.log.warn("Could not fetch OMEMO session from cache, we'll generate a new one.");
+            _converse_headless__WEBPACK_IMPORTED_MODULE_2__.log.warn(resp);
+            this.generateBundle().then(resolve).catch(reject);
+          }
+        });
+      });
+    }
+    return this._setup_promise;
+  }
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (OMEMOStore);
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/templates/fingerprints.js":
+/*!**************************************************************!*\
+  !*** ./src/headless/plugins/omemo/templates/fingerprints.js ***!
+  \**************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var i18n__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! i18n */ "./src/i18n/index.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../utils.js */ "./src/headless/plugins/omemo/utils.js");
+
+
+
+const device_fingerprint = (el, device) => {
+  const i18n_trusted = (0,i18n__WEBPACK_IMPORTED_MODULE_0__.__)('Trusted');
+  const i18n_untrusted = (0,i18n__WEBPACK_IMPORTED_MODULE_0__.__)('Untrusted');
+  if (device.get('bundle') && device.get('bundle').fingerprint) {
+    return (0,lit__WEBPACK_IMPORTED_MODULE_1__.html)`
+            <li class="list-group-item">
+                <form class="fingerprint-trust">
+                    <div class="btn-group btn-group-toggle">
+                        <label class="btn btn--small ${device.get('trusted') === 1 ? 'btn-primary active' : 'btn-secondary'}"
+                                @click=${el.toggleDeviceTrust}>
+                            <input type="radio" name="${device.get('id')}" value="1"
+                                ?checked=${device.get('trusted') !== -1}>${i18n_trusted}
+                        </label>
+                        <label class="btn btn--small ${device.get('trusted') === -1 ? 'btn-primary active' : 'btn-secondary'}"
+                                @click=${el.toggleDeviceTrust}>
+                            <input type="radio" name="${device.get('id')}" value="-1"
+                                ?checked=${device.get('trusted') === -1}>${i18n_untrusted}
+                        </label>
+                    </div>
+                    <code class="fingerprint">${(0,_utils_js__WEBPACK_IMPORTED_MODULE_2__.formatFingerprint)(device.get('bundle').fingerprint)}</code>
+                </form>
+            </li>
+        `;
+  } else {
+    return '';
+  }
+};
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (el => {
+  const i18n_fingerprints = (0,i18n__WEBPACK_IMPORTED_MODULE_0__.__)('OMEMO Fingerprints');
+  const i18n_no_devices = (0,i18n__WEBPACK_IMPORTED_MODULE_0__.__)("No OMEMO-enabled devices found");
+  const devices = el.devicelist.devices;
+  return (0,lit__WEBPACK_IMPORTED_MODULE_1__.html)`
+        <hr/>
+        <ul class="list-group fingerprints">
+            <li class="list-group-item active">${i18n_fingerprints}</li>
+            ${devices.length ? devices.map(device => device_fingerprint(el, device)) : (0,lit__WEBPACK_IMPORTED_MODULE_1__.html)`<li class="list-group-item"> ${i18n_no_devices} </li>`}
+        </ul>
+    `;
+});
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/templates/profile.js":
+/*!*********************************************************!*\
+  !*** ./src/headless/plugins/omemo/templates/profile.js ***!
+  \*********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var templates_spinner_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! templates/spinner.js */ "./src/templates/spinner.js");
+/* harmony import */ var plugins_omemo_utils_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! plugins/omemo/utils.js */ "./src/plugins/omemo/utils.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var i18n__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! i18n */ "./src/i18n/index.js");
+
+
+
+
+const fingerprint = el => (0,lit__WEBPACK_IMPORTED_MODULE_2__.html)`
+    <span class="fingerprint">${(0,plugins_omemo_utils_js__WEBPACK_IMPORTED_MODULE_1__.formatFingerprint)(el.current_device.get('bundle').fingerprint)}</span>`;
+const device_with_fingerprint = el => {
+  const i18n_fingerprint_checkbox_label = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Checkbox for selecting the following fingerprint');
+  return (0,lit__WEBPACK_IMPORTED_MODULE_2__.html)`
+        <li class="fingerprint-removal-item list-group-item">
+            <label>
+            <input type="checkbox" value="${el.device.get('id')}"
+                aria-label="${i18n_fingerprint_checkbox_label}"/>
+            <span class="fingerprint">${(0,plugins_omemo_utils_js__WEBPACK_IMPORTED_MODULE_1__.formatFingerprint)(el.device.get('bundle').fingerprint)}</span>
+            </label>
+        </li>
+    `;
+};
+const device_without_fingerprint = el => {
+  const i18n_device_without_fingerprint = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Device without a fingerprint');
+  const i18n_fingerprint_checkbox_label = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Checkbox for selecting the following device');
+  return (0,lit__WEBPACK_IMPORTED_MODULE_2__.html)`
+        <li class="fingerprint-removal-item list-group-item">
+            <label>
+            <input type="checkbox" value="${el.device.get('id')}"
+                aria-label="${i18n_fingerprint_checkbox_label}"/>
+            <span>${i18n_device_without_fingerprint}</span>
+            </label>
+        </li>
+    `;
+};
+const device_item = el => (0,lit__WEBPACK_IMPORTED_MODULE_2__.html)`
+    ${el.device.get('bundle') && el.device.get('bundle').fingerprint ? device_with_fingerprint(el) : device_without_fingerprint(el)}
+`;
+const device_list = el => {
+  const i18n_other_devices = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Other OMEMO-enabled devices');
+  const i18n_other_devices_label = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Checkbox to select fingerprints of all other OMEMO devices');
+  const i18n_remove_devices = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Remove checked devices and close');
+  const i18n_select_all = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Select all');
+  return (0,lit__WEBPACK_IMPORTED_MODULE_2__.html)`
+        <ul class="list-group fingerprints">
+            <li class="list-group-item active">
+                <label>
+                    <input type="checkbox" class="select-all" @change=${el.selectAll} title="${i18n_select_all}" aria-label="${i18n_other_devices_label}"/>
+                    ${i18n_other_devices}
+                </label>
+            </li>
+            ${el.other_devices?.map(device => device_item(Object.assign({
+    device
+  }, el)))}
+        </ul>
+        <div class="form-group"><button type="submit" class="save-form btn btn-primary">${i18n_remove_devices}</button></div>
+    `;
+};
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (el => {
+  const i18n_fingerprint = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)("This device's OMEMO fingerprint");
+  const i18n_generate = (0,i18n__WEBPACK_IMPORTED_MODULE_3__.__)('Generate new keys and fingerprint');
+  return (0,lit__WEBPACK_IMPORTED_MODULE_2__.html)`
+        <form class="converse-form fingerprint-removal" @submit=${el.removeSelectedFingerprints}>
+            <ul class="list-group fingerprints">
+                <li class="list-group-item active">${i18n_fingerprint}</li>
+                <li class="list-group-item">
+                    ${el.current_device && el.current_device.get('bundle') && el.current_device.get('bundle').fingerprint ? fingerprint(el) : (0,templates_spinner_js__WEBPACK_IMPORTED_MODULE_0__["default"])()}
+                </li>
+            </ul>
+            <div class="form-group">
+                <button type="button" class="generate-bundle btn btn-danger" @click=${el.generateOMEMODeviceBundle}>${i18n_generate}</button>
+            </div>
+            ${el.other_devices?.length ? device_list(el) : ''}
+        </form>`;
+});
+
+/***/ }),
+
+/***/ "./src/headless/plugins/omemo/utils.js":
+/*!*********************************************!*\
+  !*** ./src/headless/plugins/omemo/utils.js ***!
+  \*********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   addKeysToMessageStanza: () => (/* binding */ addKeysToMessageStanza),
+/* harmony export */   createOMEMOMessageStanza: () => (/* binding */ createOMEMOMessageStanza),
+/* harmony export */   encryptFile: () => (/* binding */ encryptFile),
+/* harmony export */   formatFingerprint: () => (/* binding */ formatFingerprint),
+/* harmony export */   generateDeviceID: () => (/* binding */ generateDeviceID),
+/* harmony export */   generateFingerprint: () => (/* binding */ generateFingerprint),
+/* harmony export */   getDevicesForContact: () => (/* binding */ getDevicesForContact),
+/* harmony export */   getOMEMOToolbarButton: () => (/* binding */ getOMEMOToolbarButton),
+/* harmony export */   getOutgoingMessageAttributes: () => (/* binding */ getOutgoingMessageAttributes),
+/* harmony export */   getSession: () => (/* binding */ getSession),
+/* harmony export */   getSessionCipher: () => (/* binding */ getSessionCipher),
+/* harmony export */   handleEncryptedFiles: () => (/* binding */ handleEncryptedFiles),
+/* harmony export */   handleMessageSendError: () => (/* binding */ handleMessageSendError),
+/* harmony export */   initOMEMO: () => (/* binding */ initOMEMO),
+/* harmony export */   omemo: () => (/* binding */ omemo),
+/* harmony export */   onChatBoxesInitialized: () => (/* binding */ onChatBoxesInitialized),
+/* harmony export */   onChatInitialized: () => (/* binding */ onChatInitialized),
+/* harmony export */   parseBundle: () => (/* binding */ parseBundle),
+/* harmony export */   parseEncryptedMessage: () => (/* binding */ parseEncryptedMessage),
+/* harmony export */   registerPEPPushHandler: () => (/* binding */ registerPEPPushHandler),
+/* harmony export */   restoreOMEMOSession: () => (/* binding */ restoreOMEMOSession),
+/* harmony export */   setEncryptedFileURL: () => (/* binding */ setEncryptedFileURL)
+/* harmony export */ });
+/* harmony import */ var templates_audio_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! templates/audio.js */ "./src/templates/audio.js");
+/* harmony import */ var templates_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! templates/file.js */ "./src/templates/file.js");
+/* harmony import */ var templates_image_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! templates/image.js */ "./src/templates/image.js");
+/* harmony import */ var templates_video_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! templates/video.js */ "./src/templates/video.js");
+/* harmony import */ var _consts_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./consts.js */ "./src/headless/plugins/omemo/consts.js");
+/* harmony import */ var utils_file_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! utils/file.js */ "./src/utils/file.js");
+/* harmony import */ var i18n__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! i18n */ "./src/i18n/index.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var _converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @converse/headless/utils/storage.js */ "./src/headless/utils/storage.js");
+/* harmony import */ var _converse_headless_utils_object_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @converse/headless/utils/object.js */ "./src/headless/utils/object.js");
+/* harmony import */ var _converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! @converse/headless/utils/url.js */ "./src/headless/utils/url.js");
+/* harmony import */ var lit_directives_until_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! lit/directives/until.js */ "./node_modules/lit/directives/until.js");
+/* harmony import */ var _converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! @converse/headless/utils/arraybuffer.js */ "./src/headless/utils/arraybuffer.js");
+/* global libsignal */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const {
+  Strophe,
+  URI,
+  sizzle,
+  u
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_7__.converse.env;
+function formatFingerprint(fp) {
+  fp = fp.replace(/^05/, '');
+  for (let i = 1; i < 8; i++) {
+    const idx = i * 8 + i - 1;
+    fp = fp.slice(0, idx) + ' ' + fp.slice(idx);
+  }
+  return fp;
+}
+function handleMessageSendError(e, chat) {
+  if (e.name === 'IQError') {
+    chat.save('omemo_supported', false);
+    const err_msgs = [];
+    if (sizzle(`presence-subscription-required[xmlns="${Strophe.NS.PUBSUB_ERROR}"]`, e.iq).length) {
+      err_msgs.push((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Sorry, we're unable to send an encrypted message because %1$s " + 'requires you to be subscribed to their presence in order to see their OMEMO information', e.iq.getAttribute('from')));
+    } else if (sizzle(`remote-server-not-found[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]`, e.iq).length) {
+      err_msgs.push((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Sorry, we're unable to send an encrypted message because the remote server for %1$s could not be found", e.iq.getAttribute('from')));
+    } else {
+      err_msgs.push((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Unable to send an encrypted message due to an unexpected error.'));
+      err_msgs.push(e.iq.outerHTML);
+    }
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.alert('error', (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error'), err_msgs);
+  } else if (e.user_facing) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.alert('error', (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error'), [e.message]);
+  }
+  throw e;
+}
+function getOutgoingMessageAttributes(chat, attrs) {
+  if (chat.get('omemo_active') && attrs.body) {
+    attrs['is_encrypted'] = true;
+    attrs['plaintext'] = attrs.body;
+    attrs['body'] = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('This is an OMEMO encrypted message which your client doesn’t seem to support. ' + 'Find more information on https://conversations.im/omemo');
+  }
+  return attrs;
+}
+async function encryptMessage(plaintext) {
+  // The client MUST use fresh, randomly generated key/IV pairs
+  // with AES-128 in Galois/Counter Mode (GCM).
+
+  // For GCM a 12 byte IV is strongly suggested as other IV lengths
+  // will require additional calculations. In principle any IV size
+  // can be used as long as the IV doesn't ever repeat. NIST however
+  // suggests that only an IV size of 12 bytes needs to be supported
+  // by implementations.
+  //
+  // https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+  const iv = crypto.getRandomValues(new window.Uint8Array(12));
+  const key = await crypto.subtle.generateKey(_consts_js__WEBPACK_IMPORTED_MODULE_4__.KEY_ALGO, true, ['encrypt', 'decrypt']);
+  const algo = {
+    'name': 'AES-GCM',
+    'iv': iv,
+    'tagLength': _consts_js__WEBPACK_IMPORTED_MODULE_4__.TAG_LENGTH
+  };
+  const encrypted = await crypto.subtle.encrypt(algo, key, (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.stringToArrayBuffer)(plaintext));
+  const length = encrypted.byteLength - (128 + 7 >> 3);
+  const ciphertext = encrypted.slice(0, length);
+  const tag = encrypted.slice(length);
+  const exported_key = await crypto.subtle.exportKey('raw', key);
+  return {
+    'key': exported_key,
+    'tag': tag,
+    'key_and_tag': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.appendArrayBuffer)(exported_key, tag),
+    'payload': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToBase64)(ciphertext),
+    'iv': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToBase64)(iv)
+  };
+}
+async function decryptMessage(obj) {
+  const key_obj = await crypto.subtle.importKey('raw', obj.key, _consts_js__WEBPACK_IMPORTED_MODULE_4__.KEY_ALGO, true, ['encrypt', 'decrypt']);
+  const cipher = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.appendArrayBuffer)((0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(obj.payload), obj.tag);
+  const algo = {
+    'name': 'AES-GCM',
+    'iv': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(obj.iv),
+    'tagLength': _consts_js__WEBPACK_IMPORTED_MODULE_4__.TAG_LENGTH
+  };
+  return (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToString)(await crypto.subtle.decrypt(algo, key_obj, cipher));
+}
+async function encryptFile(file) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await crypto.subtle.generateKey({
+    name: 'AES-GCM',
+    length: 256
+  }, true, ['encrypt', 'decrypt']);
+  const encrypted = await crypto.subtle.encrypt({
+    name: 'AES-GCM',
+    iv
+  }, key, await file.arrayBuffer());
+  const exported_key = await window.crypto.subtle.exportKey('raw', key);
+  const encrypted_file = new File([encrypted], file.name, {
+    type: file.type,
+    lastModified: file.lastModified
+  });
+  encrypted_file.xep454_ivkey = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToHex)(iv) + (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToHex)(exported_key);
+  return encrypted_file;
+}
+function setEncryptedFileURL(message, attrs) {
+  const url = attrs.oob_url.replace(/^https?:/, 'aesgcm:') + '#' + message.file.xep454_ivkey;
+  return Object.assign(attrs, {
+    'oob_url': null,
+    // Since only the body gets encrypted, we don't set the oob_url
+    'message': url,
+    'body': url
+  });
+}
+async function decryptFile(iv, key, cipher) {
+  const key_obj = await crypto.subtle.importKey('raw', (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.hexToArrayBuffer)(key), 'AES-GCM', false, ['decrypt']);
+  const algo = {
+    'name': 'AES-GCM',
+    'iv': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.hexToArrayBuffer)(iv)
+  };
+  return crypto.subtle.decrypt(algo, key_obj, cipher);
+}
+async function downloadFile(url) {
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name}: Failed to download encrypted media: ${url}`);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return null;
+  }
+  if (response.status >= 200 && response.status < 400) {
+    return response.arrayBuffer();
+  }
+}
+async function getAndDecryptFile(uri) {
+  const protocol = window.location.hostname === 'localhost' && uri.domain() === 'localhost' ? 'http' : 'https';
+  const http_url = uri.toString().replace(/^aesgcm/, protocol);
+  const cipher = await downloadFile(http_url);
+  if (cipher === null) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not decrypt a received encrypted file ${uri.toString()} since it could not be downloaded`);
+    return new Error((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error: could not decrypt a received encrypted file, because it could not be downloaded'));
+  }
+  const hash = uri.hash().slice(1);
+  const key = hash.substring(hash.length - 64);
+  const iv = hash.replace(key, '');
+  let content;
+  try {
+    content = await decryptFile(iv, key, cipher);
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not decrypt file ${uri.toString()}`);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return null;
+  }
+  const [filename, extension] = uri.filename().split('.');
+  const mimetype = utils_file_js__WEBPACK_IMPORTED_MODULE_5__.MIMETYPES_MAP[extension];
+  try {
+    const file = new File([content], filename, {
+      'type': mimetype
+    });
+    return URL.createObjectURL(file);
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not decrypt file ${uri.toString()}`);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return null;
+  }
+}
+function getTemplateForObjectURL(uri, obj_url, richtext) {
+  if ((0,_converse_headless_utils_object_js__WEBPACK_IMPORTED_MODULE_10__.isError)(obj_url)) {
+    return (0,lit__WEBPACK_IMPORTED_MODULE_8__.html)`<p class="error">${obj_url.message}</p>`;
+  }
+  const file_url = uri.toString();
+  if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.isImageURL)(file_url)) {
+    return (0,templates_image_js__WEBPACK_IMPORTED_MODULE_2__["default"])({
+      'src': obj_url,
+      'onClick': richtext.onImgClick,
+      'onLoad': richtext.onImgLoad
+    });
+  } else if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.isAudioURL)(file_url)) {
+    return (0,templates_audio_js__WEBPACK_IMPORTED_MODULE_0__["default"])(obj_url);
+  } else if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.isVideoURL)(file_url)) {
+    return (0,templates_video_js__WEBPACK_IMPORTED_MODULE_3__["default"])(obj_url);
+  } else {
+    return (0,templates_file_js__WEBPACK_IMPORTED_MODULE_1__["default"])(obj_url, uri.filename());
+  }
+}
+function addEncryptedFiles(text, offset, richtext) {
+  const objs = [];
+  try {
+    const parse_options = {
+      'start': /\b(aesgcm:\/\/)/gi
+    };
+    URI.withinString(text, (url, start, end) => {
+      objs.push({
+        url,
+        start,
+        end
+      });
+      return url;
+    }, parse_options);
+  } catch (error) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.debug(error);
+    return;
+  }
+  objs.forEach(o => {
+    const uri = (0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.getURI)(text.slice(o.start, o.end));
+    const promise = getAndDecryptFile(uri).then(obj_url => getTemplateForObjectURL(uri, obj_url, richtext));
+    const template = (0,lit__WEBPACK_IMPORTED_MODULE_8__.html)`${(0,lit_directives_until_js__WEBPACK_IMPORTED_MODULE_12__.until)(promise, '')}`;
+    richtext.addTemplateResult(o.start + offset, o.end + offset, template);
+  });
+}
+function handleEncryptedFiles(richtext) {
+  if (!_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.config.get('trusted')) {
+    return;
+  }
+  richtext.addAnnotations((text, offset) => addEncryptedFiles(text, offset, richtext));
+}
+
+/**
+ * Hook handler for { @link parseMessage } and { @link parseMUCMessage }, which
+ * parses the passed in `message` stanza for OMEMO attributes and then sets
+ * them on the attrs object.
+ * @param { Element } stanza - The message stanza
+ * @param { (MUCMessageAttributes|MessageAttributes) } attrs
+ * @returns (MUCMessageAttributes|MessageAttributes)
+ */
+async function parseEncryptedMessage(stanza, attrs) {
+  if (_converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('clear_cache_on_logout') || !attrs.is_encrypted || attrs.encryption_namespace !== Strophe.NS.OMEMO) {
+    return attrs;
+  }
+  const encrypted_el = sizzle(`encrypted[xmlns="${Strophe.NS.OMEMO}"]`, stanza).pop();
+  const header = encrypted_el.querySelector('header');
+  attrs.encrypted = {
+    'device_id': header.getAttribute('sid')
+  };
+  const device_id = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo?.getDeviceID();
+  const key = device_id && sizzle(`key[rid="${device_id}"]`, encrypted_el).pop();
+  if (key) {
+    Object.assign(attrs.encrypted, {
+      'iv': header.querySelector('iv').textContent,
+      'key': key.textContent,
+      'payload': encrypted_el.querySelector('payload')?.textContent || null,
+      'prekey': ['true', '1'].includes(key.getAttribute('prekey'))
+    });
+  } else {
+    return Object.assign(attrs, {
+      'error_condition': 'not-encrypted-for-this-device',
+      'error_type': 'Decryption',
+      'is_ephemeral': true,
+      'is_error': true,
+      'type': 'error'
+    });
+  }
+  // https://xmpp.org/extensions/xep-0384.html#usecases-receiving
+  if (attrs.encrypted.prekey === true) {
+    return decryptPrekeyWhisperMessage(attrs);
+  } else {
+    return decryptWhisperMessage(attrs);
+  }
+}
+function onChatBoxesInitialized() {
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.chatboxes.on('add', chatbox => {
+    checkOMEMOSupported(chatbox);
+    if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+      chatbox.occupants.on('add', o => onOccupantAdded(chatbox, o));
+      chatbox.features.on('change', () => checkOMEMOSupported(chatbox));
+    }
+  });
+}
+function onChatInitialized(el) {
+  el.listenTo(el.model.messages, 'add', message => {
+    if (message.get('is_encrypted') && !message.get('is_error')) {
+      el.model.save('omemo_supported', true);
+    }
+  });
+  el.listenTo(el.model, 'change:omemo_supported', () => {
+    if (!el.model.get('omemo_supported') && el.model.get('omemo_active')) {
+      el.model.set('omemo_active', false);
+    } else {
+      // Manually trigger an update, setting omemo_active to
+      // false above will automatically trigger one.
+      el.querySelector('converse-chat-toolbar')?.requestUpdate();
+    }
+  });
+  el.listenTo(el.model, 'change:omemo_active', () => {
+    el.querySelector('converse-chat-toolbar').requestUpdate();
+  });
+}
+function getSessionCipher(jid, id) {
+  const address = new libsignal.SignalProtocolAddress(jid, id);
+  return new window.libsignal.SessionCipher(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store, address);
+}
+function getJIDForDecryption(attrs) {
+  const from_jid = attrs.from_muc ? attrs.from_real_jid : attrs.from;
+  if (!from_jid) {
+    Object.assign(attrs, {
+      'error_text': (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Sorry, could not decrypt a received OMEMO " + "message because we don't have the XMPP address for that user."),
+      'error_type': 'Decryption',
+      'is_ephemeral': true,
+      'is_error': true,
+      'type': 'error'
+    });
+    throw new Error("Could not find JID to decrypt OMEMO message for");
+  }
+  return from_jid;
+}
+async function handleDecryptedWhisperMessage(attrs, key_and_tag) {
+  const from_jid = getJIDForDecryption(attrs);
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(from_jid, true);
+  const encrypted = attrs.encrypted;
+  let device = devicelist.devices.get(encrypted.device_id);
+  if (!device) {
+    device = await devicelist.devices.create({
+      'id': encrypted.device_id,
+      'jid': from_jid
+    }, {
+      'promise': true
+    });
+  }
+  if (encrypted.payload) {
+    const key = key_and_tag.slice(0, 16);
+    const tag = key_and_tag.slice(16);
+    const result = await omemo.decryptMessage(Object.assign(encrypted, {
+      'key': key,
+      'tag': tag
+    }));
+    device.save('active', true);
+    return result;
+  }
+}
+function getDecryptionErrorAttributes(e) {
+  return {
+    'error_text': (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Sorry, could not decrypt a received OMEMO message due to an error.') + ` ${e.name} ${e.message}`,
+    'error_condition': e.name,
+    'error_message': e.message,
+    'error_type': 'Decryption',
+    'is_ephemeral': true,
+    'is_error': true,
+    'type': 'error'
+  };
+}
+async function decryptPrekeyWhisperMessage(attrs) {
+  const from_jid = getJIDForDecryption(attrs);
+  const session_cipher = getSessionCipher(from_jid, parseInt(attrs.encrypted.device_id, 10));
+  const key = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(attrs.encrypted.key);
+  let key_and_tag;
+  try {
+    key_and_tag = await session_cipher.decryptPreKeyWhisperMessage(key, 'binary');
+  } catch (e) {
+    // TODO from the XEP:
+    // There are various reasons why decryption of an
+    // OMEMOKeyExchange or an OMEMOAuthenticatedMessage
+    // could fail. One reason is if the message was
+    // received twice and already decrypted once, in this
+    // case the client MUST ignore the decryption failure
+    // and not show any warnings/errors. In all other cases
+    // of decryption failure, clients SHOULD respond by
+    // forcibly doing a new key exchange and sending a new
+    // OMEMOKeyExchange with a potentially empty SCE
+    // payload. By building a new session with the original
+    // sender this way, the invalid session of the original
+    // sender will get overwritten with this newly created,
+    // valid session.
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name} ${e.message}`);
+    return Object.assign(attrs, getDecryptionErrorAttributes(e));
+  }
+  // TODO from the XEP:
+  // When a client receives the first message for a given
+  // ratchet key with a counter of 53 or higher, it MUST send
+  // a heartbeat message. Heartbeat messages are normal OMEMO
+  // encrypted messages where the SCE payload does not include
+  // any elements. These heartbeat messages cause the ratchet
+  // to forward, thus consequent messages will have the
+  // counter restarted from 0.
+  try {
+    const plaintext = await handleDecryptedWhisperMessage(attrs, key_and_tag);
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.generateMissingPreKeys();
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.publishBundle();
+    if (plaintext) {
+      return Object.assign(attrs, {
+        'plaintext': plaintext
+      });
+    } else {
+      return Object.assign(attrs, {
+        'is_only_key': true
+      });
+    }
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name} ${e.message}`);
+    return Object.assign(attrs, getDecryptionErrorAttributes(e));
+  }
+}
+async function decryptWhisperMessage(attrs) {
+  const from_jid = getJIDForDecryption(attrs);
+  const session_cipher = getSessionCipher(from_jid, parseInt(attrs.encrypted.device_id, 10));
+  const key = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(attrs.encrypted.key);
+  try {
+    const key_and_tag = await session_cipher.decryptWhisperMessage(key, 'binary');
+    const plaintext = await handleDecryptedWhisperMessage(attrs, key_and_tag);
+    return Object.assign(attrs, {
+      'plaintext': plaintext
+    });
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name} ${e.message}`);
+    return Object.assign(attrs, getDecryptionErrorAttributes(e));
+  }
+}
+function addKeysToMessageStanza(stanza, dicts, iv) {
+  for (const i in dicts) {
+    if (Object.prototype.hasOwnProperty.call(dicts, i)) {
+      const payload = dicts[i].payload;
+      const device = dicts[i].device;
+      const prekey = 3 == parseInt(payload.type, 10);
+      stanza.c('key', {
+        'rid': device.get('id')
+      }).t(btoa(payload.body));
+      if (prekey) {
+        stanza.attrs({
+          'prekey': prekey
+        });
+      }
+      stanza.up();
+      if (i == dicts.length - 1) {
+        stanza.c('iv').t(iv).up().up();
+      }
+    }
+  }
+  return Promise.resolve(stanza);
+}
+
+/**
+ * Given an XML element representing a user's OMEMO bundle, parse it
+ * and return a map.
+ */
+function parseBundle(bundle_el) {
+  const signed_prekey_public_el = bundle_el.querySelector('signedPreKeyPublic');
+  const signed_prekey_signature_el = bundle_el.querySelector('signedPreKeySignature');
+  const prekeys = sizzle(`prekeys > preKeyPublic`, bundle_el).map(el => ({
+    'id': parseInt(el.getAttribute('preKeyId'), 10),
+    'key': el.textContent
+  }));
+  return {
+    'identity_key': bundle_el.querySelector('identityKey').textContent.trim(),
+    'signed_prekey': {
+      'id': parseInt(signed_prekey_public_el.getAttribute('signedPreKeyId'), 10),
+      'public_key': signed_prekey_public_el.textContent,
+      'signature': signed_prekey_signature_el.textContent
+    },
+    'prekeys': prekeys
+  };
+}
+async function generateFingerprint(device) {
+  if (device.get('bundle')?.fingerprint) {
+    return;
+  }
+  const bundle = await device.getBundle();
+  bundle['fingerprint'] = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToHex)((0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle['identity_key']));
+  device.save('bundle', bundle);
+  device.trigger('change:bundle'); // Doesn't get triggered automatically due to pass-by-reference
+}
+
+async function getDevicesForContact(jid) {
+  await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.waitUntil('OMEMOInitialized');
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(jid, true);
+  await devicelist.fetchDevices();
+  return devicelist.devices;
+}
+async function generateDeviceID() {
+  /* Generates a device ID, making sure that it's unique */
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid, true);
+  const existing_ids = devicelist.devices.pluck('id');
+  let device_id = libsignal.KeyHelper.generateRegistrationId();
+
+  // Before publishing a freshly generated device id for the first time,
+  // a device MUST check whether that device id already exists, and if so, generate a new one.
+  let i = 0;
+  while (existing_ids.includes(device_id)) {
+    device_id = libsignal.KeyHelper.generateRegistrationId();
+    i++;
+    if (i === 10) {
+      throw new Error('Unable to generate a unique device ID');
+    }
+  }
+  return device_id.toString();
+}
+async function buildSession(device) {
+  const address = new libsignal.SignalProtocolAddress(device.get('jid'), device.get('id'));
+  const sessionBuilder = new libsignal.SessionBuilder(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store, address);
+  const prekey = device.getRandomPreKey();
+  const bundle = await device.getBundle();
+  return sessionBuilder.processPreKey({
+    'registrationId': parseInt(device.get('id'), 10),
+    'identityKey': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle.identity_key),
+    'signedPreKey': {
+      'keyId': bundle.signed_prekey.id,
+      // <Number>
+      'publicKey': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle.signed_prekey.public_key),
+      'signature': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle.signed_prekey.signature)
+    },
+    'preKey': {
+      'keyId': prekey.id,
+      // <Number>
+      'publicKey': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(prekey.key)
+    }
+  });
+}
+async function getSession(device) {
+  if (!device.get('bundle')) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not build an OMEMO session for device ${device.get('id')} because we don't have its bundle`);
+    return null;
+  }
+  const address = new libsignal.SignalProtocolAddress(device.get('jid'), device.get('id'));
+  const session = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.loadSession(address.toString());
+  if (session) {
+    return session;
+  } else {
+    try {
+      const session = await buildSession(device);
+      return session;
+    } catch (e) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not build an OMEMO session for device ${device.get('id')}`);
+      _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+      return null;
+    }
+  }
+}
+async function updateBundleFromStanza(stanza) {
+  const items_el = sizzle(`items`, stanza).pop();
+  if (!items_el || !items_el.getAttribute('node').startsWith(Strophe.NS.OMEMO_BUNDLES)) {
+    return;
+  }
+  const device_id = items_el.getAttribute('node').split(':')[1];
+  const jid = stanza.getAttribute('from');
+  const bundle_el = sizzle(`item > bundle`, items_el).pop();
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(jid, true);
+  const device = devicelist.devices.get(device_id) || devicelist.devices.create({
+    'id': device_id,
+    jid
+  });
+  device.save({
+    'bundle': parseBundle(bundle_el)
+  });
+}
+async function updateDevicesFromStanza(stanza) {
+  const items_el = sizzle(`items[node="${Strophe.NS.OMEMO_DEVICELIST}"]`, stanza).pop();
+  if (!items_el) {
+    return;
+  }
+  const device_selector = `item list[xmlns="${Strophe.NS.OMEMO}"] device`;
+  const device_ids = sizzle(device_selector, items_el).map(d => d.getAttribute('id'));
+  const jid = stanza.getAttribute('from');
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(jid, true);
+  const devices = devicelist.devices;
+  const removed_ids = devices.pluck('id').filter(id => !device_ids.includes(id));
+  removed_ids.forEach(id => {
+    if (jid === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid && id === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.get('device_id')) {
+      return; // We don't set the current device as inactive
+    }
+
+    devices.get(id).save('active', false);
+  });
+  device_ids.forEach(device_id => {
+    const device = devices.get(device_id);
+    if (device) {
+      device.save('active', true);
+    } else {
+      devices.create({
+        'id': device_id,
+        'jid': jid
+      });
+    }
+  });
+  if (u.isSameBareJID(jid, _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid)) {
+    // Make sure our own device is on the list
+    // (i.e. if it was removed, add it again).
+    devicelist.publishCurrentDevice(device_ids);
+  }
+}
+function registerPEPPushHandler() {
+  // Add a handler for devices pushed from other connected clients
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.connection.get().addHandler(async message => {
+    try {
+      if (sizzle(`event[xmlns="${Strophe.NS.PUBSUB}#event"]`, message).length) {
+        await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.waitUntil('OMEMOInitialized');
+        await updateDevicesFromStanza(message);
+        await updateBundleFromStanza(message);
+      }
+    } catch (e) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e.message);
+    }
+    return true;
+  }, null, 'message', 'headline');
+}
+async function restoreOMEMOSession() {
+  if (_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store === undefined) {
+    const id = `converse.omemosession-${_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid}`;
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store = new _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.OMEMOStore({
+      id
+    });
+    (0,_converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_9__.initStorage)(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store, id);
+  }
+  await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.fetchSession();
+}
+async function fetchDeviceLists() {
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.devicelists = new _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.DeviceLists();
+  const id = `converse.devicelists-${_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid}`;
+  (0,_converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_9__.initStorage)(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.devicelists, id);
+  await new Promise(resolve => {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.devicelists.fetch({
+      'success': resolve,
+      'error': (_m, e) => {
+        _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+        resolve();
+      }
+    });
+  });
+  // Call API method to wait for our own device list to be fetched from the
+  // server or to be created. If we have no pre-existing OMEMO session, this
+  // will cause a new device and bundle to be generated and published.
+  await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid, true);
+}
+async function initOMEMO(reconnecting) {
+  if (reconnecting) {
+    return;
+  }
+  if (!_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.config.get('trusted') || _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('clear_cache_on_logout')) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.warn('Not initializing OMEMO, since this browser is not trusted or clear_cache_on_logout is set to true');
+    return;
+  }
+  try {
+    await fetchDeviceLists();
+    await restoreOMEMOSession();
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.publishBundle();
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error('Could not initialize OMEMO support');
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return;
+  }
+  /**
+   * Triggered once OMEMO support has been initialized
+   * @event _converse#OMEMOInitialized
+   * @example _converse.api.listen.on('OMEMOInitialized', () => { ... });
+   */
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.trigger('OMEMOInitialized');
+}
+async function onOccupantAdded(chatroom, occupant) {
+  if (occupant.isSelf() || !chatroom.features.get('nonanonymous') || !chatroom.features.get('membersonly')) {
+    return;
+  }
+  if (chatroom.get('omemo_active')) {
+    const supported = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.contactHasOMEMOSupport(occupant.get('jid'));
+    if (!supported) {
+      chatroom.createMessage({
+        'message': (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("%1$s doesn't appear to have a client that supports OMEMO. " + 'Encrypted chat will no longer be possible in this grouchat.', occupant.get('nick')),
+        'type': 'error'
+      });
+      chatroom.save({
+        'omemo_active': false,
+        'omemo_supported': false
+      });
+    }
+  }
+}
+async function checkOMEMOSupported(chatbox) {
+  let supported;
+  if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.waitUntil('OMEMOInitialized');
+    supported = chatbox.features.get('nonanonymous') && chatbox.features.get('membersonly');
+  } else if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.PRIVATE_CHAT_TYPE) {
+    supported = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.contactHasOMEMOSupport(chatbox.get('jid'));
+  }
+  chatbox.set('omemo_supported', supported);
+  if (supported && _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('omemo_default')) {
+    chatbox.set('omemo_active', true);
+  }
+}
+function toggleOMEMO(ev) {
+  ev.stopPropagation();
+  ev.preventDefault();
+  const toolbar_el = u.ancestor(ev.target, 'converse-chat-toolbar');
+  if (!toolbar_el.model.get('omemo_supported')) {
+    let messages;
+    if (toolbar_el.model.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+      messages = [(0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Cannot use end-to-end encryption in this groupchat, ' + 'either the groupchat has some anonymity or not all participants support OMEMO.')];
+    } else {
+      messages = [(0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Cannot use end-to-end encryption because %1$s uses a client that doesn't support OMEMO.", toolbar_el.model.contact.getDisplayName())];
+    }
+    return _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.alert('error', (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error'), messages);
+  }
+  toolbar_el.model.save({
+    'omemo_active': !toolbar_el.model.get('omemo_active')
+  });
+}
+function getOMEMOToolbarButton(toolbar_el, buttons) {
+  const model = toolbar_el.model;
+  const is_muc = model.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE;
+  let title;
+  if (model.get('omemo_supported')) {
+    const i18n_plaintext = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Messages are being sent in plaintext');
+    const i18n_encrypted = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Messages are sent encrypted');
+    title = model.get('omemo_active') ? i18n_encrypted : i18n_plaintext;
+  } else if (is_muc) {
+    title = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('This groupchat needs to be members-only and non-anonymous in ' + 'order to support OMEMO encrypted messages');
+  } else {
+    title = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('OMEMO encryption is not supported');
+  }
+  let color;
+  if (model.get('omemo_supported')) {
+    if (model.get('omemo_active')) {
+      color = is_muc ? `var(--muc-color)` : `var(--chat-toolbar-btn-color)`;
+    } else {
+      color = `var(--error-color)`;
+    }
+  } else {
+    color = `var(--muc-toolbar-btn-disabled-color)`;
+  }
+  buttons.push((0,lit__WEBPACK_IMPORTED_MODULE_8__.html)`
+        <button class="toggle-omemo" title="${title}" data-disabled=${!model.get('omemo_supported')} @click=${toggleOMEMO}>
+            <converse-icon
+                class="fa ${model.get('omemo_active') ? `fa-lock` : `fa-unlock`}"
+                path-prefix="${_converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('assets_path')}"
+                size="1em"
+                color="${color}"
+            ></converse-icon>
+        </button>
+    `);
+  return buttons;
+}
+async function getBundlesAndBuildSessions(chatbox) {
+  const no_devices_err = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Sorry, no devices found to which we can send an OMEMO encrypted message.');
+  let devices;
+  if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+    const collections = await Promise.all(chatbox.occupants.map(o => getDevicesForContact(o.get('jid'))));
+    devices = collections.reduce((a, b) => a.concat(b.models), []);
+  } else if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.PRIVATE_CHAT_TYPE) {
+    const their_devices = await getDevicesForContact(chatbox.get('jid'));
+    if (their_devices.length === 0) {
+      const err = new Error(no_devices_err);
+      err.user_facing = true;
+      throw err;
+    }
+    const own_list = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid);
+    const own_devices = own_list.devices;
+    devices = [...own_devices.models, ...their_devices.models];
+  }
+  // Filter out our own device
+  const id = _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.get('device_id');
+  devices = devices.filter(d => d.get('id') !== id);
+  // Fetch bundles if necessary
+  await Promise.all(devices.map(d => d.getBundle()));
+  const sessions = devices.filter(d => d).map(d => getSession(d));
+  await Promise.all(sessions);
+  if (sessions.includes(null)) {
+    // We couldn't build a session for certain devices.
+    devices = devices.filter(d => sessions[devices.indexOf(d)]);
+    if (devices.length === 0) {
+      const err = new Error(no_devices_err);
+      err.user_facing = true;
+      throw err;
+    }
+  }
+  return devices;
+}
+function encryptKey(key_and_tag, device) {
+  return getSessionCipher(device.get('jid'), device.get('id')).encrypt(key_and_tag).then(payload => ({
+    'payload': payload,
+    'device': device
+  }));
+}
+async function createOMEMOMessageStanza(chat, data) {
+  let {
+    stanza
+  } = data;
+  const {
+    message
+  } = data;
+  if (!message.get('is_encrypted')) {
+    return data;
+  }
+  if (!message.get('body')) {
+    throw new Error('No message body to encrypt!');
+  }
+  const devices = await getBundlesAndBuildSessions(chat);
+
+  // An encrypted header is added to the message for
+  // each device that is supposed to receive it.
+  // These headers simply contain the key that the
+  // payload message is encrypted with,
+  // and they are separately encrypted using the
+  // session corresponding to the counterpart device.
+  stanza.c('encrypted', {
+    'xmlns': Strophe.NS.OMEMO
+  }).c('header', {
+    'sid': _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.get('device_id')
+  });
+  const {
+    key_and_tag,
+    iv,
+    payload
+  } = await omemo.encryptMessage(message.get('plaintext'));
+
+  // The 16 bytes key and the GCM authentication tag (The tag
+  // SHOULD have at least 128 bit) are concatenated and for each
+  // intended recipient device, i.e. both own devices as well as
+  // devices associated with the contact, the result of this
+  // concatenation is encrypted using the corresponding
+  // long-standing SignalProtocol session.
+  const dicts = await Promise.all(devices.filter(device => device.get('trusted') != _consts_js__WEBPACK_IMPORTED_MODULE_4__.UNTRUSTED && device.get('active')).map(device => encryptKey(key_and_tag, device)));
+  stanza = await addKeysToMessageStanza(stanza, dicts, iv);
+  stanza.c('payload').t(payload).up().up();
+  stanza.c('store', {
+    'xmlns': Strophe.NS.HINTS
+  }).up();
+  stanza.c('encryption', {
+    'xmlns': Strophe.NS.EME,
+    namespace: Strophe.NS.OMEMO
+  });
+  return {
+    message,
+    stanza
+  };
+}
+const omemo = {
+  decryptMessage,
+  encryptMessage,
+  formatFingerprint
+};
+
+/***/ }),
+
+/***/ "./src/headless/plugins/ping/api.js":
+/*!******************************************!*\
+  !*** ./src/headless/plugins/ping/api.js ***!
+  \******************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _shared_converse_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/_converse.js */ "./src/headless/shared/_converse.js");
+/* harmony import */ var _shared_api_index_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../shared/api/index.js */ "./src/headless/shared/api/index.js");
+/* harmony import */ var _log_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../log.js */ "./src/headless/log.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/ping/utils.js");
+
+
+
+
+const {
+  Strophe,
+  $iq,
+  u
+} = _shared_api_index_js__WEBPACK_IMPORTED_MODULE_1__.converse.env;
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
+  /**
+   * Pings the entity represented by the passed in JID by sending an IQ stanza to it.
+   * @method api.ping
+   * @param { String } [jid] - The JID of the service to ping
+   *  If the ping is sent out to the user's bare JID and no response is received it will attempt to reconnect.
+   * @param { number } [timeout] - The amount of time in
+   *  milliseconds to wait for a response. The default is 10000;
+   * @returns { Boolean | null }
+   *  Whether the pinged entity responded with a non-error IQ stanza.
+   *  If we already know we're not connected, no ping is sent out and `null` is returned.
+   */
+  async ping(jid, timeout) {
+    if (!_shared_api_index_js__WEBPACK_IMPORTED_MODULE_1__["default"].connection.authenticated()) {
+      _log_js__WEBPACK_IMPORTED_MODULE_2__["default"].warn("Not pinging when we know we're not authenticated");
+      return null;
+    }
+
+    // XXX: We could first check here if the server advertised that it supports PING.
+    // However, some servers don't advertise while still responding to pings
+    // const feature = _converse.disco_entities[_converse.domain].features.findWhere({'var': Strophe.NS.PING});
+    (0,_utils_js__WEBPACK_IMPORTED_MODULE_3__.setLastStanzaDate)(new Date());
+    jid = jid || Strophe.getDomainFromJid(_shared_converse_js__WEBPACK_IMPORTED_MODULE_0__["default"].bare_jid);
+    const iq = $iq({
+      'type': 'get',
+      'to': jid,
+      'id': u.getUniqueId('ping')
+    }).c('ping', {
+      'xmlns': Strophe.NS.PING
+    });
+    const result = await _shared_api_index_js__WEBPACK_IMPORTED_MODULE_1__["default"].sendIQ(iq, timeout || 10000, false);
+    if (result === null) {
+      _log_js__WEBPACK_IMPORTED_MODULE_2__["default"].warn(`Timeout while pinging ${jid}`);
+      if (jid === Strophe.getDomainFromJid(_shared_converse_js__WEBPACK_IMPORTED_MODULE_0__["default"].bare_jid)) {
+        _shared_api_index_js__WEBPACK_IMPORTED_MODULE_1__["default"].connection.reconnect();
+      }
+      return false;
+    } else if (u.isErrorStanza(result)) {
+      _log_js__WEBPACK_IMPORTED_MODULE_2__["default"].error(`Error while pinging ${jid}`);
+      _log_js__WEBPACK_IMPORTED_MODULE_2__["default"].error(result);
+      return false;
+    }
+    return true;
+  }
+});
+
+/***/ }),
+
+/***/ "./src/headless/plugins/ping/index.js":
+/*!********************************************!*\
+  !*** ./src/headless/plugins/ping/index.js ***!
+  \********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/api/index.js */ "./src/headless/shared/api/index.js");
+/* harmony import */ var _api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api.js */ "./src/headless/plugins/ping/api.js");
+/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./utils.js */ "./src/headless/plugins/ping/utils.js");
+/**
+ * @description
+ * Converse.js plugin which add support for application-level pings
+ * as specified in XEP-0199 XMPP Ping.
+ * @copyright 2022, the Converse.js contributors
+ * @license Mozilla Public License (MPLv2)
+ */
+
+
+
+const {
+  Strophe
+} = _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__.converse.env;
+Strophe.addNamespace('PING', "urn:xmpp:ping");
+_shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__.converse.plugins.add('converse-ping', {
+  initialize() {
+    _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].settings.extend({
+      ping_interval: 60 //in seconds
+    });
+
+    Object.assign(_shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"], _api_js__WEBPACK_IMPORTED_MODULE_1__["default"]);
+    _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].listen.on('connected', _utils_js__WEBPACK_IMPORTED_MODULE_2__.registerHandlers);
+    _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].listen.on('reconnected', _utils_js__WEBPACK_IMPORTED_MODULE_2__.registerHandlers);
+    _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].listen.on('disconnected', _utils_js__WEBPACK_IMPORTED_MODULE_2__.unregisterIntervalHandler);
+    _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].listen.on('windowStateChanged', _utils_js__WEBPACK_IMPORTED_MODULE_2__.onWindowStateChanged);
+  }
+});
+
+/***/ }),
+
+/***/ "./src/headless/plugins/ping/utils.js":
+/*!********************************************!*\
+  !*** ./src/headless/plugins/ping/utils.js ***!
+  \********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   onEverySecond: () => (/* binding */ onEverySecond),
+/* harmony export */   onWindowStateChanged: () => (/* binding */ onWindowStateChanged),
+/* harmony export */   registerHandlers: () => (/* binding */ registerHandlers),
+/* harmony export */   registerPingHandler: () => (/* binding */ registerPingHandler),
+/* harmony export */   registerPongHandler: () => (/* binding */ registerPongHandler),
+/* harmony export */   setLastStanzaDate: () => (/* binding */ setLastStanzaDate),
+/* harmony export */   unregisterIntervalHandler: () => (/* binding */ unregisterIntervalHandler)
+/* harmony export */ });
+/* harmony import */ var _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/api/index.js */ "./src/headless/shared/api/index.js");
+/* harmony import */ var _utils_session_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../utils/session.js */ "./src/headless/utils/session.js");
+
+
+const {
+  Strophe,
+  $iq
+} = _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__.converse.env;
+let lastStanzaDate;
+function onWindowStateChanged(data) {
+  data.state === 'visible' && _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].ping(null, 5000);
+}
+function setLastStanzaDate(date) {
+  lastStanzaDate = date;
+}
+function pong(ping) {
+  lastStanzaDate = new Date();
+  const from = ping.getAttribute('from');
+  const id = ping.getAttribute('id');
+  const iq = $iq({
+    type: 'result',
+    to: from,
+    id: id
+  });
+  _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].sendIQ(iq);
+  return true;
+}
+function registerPongHandler() {
+  const connection = _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].connection.get();
+  if (connection.disco) {
+    _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].disco.own.features.add(Strophe.NS.PING);
+  }
+  return connection.addHandler(pong, Strophe.NS.PING, "iq", "get");
+}
+function registerPingHandler() {
+  _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].connection.get()?.addHandler(() => {
+    if (_shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].settings.get('ping_interval') > 0) {
+      // Handler on each stanza, saves the received date
+      // in order to ping only when needed.
+      lastStanzaDate = new Date();
+      return true;
+    }
+  });
+}
+let intervalId;
+function registerHandlers() {
+  // Wrapper so that we can spy on registerPingHandler in tests
+  registerPongHandler();
+  registerPingHandler();
+  clearInterval(intervalId);
+  intervalId = setInterval(onEverySecond, 1000);
+}
+function unregisterIntervalHandler() {
+  clearInterval(intervalId);
+}
+function onEverySecond() {
+  if ((0,_utils_session_js__WEBPACK_IMPORTED_MODULE_1__.isTestEnv)() || !_shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].connection.authenticated()) {
+    return;
+  }
+  const ping_interval = _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].settings.get('ping_interval');
+  if (ping_interval > 0) {
+    const now = new Date();
+    lastStanzaDate = lastStanzaDate ?? now;
+    if ((now - lastStanzaDate) / 1000 > ping_interval) {
+      _shared_api_index_js__WEBPACK_IMPORTED_MODULE_0__["default"].ping();
+    }
+  }
+}
+
+/***/ }),
+
 /***/ "./src/headless/plugins/pubsub.js":
 /*!****************************************!*\
   !*** ./src/headless/plugins/pubsub.js ***!
@@ -27998,7 +30198,6 @@ class XMPPStatus extends _converse_skeletor_src_model_js__WEBPACK_IMPORTED_MODUL
    * @param { string } [status_message]
    */
   async constructPresence(type) {
-
     let to = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
     let status_message = arguments.length > 2 ? arguments[2] : undefined;
     type = typeof type === 'string' ? type : this.get('status') || _shared_api_index_js__WEBPACK_IMPORTED_MODULE_1__["default"].settings.get("default_state");
@@ -29161,7 +31360,6 @@ __webpack_require__.r(__webpack_exports__);
       if (child_nodes && !Array.isArray(child_nodes)) {
         child_nodes = [child_nodes];
       }
-
       const model = _converse_js__WEBPACK_IMPORTED_MODULE_0__["default"].xmppstatus;
       const presence = await model.constructPresence(type, to, status);
       child_nodes?.map(c => c?.tree() ?? c).forEach(c => presence.cnode(c).up());
@@ -30522,17 +32720,8 @@ function setUpXMLLogging(connection) {
   lmap[strophe_js__WEBPACK_IMPORTED_MODULE_1__.Strophe.LogLevel.FATAL] = 'fatal';
   strophe_js__WEBPACK_IMPORTED_MODULE_1__.Strophe.log = (level, msg) => _log_js__WEBPACK_IMPORTED_MODULE_0__["default"].log(msg, lmap[level]);
   strophe_js__WEBPACK_IMPORTED_MODULE_1__.Strophe.error = msg => _log_js__WEBPACK_IMPORTED_MODULE_0__["default"].error(msg);
-  connection.xmlInput = body => {
-    console.trace();
-    console.log({body});
-    console.log({oH : body.outerHTML});
-    return _log_js__WEBPACK_IMPORTED_MODULE_0__["default"].debug(body.outerHTML, 'color: darkgoldenrod')
-  };
-  connection.xmlOutput = body => {
-    console.log({body});
-    console.log({oH : body.outerHTML});
-    return _log_js__WEBPACK_IMPORTED_MODULE_0__["default"].debug(body.outerHTML, 'color: darkcyan')
-  };
+  connection.xmlInput = body => _log_js__WEBPACK_IMPORTED_MODULE_0__["default"].debug(body.outerHTML, 'color: darkgoldenrod');
+  connection.xmlOutput = body => _log_js__WEBPACK_IMPORTED_MODULE_0__["default"].debug(body.outerHTML, 'color: darkcyan');
 }
 function getConnectionServiceURL() {
   if (('WebSocket' in window || 'MozWebSocket' in window) && _settings_api_js__WEBPACK_IMPORTED_MODULE_2__.settings_api.get('websocket_url')) {
@@ -32009,6 +34198,8 @@ const element = document.createElement('div');
  */
 function decodeHTMLEntities(str) {
   if (str && typeof str === 'string') {
+    //TOFIND REMOVED SANITIZER
+    // element.innerHTML = DOMPurify.sanitize(str);
     str = element.textContent;
     element.textContent = '';
   }
@@ -32054,6 +34245,7 @@ __webpack_require__.r(__webpack_exports__);
  * @license Mozilla Public License (MPLv2)
  * @description This is the core utilities module.
  */
+
 
 
 
@@ -33301,6 +35493,1176 @@ function isEncryptedFileURL(url) {
 
 /***/ }),
 
+/***/ "./src/i18n/index.js":
+/*!***************************!*\
+  !*** ./src/i18n/index.js ***!
+  \***************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   __: () => (/* binding */ __)
+/* harmony export */ });
+/* harmony import */ var jed__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jed */ "./node_modules/jed/jed.js");
+/* harmony import */ var jed__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jed__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var _converse_headless_utils_session__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @converse/headless/utils/session */ "./src/headless/utils/session.js");
+/**
+ * @module i18n
+ * @copyright 2022, the Converse.js contributors
+ * @license Mozilla Public License (MPLv2)
+ * @description This is the internationalization module
+ */
+
+
+
+const {
+  dayjs
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_1__.converse.env;
+let jed_instance;
+
+/**
+ * @private
+ * @param { string } locale
+ * @param { string[] } supported_locales
+ */
+function isConverseLocale(locale, supported_locales) {
+  return typeof locale === 'string' && supported_locales.includes(locale);
+}
+
+/**
+ * Determines which locale is supported by the user's system as well
+ * as by the relevant library (e.g. converse.js or dayjs).
+ * @private
+ * @param { string } preferred_locale
+ * @param { Function } isSupportedByLibrary - Returns a boolean indicating whether
+ *   the locale is supported.
+ * @returns { string }
+ */
+function getLocale(preferred_locale, isSupportedByLibrary) {
+  if (preferred_locale === 'en' || isSupportedByLibrary(preferred_locale)) {
+    return preferred_locale;
+  }
+  const {
+    languages
+  } = window.navigator;
+  let locale;
+  for (let i = 0; i < languages.length && !locale; i++) {
+    locale = isLocaleAvailable(languages[i], isSupportedByLibrary);
+  }
+  return locale || 'en';
+}
+
+/**
+ * Check whether the locale or sub locale (e.g. en-US, en) is supported.
+ * @private
+ * @param { String } locale - The locale to check for
+ * @param { Function } available - Returns a boolean indicating whether the locale is supported
+ */
+function isLocaleAvailable(locale, available) {
+  if (available(locale)) {
+    return locale;
+  } else {
+    var sublocale = locale.split('-')[0];
+    if (sublocale !== locale && available(sublocale)) {
+      return sublocale;
+    }
+  }
+}
+
+/**
+ * Given a locale, return the closest locale returned by dayJS
+ * @private
+ * @param { string } locale
+ */
+function getDayJSLocale(locale) {
+  const dayjs_locale = locale.toLowerCase().replace('_', '-');
+  return dayjs_locale === 'ug' ? 'ug-cn' : dayjs_locale;
+}
+
+/**
+ * Fetch the translations for the given local at the given URL.
+ * @private
+ * @returns { Jed }
+ */
+async function fetchTranslations() {
+  const {
+    api,
+    locale
+  } = _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse;
+  const dayjs_locale = getDayJSLocale(locale);
+  if (!isConverseLocale(locale, api.settings.get('locales')) || locale === 'en') {
+    return;
+  }
+  const {
+    default: data
+  } = await __webpack_require__("./src/i18n lazy recursive ^\\.\\/.*\\/LC_MESSAGES\\/converse\\.po$ referencedExports: default")(`./${locale}/LC_MESSAGES/converse.po`);
+  await __webpack_require__("./node_modules/dayjs/locale lazy recursive ^\\.\\/.*\\.js$")(`./${dayjs_locale}.js`);
+  dayjs.locale(getLocale(dayjs_locale, l => dayjs.locale(l)));
+  return new (jed__WEBPACK_IMPORTED_MODULE_0___default())(data);
+}
+
+/**
+ * @namespace i18n
+ */
+Object.assign(_converse_headless__WEBPACK_IMPORTED_MODULE_1__.i18n, {
+  /**
+   * @param { string } preferred_locale
+   * @param { string[] } available_locales
+   */
+  getLocale(preferred_locale, available_locales) {
+    return getLocale(preferred_locale, preferred => isConverseLocale(preferred, available_locales));
+  },
+  /**
+   * @param { string } str - The string to be translated
+   */
+  translate(str) {
+    if (!jed_instance) {
+      return jed__WEBPACK_IMPORTED_MODULE_0___default().sprintf.apply((jed__WEBPACK_IMPORTED_MODULE_0___default()), arguments);
+    }
+    const t = jed_instance.translate(str);
+    if (arguments.length > 1) {
+      return t.fetch.apply(t, [].slice.call(arguments, 1));
+    } else {
+      return t.fetch();
+    }
+  },
+  async initialize() {
+    if ((0,_converse_headless_utils_session__WEBPACK_IMPORTED_MODULE_2__.isTestEnv)()) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.locale = 'en';
+    } else {
+      try {
+        const preferred_locale = _converse_headless__WEBPACK_IMPORTED_MODULE_1__.api.settings.get('i18n');
+        _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.locale = _converse_headless__WEBPACK_IMPORTED_MODULE_1__.i18n.getLocale(preferred_locale, _converse_headless__WEBPACK_IMPORTED_MODULE_1__.api.settings.get('locales'));
+        jed_instance = await fetchTranslations();
+      } catch (e) {
+        _converse_headless__WEBPACK_IMPORTED_MODULE_1__.log.fatal(e.message);
+        _converse_headless__WEBPACK_IMPORTED_MODULE_1__._converse.locale = 'en';
+      }
+    }
+  },
+  __() {
+    return _converse_headless__WEBPACK_IMPORTED_MODULE_1__.i18n.translate(...arguments);
+  }
+});
+const __ = _converse_headless__WEBPACK_IMPORTED_MODULE_1__.i18n.__;
+
+/***/ }),
+
+/***/ "./src/plugins/omemo/consts.js":
+/*!*************************************!*\
+  !*** ./src/plugins/omemo/consts.js ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   KEY_ALGO: () => (/* binding */ KEY_ALGO),
+/* harmony export */   TAG_LENGTH: () => (/* binding */ TAG_LENGTH),
+/* harmony export */   TRUSTED: () => (/* binding */ TRUSTED),
+/* harmony export */   UNDECIDED: () => (/* binding */ UNDECIDED),
+/* harmony export */   UNTRUSTED: () => (/* binding */ UNTRUSTED)
+/* harmony export */ });
+const UNDECIDED = 0;
+const TRUSTED = 1;
+const UNTRUSTED = -1;
+const TAG_LENGTH = 128;
+const KEY_ALGO = {
+  'name': 'AES-GCM',
+  'length': 128
+};
+
+/***/ }),
+
+/***/ "./src/plugins/omemo/utils.js":
+/*!************************************!*\
+  !*** ./src/plugins/omemo/utils.js ***!
+  \************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   addKeysToMessageStanza: () => (/* binding */ addKeysToMessageStanza),
+/* harmony export */   createOMEMOMessageStanza: () => (/* binding */ createOMEMOMessageStanza),
+/* harmony export */   encryptFile: () => (/* binding */ encryptFile),
+/* harmony export */   formatFingerprint: () => (/* binding */ formatFingerprint),
+/* harmony export */   generateDeviceID: () => (/* binding */ generateDeviceID),
+/* harmony export */   generateFingerprint: () => (/* binding */ generateFingerprint),
+/* harmony export */   getDevicesForContact: () => (/* binding */ getDevicesForContact),
+/* harmony export */   getOMEMOToolbarButton: () => (/* binding */ getOMEMOToolbarButton),
+/* harmony export */   getOutgoingMessageAttributes: () => (/* binding */ getOutgoingMessageAttributes),
+/* harmony export */   getSession: () => (/* binding */ getSession),
+/* harmony export */   getSessionCipher: () => (/* binding */ getSessionCipher),
+/* harmony export */   handleEncryptedFiles: () => (/* binding */ handleEncryptedFiles),
+/* harmony export */   handleMessageSendError: () => (/* binding */ handleMessageSendError),
+/* harmony export */   initOMEMO: () => (/* binding */ initOMEMO),
+/* harmony export */   omemo: () => (/* binding */ omemo),
+/* harmony export */   onChatBoxesInitialized: () => (/* binding */ onChatBoxesInitialized),
+/* harmony export */   onChatInitialized: () => (/* binding */ onChatInitialized),
+/* harmony export */   parseBundle: () => (/* binding */ parseBundle),
+/* harmony export */   parseEncryptedMessage: () => (/* binding */ parseEncryptedMessage),
+/* harmony export */   registerPEPPushHandler: () => (/* binding */ registerPEPPushHandler),
+/* harmony export */   restoreOMEMOSession: () => (/* binding */ restoreOMEMOSession),
+/* harmony export */   setEncryptedFileURL: () => (/* binding */ setEncryptedFileURL)
+/* harmony export */ });
+/* harmony import */ var templates_audio_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! templates/audio.js */ "./src/templates/audio.js");
+/* harmony import */ var templates_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! templates/file.js */ "./src/templates/file.js");
+/* harmony import */ var templates_image_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! templates/image.js */ "./src/templates/image.js");
+/* harmony import */ var templates_video_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! templates/video.js */ "./src/templates/video.js");
+/* harmony import */ var _consts_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./consts.js */ "./src/plugins/omemo/consts.js");
+/* harmony import */ var utils_file_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! utils/file.js */ "./src/utils/file.js");
+/* harmony import */ var i18n__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! i18n */ "./src/i18n/index.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var _converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @converse/headless/utils/storage.js */ "./src/headless/utils/storage.js");
+/* harmony import */ var _converse_headless_utils_object_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @converse/headless/utils/object.js */ "./src/headless/utils/object.js");
+/* harmony import */ var _converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! @converse/headless/utils/url.js */ "./src/headless/utils/url.js");
+/* harmony import */ var lit_directives_until_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! lit/directives/until.js */ "./node_modules/lit/directives/until.js");
+/* harmony import */ var _converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! @converse/headless/utils/arraybuffer.js */ "./src/headless/utils/arraybuffer.js");
+/* global libsignal */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const {
+  Strophe,
+  URI,
+  sizzle,
+  u
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_7__.converse.env;
+function formatFingerprint(fp) {
+  fp = fp.replace(/^05/, '');
+  for (let i = 1; i < 8; i++) {
+    const idx = i * 8 + i - 1;
+    fp = fp.slice(0, idx) + ' ' + fp.slice(idx);
+  }
+  return fp;
+}
+function handleMessageSendError(e, chat) {
+  if (e.name === 'IQError') {
+    chat.save('omemo_supported', false);
+    const err_msgs = [];
+    if (sizzle(`presence-subscription-required[xmlns="${Strophe.NS.PUBSUB_ERROR}"]`, e.iq).length) {
+      err_msgs.push((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Sorry, we're unable to send an encrypted message because %1$s " + 'requires you to be subscribed to their presence in order to see their OMEMO information', e.iq.getAttribute('from')));
+    } else if (sizzle(`remote-server-not-found[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]`, e.iq).length) {
+      err_msgs.push((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Sorry, we're unable to send an encrypted message because the remote server for %1$s could not be found", e.iq.getAttribute('from')));
+    } else {
+      err_msgs.push((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Unable to send an encrypted message due to an unexpected error.'));
+      err_msgs.push(e.iq.outerHTML);
+    }
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.alert('error', (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error'), err_msgs);
+  } else if (e.user_facing) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.alert('error', (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error'), [e.message]);
+  }
+  throw e;
+}
+function getOutgoingMessageAttributes(chat, attrs) {
+  if (chat.get('omemo_active') && attrs.body) {
+    attrs['is_encrypted'] = true;
+    attrs['plaintext'] = attrs.body;
+    attrs['body'] = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('This is an OMEMO encrypted message which your client doesn’t seem to support. ' + 'Find more information on https://conversations.im/omemo');
+  }
+  return attrs;
+}
+async function encryptMessage(plaintext) {
+  // The client MUST use fresh, randomly generated key/IV pairs
+  // with AES-128 in Galois/Counter Mode (GCM).
+
+  // For GCM a 12 byte IV is strongly suggested as other IV lengths
+  // will require additional calculations. In principle any IV size
+  // can be used as long as the IV doesn't ever repeat. NIST however
+  // suggests that only an IV size of 12 bytes needs to be supported
+  // by implementations.
+  //
+  // https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+  const iv = crypto.getRandomValues(new window.Uint8Array(12));
+  const key = await crypto.subtle.generateKey(_consts_js__WEBPACK_IMPORTED_MODULE_4__.KEY_ALGO, true, ['encrypt', 'decrypt']);
+  const algo = {
+    'name': 'AES-GCM',
+    'iv': iv,
+    'tagLength': _consts_js__WEBPACK_IMPORTED_MODULE_4__.TAG_LENGTH
+  };
+  const encrypted = await crypto.subtle.encrypt(algo, key, (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.stringToArrayBuffer)(plaintext));
+  const length = encrypted.byteLength - (128 + 7 >> 3);
+  const ciphertext = encrypted.slice(0, length);
+  const tag = encrypted.slice(length);
+  const exported_key = await crypto.subtle.exportKey('raw', key);
+  return {
+    'key': exported_key,
+    'tag': tag,
+    'key_and_tag': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.appendArrayBuffer)(exported_key, tag),
+    'payload': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToBase64)(ciphertext),
+    'iv': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToBase64)(iv)
+  };
+}
+async function decryptMessage(obj) {
+  const key_obj = await crypto.subtle.importKey('raw', obj.key, _consts_js__WEBPACK_IMPORTED_MODULE_4__.KEY_ALGO, true, ['encrypt', 'decrypt']);
+  const cipher = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.appendArrayBuffer)((0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(obj.payload), obj.tag);
+  const algo = {
+    'name': 'AES-GCM',
+    'iv': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(obj.iv),
+    'tagLength': _consts_js__WEBPACK_IMPORTED_MODULE_4__.TAG_LENGTH
+  };
+  return (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToString)(await crypto.subtle.decrypt(algo, key_obj, cipher));
+}
+async function encryptFile(file) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await crypto.subtle.generateKey({
+    name: 'AES-GCM',
+    length: 256
+  }, true, ['encrypt', 'decrypt']);
+  const encrypted = await crypto.subtle.encrypt({
+    name: 'AES-GCM',
+    iv
+  }, key, await file.arrayBuffer());
+  const exported_key = await window.crypto.subtle.exportKey('raw', key);
+  const encrypted_file = new File([encrypted], file.name, {
+    type: file.type,
+    lastModified: file.lastModified
+  });
+  encrypted_file.xep454_ivkey = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToHex)(iv) + (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToHex)(exported_key);
+  return encrypted_file;
+}
+function setEncryptedFileURL(message, attrs) {
+  const url = attrs.oob_url.replace(/^https?:/, 'aesgcm:') + '#' + message.file.xep454_ivkey;
+  return Object.assign(attrs, {
+    'oob_url': null,
+    // Since only the body gets encrypted, we don't set the oob_url
+    'message': url,
+    'body': url
+  });
+}
+async function decryptFile(iv, key, cipher) {
+  const key_obj = await crypto.subtle.importKey('raw', (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.hexToArrayBuffer)(key), 'AES-GCM', false, ['decrypt']);
+  const algo = {
+    'name': 'AES-GCM',
+    'iv': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.hexToArrayBuffer)(iv)
+  };
+  return crypto.subtle.decrypt(algo, key_obj, cipher);
+}
+async function downloadFile(url) {
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name}: Failed to download encrypted media: ${url}`);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return null;
+  }
+  if (response.status >= 200 && response.status < 400) {
+    return response.arrayBuffer();
+  }
+}
+async function getAndDecryptFile(uri) {
+  const protocol = window.location.hostname === 'localhost' && uri.domain() === 'localhost' ? 'http' : 'https';
+  const http_url = uri.toString().replace(/^aesgcm/, protocol);
+  const cipher = await downloadFile(http_url);
+  if (cipher === null) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not decrypt a received encrypted file ${uri.toString()} since it could not be downloaded`);
+    return new Error((0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error: could not decrypt a received encrypted file, because it could not be downloaded'));
+  }
+  const hash = uri.hash().slice(1);
+  const key = hash.substring(hash.length - 64);
+  const iv = hash.replace(key, '');
+  let content;
+  try {
+    content = await decryptFile(iv, key, cipher);
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not decrypt file ${uri.toString()}`);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return null;
+  }
+  const [filename, extension] = uri.filename().split('.');
+  const mimetype = utils_file_js__WEBPACK_IMPORTED_MODULE_5__.MIMETYPES_MAP[extension];
+  try {
+    const file = new File([content], filename, {
+      'type': mimetype
+    });
+    return URL.createObjectURL(file);
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not decrypt file ${uri.toString()}`);
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return null;
+  }
+}
+function getTemplateForObjectURL(uri, obj_url, richtext) {
+  if ((0,_converse_headless_utils_object_js__WEBPACK_IMPORTED_MODULE_10__.isError)(obj_url)) {
+    return (0,lit__WEBPACK_IMPORTED_MODULE_8__.html)`<p class="error">${obj_url.message}</p>`;
+  }
+  const file_url = uri.toString();
+  if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.isImageURL)(file_url)) {
+    return (0,templates_image_js__WEBPACK_IMPORTED_MODULE_2__["default"])({
+      'src': obj_url,
+      'onClick': richtext.onImgClick,
+      'onLoad': richtext.onImgLoad
+    });
+  } else if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.isAudioURL)(file_url)) {
+    return (0,templates_audio_js__WEBPACK_IMPORTED_MODULE_0__["default"])(obj_url);
+  } else if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.isVideoURL)(file_url)) {
+    return (0,templates_video_js__WEBPACK_IMPORTED_MODULE_3__["default"])(obj_url);
+  } else {
+    return (0,templates_file_js__WEBPACK_IMPORTED_MODULE_1__["default"])(obj_url, uri.filename());
+  }
+}
+function addEncryptedFiles(text, offset, richtext) {
+  const objs = [];
+  try {
+    const parse_options = {
+      'start': /\b(aesgcm:\/\/)/gi
+    };
+    URI.withinString(text, (url, start, end) => {
+      objs.push({
+        url,
+        start,
+        end
+      });
+      return url;
+    }, parse_options);
+  } catch (error) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.debug(error);
+    return;
+  }
+  objs.forEach(o => {
+    const uri = (0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_11__.getURI)(text.slice(o.start, o.end));
+    const promise = getAndDecryptFile(uri).then(obj_url => getTemplateForObjectURL(uri, obj_url, richtext));
+    const template = (0,lit__WEBPACK_IMPORTED_MODULE_8__.html)`${(0,lit_directives_until_js__WEBPACK_IMPORTED_MODULE_12__.until)(promise, '')}`;
+    richtext.addTemplateResult(o.start + offset, o.end + offset, template);
+  });
+}
+function handleEncryptedFiles(richtext) {
+  if (!_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.config.get('trusted')) {
+    return;
+  }
+  richtext.addAnnotations((text, offset) => addEncryptedFiles(text, offset, richtext));
+}
+
+/**
+ * Hook handler for { @link parseMessage } and { @link parseMUCMessage }, which
+ * parses the passed in `message` stanza for OMEMO attributes and then sets
+ * them on the attrs object.
+ * @param { Element } stanza - The message stanza
+ * @param { (MUCMessageAttributes|MessageAttributes) } attrs
+ * @returns (MUCMessageAttributes|MessageAttributes)
+ */
+async function parseEncryptedMessage(stanza, attrs) {
+  if (_converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('clear_cache_on_logout') || !attrs.is_encrypted || attrs.encryption_namespace !== Strophe.NS.OMEMO) {
+    return attrs;
+  }
+  const encrypted_el = sizzle(`encrypted[xmlns="${Strophe.NS.OMEMO}"]`, stanza).pop();
+  const header = encrypted_el.querySelector('header');
+  attrs.encrypted = {
+    'device_id': header.getAttribute('sid')
+  };
+  const device_id = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo?.getDeviceID();
+  const key = device_id && sizzle(`key[rid="${device_id}"]`, encrypted_el).pop();
+  if (key) {
+    Object.assign(attrs.encrypted, {
+      'iv': header.querySelector('iv').textContent,
+      'key': key.textContent,
+      'payload': encrypted_el.querySelector('payload')?.textContent || null,
+      'prekey': ['true', '1'].includes(key.getAttribute('prekey'))
+    });
+  } else {
+    return Object.assign(attrs, {
+      'error_condition': 'not-encrypted-for-this-device',
+      'error_type': 'Decryption',
+      'is_ephemeral': true,
+      'is_error': true,
+      'type': 'error'
+    });
+  }
+  // https://xmpp.org/extensions/xep-0384.html#usecases-receiving
+  if (attrs.encrypted.prekey === true) {
+    return decryptPrekeyWhisperMessage(attrs);
+  } else {
+    return decryptWhisperMessage(attrs);
+  }
+}
+function onChatBoxesInitialized() {
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.chatboxes.on('add', chatbox => {
+    checkOMEMOSupported(chatbox);
+    if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+      chatbox.occupants.on('add', o => onOccupantAdded(chatbox, o));
+      chatbox.features.on('change', () => checkOMEMOSupported(chatbox));
+    }
+  });
+}
+function onChatInitialized(el) {
+  el.listenTo(el.model.messages, 'add', message => {
+    if (message.get('is_encrypted') && !message.get('is_error')) {
+      el.model.save('omemo_supported', true);
+    }
+  });
+  el.listenTo(el.model, 'change:omemo_supported', () => {
+    if (!el.model.get('omemo_supported') && el.model.get('omemo_active')) {
+      el.model.set('omemo_active', false);
+    } else {
+      // Manually trigger an update, setting omemo_active to
+      // false above will automatically trigger one.
+      el.querySelector('converse-chat-toolbar')?.requestUpdate();
+    }
+  });
+  el.listenTo(el.model, 'change:omemo_active', () => {
+    el.querySelector('converse-chat-toolbar').requestUpdate();
+  });
+}
+function getSessionCipher(jid, id) {
+  const address = new libsignal.SignalProtocolAddress(jid, id);
+  return new window.libsignal.SessionCipher(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store, address);
+}
+function getJIDForDecryption(attrs) {
+  const from_jid = attrs.from_muc ? attrs.from_real_jid : attrs.from;
+  if (!from_jid) {
+    Object.assign(attrs, {
+      'error_text': (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Sorry, could not decrypt a received OMEMO " + "message because we don't have the XMPP address for that user."),
+      'error_type': 'Decryption',
+      'is_ephemeral': true,
+      'is_error': true,
+      'type': 'error'
+    });
+    throw new Error("Could not find JID to decrypt OMEMO message for");
+  }
+  return from_jid;
+}
+async function handleDecryptedWhisperMessage(attrs, key_and_tag) {
+  const from_jid = getJIDForDecryption(attrs);
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(from_jid, true);
+  const encrypted = attrs.encrypted;
+  let device = devicelist.devices.get(encrypted.device_id);
+  if (!device) {
+    device = await devicelist.devices.create({
+      'id': encrypted.device_id,
+      'jid': from_jid
+    }, {
+      'promise': true
+    });
+  }
+  if (encrypted.payload) {
+    const key = key_and_tag.slice(0, 16);
+    const tag = key_and_tag.slice(16);
+    const result = await omemo.decryptMessage(Object.assign(encrypted, {
+      'key': key,
+      'tag': tag
+    }));
+    device.save('active', true);
+    return result;
+  }
+}
+function getDecryptionErrorAttributes(e) {
+  return {
+    'error_text': (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Sorry, could not decrypt a received OMEMO message due to an error.') + ` ${e.name} ${e.message}`,
+    'error_condition': e.name,
+    'error_message': e.message,
+    'error_type': 'Decryption',
+    'is_ephemeral': true,
+    'is_error': true,
+    'type': 'error'
+  };
+}
+async function decryptPrekeyWhisperMessage(attrs) {
+  const from_jid = getJIDForDecryption(attrs);
+  const session_cipher = getSessionCipher(from_jid, parseInt(attrs.encrypted.device_id, 10));
+  const key = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(attrs.encrypted.key);
+  let key_and_tag;
+  try {
+    key_and_tag = await session_cipher.decryptPreKeyWhisperMessage(key, 'binary');
+  } catch (e) {
+    // TODO from the XEP:
+    // There are various reasons why decryption of an
+    // OMEMOKeyExchange or an OMEMOAuthenticatedMessage
+    // could fail. One reason is if the message was
+    // received twice and already decrypted once, in this
+    // case the client MUST ignore the decryption failure
+    // and not show any warnings/errors. In all other cases
+    // of decryption failure, clients SHOULD respond by
+    // forcibly doing a new key exchange and sending a new
+    // OMEMOKeyExchange with a potentially empty SCE
+    // payload. By building a new session with the original
+    // sender this way, the invalid session of the original
+    // sender will get overwritten with this newly created,
+    // valid session.
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name} ${e.message}`);
+    return Object.assign(attrs, getDecryptionErrorAttributes(e));
+  }
+  // TODO from the XEP:
+  // When a client receives the first message for a given
+  // ratchet key with a counter of 53 or higher, it MUST send
+  // a heartbeat message. Heartbeat messages are normal OMEMO
+  // encrypted messages where the SCE payload does not include
+  // any elements. These heartbeat messages cause the ratchet
+  // to forward, thus consequent messages will have the
+  // counter restarted from 0.
+  try {
+    const plaintext = await handleDecryptedWhisperMessage(attrs, key_and_tag);
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.generateMissingPreKeys();
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.publishBundle();
+    if (plaintext) {
+      return Object.assign(attrs, {
+        'plaintext': plaintext
+      });
+    } else {
+      return Object.assign(attrs, {
+        'is_only_key': true
+      });
+    }
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name} ${e.message}`);
+    return Object.assign(attrs, getDecryptionErrorAttributes(e));
+  }
+}
+async function decryptWhisperMessage(attrs) {
+  const from_jid = getJIDForDecryption(attrs);
+  const session_cipher = getSessionCipher(from_jid, parseInt(attrs.encrypted.device_id, 10));
+  const key = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(attrs.encrypted.key);
+  try {
+    const key_and_tag = await session_cipher.decryptWhisperMessage(key, 'binary');
+    const plaintext = await handleDecryptedWhisperMessage(attrs, key_and_tag);
+    return Object.assign(attrs, {
+      'plaintext': plaintext
+    });
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`${e.name} ${e.message}`);
+    return Object.assign(attrs, getDecryptionErrorAttributes(e));
+  }
+}
+function addKeysToMessageStanza(stanza, dicts, iv) {
+  for (const i in dicts) {
+    if (Object.prototype.hasOwnProperty.call(dicts, i)) {
+      const payload = dicts[i].payload;
+      const device = dicts[i].device;
+      const prekey = 3 == parseInt(payload.type, 10);
+      stanza.c('key', {
+        'rid': device.get('id')
+      }).t(btoa(payload.body));
+      if (prekey) {
+        stanza.attrs({
+          'prekey': prekey
+        });
+      }
+      stanza.up();
+      if (i == dicts.length - 1) {
+        stanza.c('iv').t(iv).up().up();
+      }
+    }
+  }
+  return Promise.resolve(stanza);
+}
+
+/**
+ * Given an XML element representing a user's OMEMO bundle, parse it
+ * and return a map.
+ */
+function parseBundle(bundle_el) {
+  const signed_prekey_public_el = bundle_el.querySelector('signedPreKeyPublic');
+  const signed_prekey_signature_el = bundle_el.querySelector('signedPreKeySignature');
+  const prekeys = sizzle(`prekeys > preKeyPublic`, bundle_el).map(el => ({
+    'id': parseInt(el.getAttribute('preKeyId'), 10),
+    'key': el.textContent
+  }));
+  return {
+    'identity_key': bundle_el.querySelector('identityKey').textContent.trim(),
+    'signed_prekey': {
+      'id': parseInt(signed_prekey_public_el.getAttribute('signedPreKeyId'), 10),
+      'public_key': signed_prekey_public_el.textContent,
+      'signature': signed_prekey_signature_el.textContent
+    },
+    'prekeys': prekeys
+  };
+}
+async function generateFingerprint(device) {
+  if (device.get('bundle')?.fingerprint) {
+    return;
+  }
+  const bundle = await device.getBundle();
+  bundle['fingerprint'] = (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.arrayBufferToHex)((0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle['identity_key']));
+  device.save('bundle', bundle);
+  device.trigger('change:bundle'); // Doesn't get triggered automatically due to pass-by-reference
+}
+
+async function getDevicesForContact(jid) {
+  await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.waitUntil('OMEMOInitialized');
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(jid, true);
+  await devicelist.fetchDevices();
+  return devicelist.devices;
+}
+async function generateDeviceID() {
+  /* Generates a device ID, making sure that it's unique */
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid, true);
+  const existing_ids = devicelist.devices.pluck('id');
+  let device_id = libsignal.KeyHelper.generateRegistrationId();
+
+  // Before publishing a freshly generated device id for the first time,
+  // a device MUST check whether that device id already exists, and if so, generate a new one.
+  let i = 0;
+  while (existing_ids.includes(device_id)) {
+    device_id = libsignal.KeyHelper.generateRegistrationId();
+    i++;
+    if (i === 10) {
+      throw new Error('Unable to generate a unique device ID');
+    }
+  }
+  return device_id.toString();
+}
+async function buildSession(device) {
+  const address = new libsignal.SignalProtocolAddress(device.get('jid'), device.get('id'));
+  const sessionBuilder = new libsignal.SessionBuilder(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store, address);
+  const prekey = device.getRandomPreKey();
+  const bundle = await device.getBundle();
+  return sessionBuilder.processPreKey({
+    'registrationId': parseInt(device.get('id'), 10),
+    'identityKey': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle.identity_key),
+    'signedPreKey': {
+      'keyId': bundle.signed_prekey.id,
+      // <Number>
+      'publicKey': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle.signed_prekey.public_key),
+      'signature': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(bundle.signed_prekey.signature)
+    },
+    'preKey': {
+      'keyId': prekey.id,
+      // <Number>
+      'publicKey': (0,_converse_headless_utils_arraybuffer_js__WEBPACK_IMPORTED_MODULE_13__.base64ToArrayBuffer)(prekey.key)
+    }
+  });
+}
+async function getSession(device) {
+  if (!device.get('bundle')) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not build an OMEMO session for device ${device.get('id')} because we don't have its bundle`);
+    return null;
+  }
+  const address = new libsignal.SignalProtocolAddress(device.get('jid'), device.get('id'));
+  const session = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.loadSession(address.toString());
+  if (session) {
+    return session;
+  } else {
+    try {
+      const session = await buildSession(device);
+      return session;
+    } catch (e) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(`Could not build an OMEMO session for device ${device.get('id')}`);
+      _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+      return null;
+    }
+  }
+}
+async function updateBundleFromStanza(stanza) {
+  const items_el = sizzle(`items`, stanza).pop();
+  if (!items_el || !items_el.getAttribute('node').startsWith(Strophe.NS.OMEMO_BUNDLES)) {
+    return;
+  }
+  const device_id = items_el.getAttribute('node').split(':')[1];
+  const jid = stanza.getAttribute('from');
+  const bundle_el = sizzle(`item > bundle`, items_el).pop();
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(jid, true);
+  const device = devicelist.devices.get(device_id) || devicelist.devices.create({
+    'id': device_id,
+    jid
+  });
+  device.save({
+    'bundle': parseBundle(bundle_el)
+  });
+}
+async function updateDevicesFromStanza(stanza) {
+  const items_el = sizzle(`items[node="${Strophe.NS.OMEMO_DEVICELIST}"]`, stanza).pop();
+  if (!items_el) {
+    return;
+  }
+  const device_selector = `item list[xmlns="${Strophe.NS.OMEMO}"] device`;
+  const device_ids = sizzle(device_selector, items_el).map(d => d.getAttribute('id'));
+  const jid = stanza.getAttribute('from');
+  const devicelist = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(jid, true);
+  const devices = devicelist.devices;
+  const removed_ids = devices.pluck('id').filter(id => !device_ids.includes(id));
+  removed_ids.forEach(id => {
+    if (jid === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid && id === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.get('device_id')) {
+      return; // We don't set the current device as inactive
+    }
+
+    devices.get(id).save('active', false);
+  });
+  device_ids.forEach(device_id => {
+    const device = devices.get(device_id);
+    if (device) {
+      device.save('active', true);
+    } else {
+      devices.create({
+        'id': device_id,
+        'jid': jid
+      });
+    }
+  });
+  if (u.isSameBareJID(jid, _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid)) {
+    // Make sure our own device is on the list
+    // (i.e. if it was removed, add it again).
+    devicelist.publishCurrentDevice(device_ids);
+  }
+}
+function registerPEPPushHandler() {
+  // Add a handler for devices pushed from other connected clients
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.connection.get().addHandler(async message => {
+    try {
+      if (sizzle(`event[xmlns="${Strophe.NS.PUBSUB}#event"]`, message).length) {
+        await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.waitUntil('OMEMOInitialized');
+        await updateDevicesFromStanza(message);
+        await updateBundleFromStanza(message);
+      }
+    } catch (e) {
+      _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e.message);
+    }
+    return true;
+  }, null, 'message', 'headline');
+}
+async function restoreOMEMOSession() {
+  if (_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store === undefined) {
+    const id = `converse.omemosession-${_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid}`;
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store = new _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.OMEMOStore({
+      id
+    });
+    (0,_converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_9__.initStorage)(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store, id);
+  }
+  await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.fetchSession();
+}
+async function fetchDeviceLists() {
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.devicelists = new _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.DeviceLists();
+  const id = `converse.devicelists-${_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid}`;
+  (0,_converse_headless_utils_storage_js__WEBPACK_IMPORTED_MODULE_9__.initStorage)(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.devicelists, id);
+  await new Promise(resolve => {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.devicelists.fetch({
+      'success': resolve,
+      'error': (_m, e) => {
+        _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+        resolve();
+      }
+    });
+  });
+  // Call API method to wait for our own device list to be fetched from the
+  // server or to be created. If we have no pre-existing OMEMO session, this
+  // will cause a new device and bundle to be generated and published.
+  await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid, true);
+}
+async function initOMEMO(reconnecting) {
+  if (reconnecting) {
+    return;
+  }
+  if (!_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.config.get('trusted') || _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('clear_cache_on_logout')) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.warn('Not initializing OMEMO, since this browser is not trusted or clear_cache_on_logout is set to true');
+    return;
+  }
+  try {
+    await fetchDeviceLists();
+    await restoreOMEMOSession();
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.publishBundle();
+  } catch (e) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error('Could not initialize OMEMO support');
+    _converse_headless__WEBPACK_IMPORTED_MODULE_7__.log.error(e);
+    return;
+  }
+  /**
+   * Triggered once OMEMO support has been initialized
+   * @event _converse#OMEMOInitialized
+   * @example _converse.api.listen.on('OMEMOInitialized', () => { ... });
+   */
+  _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.trigger('OMEMOInitialized');
+}
+async function onOccupantAdded(chatroom, occupant) {
+  if (occupant.isSelf() || !chatroom.features.get('nonanonymous') || !chatroom.features.get('membersonly')) {
+    return;
+  }
+  if (chatroom.get('omemo_active')) {
+    const supported = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.contactHasOMEMOSupport(occupant.get('jid'));
+    if (!supported) {
+      chatroom.createMessage({
+        'message': (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("%1$s doesn't appear to have a client that supports OMEMO. " + 'Encrypted chat will no longer be possible in this grouchat.', occupant.get('nick')),
+        'type': 'error'
+      });
+      chatroom.save({
+        'omemo_active': false,
+        'omemo_supported': false
+      });
+    }
+  }
+}
+async function checkOMEMOSupported(chatbox) {
+  let supported;
+  if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+    await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.waitUntil('OMEMOInitialized');
+    supported = chatbox.features.get('nonanonymous') && chatbox.features.get('membersonly');
+  } else if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.PRIVATE_CHAT_TYPE) {
+    supported = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.contactHasOMEMOSupport(chatbox.get('jid'));
+  }
+  chatbox.set('omemo_supported', supported);
+  if (supported && _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('omemo_default')) {
+    chatbox.set('omemo_active', true);
+  }
+}
+function toggleOMEMO(ev) {
+  ev.stopPropagation();
+  ev.preventDefault();
+  const toolbar_el = u.ancestor(ev.target, 'converse-chat-toolbar');
+  if (!toolbar_el.model.get('omemo_supported')) {
+    let messages;
+    if (toolbar_el.model.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+      messages = [(0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Cannot use end-to-end encryption in this groupchat, ' + 'either the groupchat has some anonymity or not all participants support OMEMO.')];
+    } else {
+      messages = [(0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)("Cannot use end-to-end encryption because %1$s uses a client that doesn't support OMEMO.", toolbar_el.model.contact.getDisplayName())];
+    }
+    return _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.alert('error', (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Error'), messages);
+  }
+  toolbar_el.model.save({
+    'omemo_active': !toolbar_el.model.get('omemo_active')
+  });
+}
+function getOMEMOToolbarButton(toolbar_el, buttons) {
+  const model = toolbar_el.model;
+  const is_muc = model.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE;
+  let title;
+  if (model.get('omemo_supported')) {
+    const i18n_plaintext = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Messages are being sent in plaintext');
+    const i18n_encrypted = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Messages are sent encrypted');
+    title = model.get('omemo_active') ? i18n_encrypted : i18n_plaintext;
+  } else if (is_muc) {
+    title = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('This groupchat needs to be members-only and non-anonymous in ' + 'order to support OMEMO encrypted messages');
+  } else {
+    title = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('OMEMO encryption is not supported');
+  }
+  let color;
+  if (model.get('omemo_supported')) {
+    if (model.get('omemo_active')) {
+      color = is_muc ? `var(--muc-color)` : `var(--chat-toolbar-btn-color)`;
+    } else {
+      color = `var(--error-color)`;
+    }
+  } else {
+    color = `var(--muc-toolbar-btn-disabled-color)`;
+  }
+  buttons.push((0,lit__WEBPACK_IMPORTED_MODULE_8__.html)`
+        <button class="toggle-omemo" title="${title}" data-disabled=${!model.get('omemo_supported')} @click=${toggleOMEMO}>
+            <converse-icon
+                class="fa ${model.get('omemo_active') ? `fa-lock` : `fa-unlock`}"
+                path-prefix="${_converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.settings.get('assets_path')}"
+                size="1em"
+                color="${color}"
+            ></converse-icon>
+        </button>
+    `);
+  return buttons;
+}
+async function getBundlesAndBuildSessions(chatbox) {
+  const no_devices_err = (0,i18n__WEBPACK_IMPORTED_MODULE_6__.__)('Sorry, no devices found to which we can send an OMEMO encrypted message.');
+  let devices;
+  if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.CHATROOMS_TYPE) {
+    const collections = await Promise.all(chatbox.occupants.map(o => getDevicesForContact(o.get('jid'))));
+    devices = collections.reduce((a, b) => a.concat(b.models), []);
+  } else if (chatbox.get('type') === _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.PRIVATE_CHAT_TYPE) {
+    const their_devices = await getDevicesForContact(chatbox.get('jid'));
+    if (their_devices.length === 0) {
+      const err = new Error(no_devices_err);
+      err.user_facing = true;
+      throw err;
+    }
+    const own_list = await _converse_headless__WEBPACK_IMPORTED_MODULE_7__.api.omemo.devicelists.get(_converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.bare_jid);
+    const own_devices = own_list.devices;
+    devices = [...own_devices.models, ...their_devices.models];
+  }
+  // Filter out our own device
+  const id = _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.get('device_id');
+  devices = devices.filter(d => d.get('id') !== id);
+  // Fetch bundles if necessary
+  await Promise.all(devices.map(d => d.getBundle()));
+  const sessions = devices.filter(d => d).map(d => getSession(d));
+  await Promise.all(sessions);
+  if (sessions.includes(null)) {
+    // We couldn't build a session for certain devices.
+    devices = devices.filter(d => sessions[devices.indexOf(d)]);
+    if (devices.length === 0) {
+      const err = new Error(no_devices_err);
+      err.user_facing = true;
+      throw err;
+    }
+  }
+  return devices;
+}
+function encryptKey(key_and_tag, device) {
+  return getSessionCipher(device.get('jid'), device.get('id')).encrypt(key_and_tag).then(payload => ({
+    'payload': payload,
+    'device': device
+  }));
+}
+async function createOMEMOMessageStanza(chat, data) {
+  let {
+    stanza
+  } = data;
+  const {
+    message
+  } = data;
+  if (!message.get('is_encrypted')) {
+    return data;
+  }
+  if (!message.get('body')) {
+    throw new Error('No message body to encrypt!');
+  }
+  const devices = await getBundlesAndBuildSessions(chat);
+
+  // An encrypted header is added to the message for
+  // each device that is supposed to receive it.
+  // These headers simply contain the key that the
+  // payload message is encrypted with,
+  // and they are separately encrypted using the
+  // session corresponding to the counterpart device.
+  stanza.c('encrypted', {
+    'xmlns': Strophe.NS.OMEMO
+  }).c('header', {
+    'sid': _converse_headless__WEBPACK_IMPORTED_MODULE_7__._converse.omemo_store.get('device_id')
+  });
+  const {
+    key_and_tag,
+    iv,
+    payload
+  } = await omemo.encryptMessage(message.get('plaintext'));
+
+  // The 16 bytes key and the GCM authentication tag (The tag
+  // SHOULD have at least 128 bit) are concatenated and for each
+  // intended recipient device, i.e. both own devices as well as
+  // devices associated with the contact, the result of this
+  // concatenation is encrypted using the corresponding
+  // long-standing SignalProtocol session.
+  const dicts = await Promise.all(devices.filter(device => device.get('trusted') != _consts_js__WEBPACK_IMPORTED_MODULE_4__.UNTRUSTED && device.get('active')).map(device => encryptKey(key_and_tag, device)));
+  stanza = await addKeysToMessageStanza(stanza, dicts, iv);
+  stanza.c('payload').t(payload).up().up();
+  stanza.c('store', {
+    'xmlns': Strophe.NS.HINTS
+  }).up();
+  stanza.c('encryption', {
+    'xmlns': Strophe.NS.EME,
+    namespace: Strophe.NS.OMEMO
+  });
+  return {
+    message,
+    stanza
+  };
+}
+const omemo = {
+  decryptMessage,
+  encryptMessage,
+  formatFingerprint
+};
+
+/***/ }),
+
+/***/ "./src/shared/components/element.js":
+/*!******************************************!*\
+  !*** ./src/shared/components/element.js ***!
+  \******************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   CustomElement: () => (/* binding */ CustomElement)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var _converse_skeletor_src_events_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/skeletor/src/events.js */ "./node_modules/@converse/skeletor/src/events.js");
+
+
+class CustomElement extends lit__WEBPACK_IMPORTED_MODULE_0__.LitElement {
+  createRenderRoot() {
+    // Render without the shadow DOM
+    return this;
+  }
+  initialize() {
+    return null;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    return this.initialize();
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopListening();
+  }
+}
+Object.assign(CustomElement.prototype, _converse_skeletor_src_events_js__WEBPACK_IMPORTED_MODULE_1__.Events);
+
+/***/ }),
+
+/***/ "./src/shared/directives/image.js":
+/*!****************************************!*\
+  !*** ./src/shared/directives/image.js ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   renderImage: () => (/* binding */ renderImage)
+/* harmony export */ });
+/* harmony import */ var lit_async_directive_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit/async-directive.js */ "./node_modules/lit/async-directive.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var lit_directive_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! lit/directive.js */ "./node_modules/lit/directive.js");
+/* harmony import */ var utils_html_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! utils/html.js */ "./src/utils/html.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var _converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @converse/headless/utils/url.js */ "./src/headless/utils/url.js");
+
+
+
+
+
+
+const {
+  URI
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_1__.converse.env;
+class ImageDirective extends lit_async_directive_js__WEBPACK_IMPORTED_MODULE_0__.AsyncDirective {
+  render(src, href, onLoad, onClick) {
+    return href ? (0,lit__WEBPACK_IMPORTED_MODULE_4__.html)`<a href="${href}" class="chat-image__link" target="_blank" rel="noopener">${this.renderImage(src, href, onLoad, onClick)}</a>` : this.renderImage(src, href, onLoad, onClick);
+  }
+  renderImage(src, href, onLoad, onClick) {
+    return (0,lit__WEBPACK_IMPORTED_MODULE_4__.html)`<img class="chat-image img-thumbnail"
+                loading="lazy"
+                src="${src}"
+                @click=${onClick}
+                @error=${() => this.onError(src, href, onLoad, onClick)}
+                @load=${onLoad}/></a>`;
+  }
+  onError(src, href, onLoad, onClick) {
+    if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_5__.isURLWithImageExtension)(src)) {
+      href && this.setValue((0,utils_html_js__WEBPACK_IMPORTED_MODULE_3__.getHyperlinkTemplate)(href));
+    } else {
+      // Before giving up and falling back to just rendering a hyperlink,
+      // we attach `.png` and try one more time.
+      // This works with some Imgur URLs
+      const uri = new URI(src);
+      const filename = uri.filename();
+      uri.filename(`${filename}.png`);
+      this.setValue(renderImage(uri.toString(), href, onLoad, onClick));
+    }
+  }
+}
+
+/**
+ * lit directive which attempts to render an <img> element from a URL.
+ * It will fall back to rendering an <a> element if it can't.
+ *
+ * @param { String } src - The value that will be assigned to the `src` attribute of the `<img>` element.
+ * @param { String } href - The value that will be assigned to the `href` attribute of the `<img>` element.
+ * @param { Function } onLoad - A callback function to be called once the image has loaded.
+ * @param { Function } onClick - A callback function to be called once the image has been clicked.
+ */
+const renderImage = (0,lit_directive_js__WEBPACK_IMPORTED_MODULE_2__.directive)(ImageDirective);
+
+/***/ }),
+
 /***/ "./src/strophe-shims.js":
 /*!******************************!*\
   !*** ./src/strophe-shims.js ***!
@@ -33317,9 +36679,1082 @@ __webpack_require__.r(__webpack_exports__);
 const WebSocket = window.WebSocket;
 const DOMParser = window.DOMParser;
 function getDummyXMLDOMDocument() {
-  let dummyDoc =  document.implementation.createDocument('jabber:client', 'strophe', null);
-  return dummyDoc
+  return document.implementation.createDocument('jabber:client', 'strophe', null);
 }
+
+/***/ }),
+
+/***/ "./src/templates/audio.js":
+/*!********************************!*\
+  !*** ./src/templates/audio.js ***!
+  \********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((url, hide_url) => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<audio controls src="${url}"></audio>${hide_url ? '' : (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
+
+/***/ }),
+
+/***/ "./src/templates/file.js":
+/*!*******************************!*\
+  !*** ./src/templates/file.js ***!
+  \*******************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var i18n__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! i18n */ "./src/i18n/index.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((url, name) => {
+  const i18n_download = (0,i18n__WEBPACK_IMPORTED_MODULE_0__.__)('Download file "%1$s"', name);
+  return (0,lit__WEBPACK_IMPORTED_MODULE_1__.html)`<a target="_blank" rel="noopener" href="${url}">${i18n_download}</a>`;
+});
+
+/***/ }),
+
+/***/ "./src/templates/form_captcha.js":
+/*!***************************************!*\
+  !*** ./src/templates/form_captcha.js ***!
+  \***************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+    <fieldset class="form-group">
+        ${o.label ? (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<label>${o.label}</label>` : ''}
+        <img src="data:${o.type};base64,${o.data}">
+        <input name="${o.name}" type="text" ?required="${o.required}" />
+    </fieldset>
+`);
+
+/***/ }),
+
+/***/ "./src/templates/form_checkbox.js":
+/*!****************************************!*\
+  !*** ./src/templates/form_checkbox.js ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+    <fieldset class="form-group">
+        <input id="${o.id}" name="${o.name}" type="checkbox" ?checked=${o.checked} ?required=${o.required} />
+        <label class="form-check-label" for="${o.id}">${o.label}</label>
+    </fieldset>`);
+
+/***/ }),
+
+/***/ "./src/templates/form_help.js":
+/*!************************************!*\
+  !*** ./src/templates/form_help.js ***!
+  \************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<p class="form-help">${o.text}</p>`);
+
+/***/ }),
+
+/***/ "./src/templates/form_input.js":
+/*!*************************************!*\
+  !*** ./src/templates/form_input.js ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+    <div class="form-group">
+        ${o.type !== 'hidden' ? (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<label for="${o.id}">${o.label}</label>` : ''}
+
+        <!-- This is a hack to prevent Chrome from auto-filling the username in
+             any of the other input fields in the MUC configuration form. -->
+        ${o.type === 'password' && o.fixed_username ? (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+            <input class="hidden-username" type="text" autocomplete="username" value="${o.fixed_username}"></input>
+        ` : ''}
+
+        <input
+            autocomplete="${o.autocomplete || ''}"
+            class="form-control"
+            id="${o.id}"
+            name="${o.name}"
+            placeholder="${o.placeholder || ''}"
+            type="${o.type}"
+            value="${o.value || ''}"
+            ?required=${o.required} />
+    </div>`);
+
+/***/ }),
+
+/***/ "./src/templates/form_select.js":
+/*!**************************************!*\
+  !*** ./src/templates/form_select.js ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+const tplOption = o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<option value="${o.value}" ?selected="${o.selected}">${o.label}</option>`;
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+    <div class="form-group">
+        <label for="${o.id}">${o.label}</label>
+        <select class="form-control" id="${o.id}" name="${o.name}" ?multiple="${o.multiple}">
+            ${o.options?.map(o => tplOption(o))}
+        </select>
+    </div>`);
+
+/***/ }),
+
+/***/ "./src/templates/form_textarea.js":
+/*!****************************************!*\
+  !*** ./src/templates/form_textarea.js ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var _converse_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @converse/headless/utils/index.js */ "./src/headless/utils/index.js");
+
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => {
+  const id = _converse_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_1__["default"].getUniqueId();
+  return (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+        <div class="form-group">
+            <label class="label-ta" for="${id}">${o.label}</label>
+            <textarea name="${o.name}" id="${id}" class="form-control">${o.value}</textarea>
+        </div>
+    `;
+});
+
+/***/ }),
+
+/***/ "./src/templates/form_url.js":
+/*!***********************************!*\
+  !*** ./src/templates/form_url.js ***!
+  \***********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+    <label>${o.label}
+        <a class="form-url" target="_blank" rel="noopener" href="${o.value}">${o.value}</a>
+    </label>`);
+
+/***/ }),
+
+/***/ "./src/templates/form_username.js":
+/*!****************************************!*\
+  !*** ./src/templates/form_username.js ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`
+    <div class="form-group">
+        ${o.label ? (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<label>${o.label}</label>` : ''}
+        <div class="input-group">
+                <input name="${o.name}"
+                       class="form-control"
+                       type="${o.type}"
+                       value="${o.value || ''}"
+                       ?required="${o.required}" />
+            <div class="input-group-append">
+                <div class="input-group-text" title="${o.domain}">${o.domain}</div>
+            </div>
+        </div>
+    </div>`);
+
+/***/ }),
+
+/***/ "./src/templates/hyperlink.js":
+/*!************************************!*\
+  !*** ./src/templates/hyperlink.js ***!
+  \************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+
+function onClickXMPPURI(ev) {
+  ev.preventDefault();
+  _converse_headless__WEBPACK_IMPORTED_MODULE_0__.api.rooms.open(ev.target.href);
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((uri, url_text) => {
+  let href_text = uri.normalizePath().toString();
+  if (!uri._parts.protocol && !url_text.startsWith('http://') && !url_text.startsWith('https://')) {
+    href_text = 'http://' + href_text;
+  }
+  if (uri._parts.protocol === 'xmpp' && uri._parts.query === 'join') {
+    return (0,lit__WEBPACK_IMPORTED_MODULE_1__.html)`
+            <a target="_blank"
+               rel="noopener"
+               @click=${onClickXMPPURI}
+               href="${href_text}">${url_text}</a>`;
+  }
+  return (0,lit__WEBPACK_IMPORTED_MODULE_1__.html)`<a target="_blank" rel="noopener" href="${href_text}">${url_text}</a>`;
+});
+
+/***/ }),
+
+/***/ "./src/templates/image.js":
+/*!********************************!*\
+  !*** ./src/templates/image.js ***!
+  \********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/* harmony import */ var shared_directives_image_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! shared/directives/image.js */ "./src/shared/directives/image.js");
+
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (o => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`${(0,shared_directives_image_js__WEBPACK_IMPORTED_MODULE_1__.renderImage)(o.src || o.url, o.href, o.onLoad, o.onClick)}`);
+
+/***/ }),
+
+/***/ "./src/templates/spinner.js":
+/*!**********************************!*\
+  !*** ./src/templates/spinner.js ***!
+  \**********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (function () {
+  let o = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  if (o.classes?.includes('hor_centered')) {
+    return (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<div class="spinner__container"><converse-icon size="1em" class="fa fa-spinner spinner centered ${o.classes || ''}"></converse-icon></div>`;
+  } else {
+    return (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<converse-icon size="1em" class="fa fa-spinner spinner centered ${o.classes || ''}"></converse-icon>`;
+  }
+});
+
+/***/ }),
+
+/***/ "./src/templates/video.js":
+/*!********************************!*\
+  !*** ./src/templates/video.js ***!
+  \********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((url, hide_url) => (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<video controls preload="metadata" src="${url}"></video>${hide_url ? '' : (0,lit__WEBPACK_IMPORTED_MODULE_0__.html)`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
+
+/***/ }),
+
+/***/ "./src/utils/file.js":
+/*!***************************!*\
+  !*** ./src/utils/file.js ***!
+  \***************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   MIMETYPES_MAP: () => (/* binding */ MIMETYPES_MAP)
+/* harmony export */ });
+const MIMETYPES_MAP = {
+  'aac': 'audio/aac',
+  'abw': 'application/x-abiword',
+  'arc': 'application/x-freearc',
+  'avi': 'video/x-msvideo',
+  'azw': 'application/vnd.amazon.ebook',
+  'bin': 'application/octet-stream',
+  'bmp': 'image/bmp',
+  'bz': 'application/x-bzip',
+  'bz2': 'application/x-bzip2',
+  'cda': 'application/x-cdf',
+  'csh': 'application/x-csh',
+  'css': 'text/css',
+  'csv': 'text/csv',
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'eot': 'application/vnd.ms-fontobject',
+  'epub': 'application/epub+zip',
+  'gif': 'image/gif',
+  'gz': 'application/gzip',
+  'htm': 'text/html',
+  'html': 'text/html',
+  'ico': 'image/vnd.microsoft.icon',
+  'ics': 'text/calendar',
+  'jar': 'application/java-archive',
+  'jpeg': 'image/jpeg',
+  'jpg': 'image/jpeg',
+  'js': 'text/javascript',
+  'json': 'application/json',
+  'jsonld': 'application/ld+json',
+  'm4a': 'audio/mp4',
+  'mid': 'audio/midi',
+  'midi': 'audio/midi',
+  'mjs': 'text/javascript',
+  'mp3': 'audio/mpeg',
+  'mp4': 'video/mp4',
+  'mpeg': 'video/mpeg',
+  'mpkg': 'application/vnd.apple.installer+xml',
+  'odp': 'application/vnd.oasis.opendocument.presentation',
+  'ods': 'application/vnd.oasis.opendocument.spreadsheet',
+  'odt': 'application/vnd.oasis.opendocument.text',
+  'oga': 'audio/ogg',
+  'ogv': 'video/ogg',
+  'ogx': 'application/ogg',
+  'opus': 'audio/opus',
+  'otf': 'font/otf',
+  'png': 'image/png',
+  'pdf': 'application/pdf',
+  'php': 'application/x-httpd-php',
+  'ppt': 'application/vnd.ms-powerpoint',
+  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'rar': 'application/vnd.rar',
+  'rtf': 'application/rtf',
+  'sh': 'application/x-sh',
+  'svg': 'image/svg+xml',
+  'swf': 'application/x-shockwave-flash',
+  'tar': 'application/x-tar',
+  'tif': 'image/tiff',
+  'tiff': 'image/tiff',
+  'ts': 'video/mp2t',
+  'ttf': 'font/ttf',
+  'txt': 'text/plain',
+  'vsd': 'application/vnd.visio',
+  'wav': 'audio/wav',
+  'weba': 'audio/webm',
+  'webm': 'video/webm',
+  'webp': 'image/webp',
+  'woff': 'font/woff',
+  'woff2': 'font/woff2',
+  'xhtml': 'application/xhtml+xml',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'xml': 'text/xml',
+  'xul': 'application/vnd.mozilla.xul+xml',
+  'zip': 'application/zip',
+  '3gp': 'video/3gpp',
+  '3g2': 'video/3gpp2',
+  '7z': 'application/x-7z-compressed'
+};
+
+/***/ }),
+
+/***/ "./src/utils/html.js":
+/*!***************************!*\
+  !*** ./src/utils/html.js ***!
+  \***************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   addClass: () => (/* binding */ addClass),
+/* harmony export */   ancestor: () => (/* binding */ ancestor),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   getFileName: () => (/* binding */ getFileName),
+/* harmony export */   getHyperlinkTemplate: () => (/* binding */ getHyperlinkTemplate),
+/* harmony export */   getNameAndValue: () => (/* binding */ getNameAndValue),
+/* harmony export */   getOOBURLMarkup: () => (/* binding */ getOOBURLMarkup),
+/* harmony export */   hasClass: () => (/* binding */ hasClass),
+/* harmony export */   removeClass: () => (/* binding */ removeClass),
+/* harmony export */   removeElement: () => (/* binding */ removeElement),
+/* harmony export */   slideIn: () => (/* binding */ slideIn),
+/* harmony export */   slideOut: () => (/* binding */ slideOut)
+/* harmony export */ });
+/* harmony import */ var templates_audio_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! templates/audio.js */ "./src/templates/audio.js");
+/* harmony import */ var templates_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! templates/file.js */ "./src/templates/file.js");
+/* harmony import */ var _templates_form_captcha_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../templates/form_captcha.js */ "./src/templates/form_captcha.js");
+/* harmony import */ var _templates_form_checkbox_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../templates/form_checkbox.js */ "./src/templates/form_checkbox.js");
+/* harmony import */ var _templates_form_help_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../templates/form_help.js */ "./src/templates/form_help.js");
+/* harmony import */ var _templates_form_input_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../templates/form_input.js */ "./src/templates/form_input.js");
+/* harmony import */ var _templates_form_select_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../templates/form_select.js */ "./src/templates/form_select.js");
+/* harmony import */ var _templates_form_textarea_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../templates/form_textarea.js */ "./src/templates/form_textarea.js");
+/* harmony import */ var _templates_form_url_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../templates/form_url.js */ "./src/templates/form_url.js");
+/* harmony import */ var _templates_form_username_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../templates/form_username.js */ "./src/templates/form_username.js");
+/* harmony import */ var templates_hyperlink_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! templates/hyperlink.js */ "./src/templates/hyperlink.js");
+/* harmony import */ var templates_video_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! templates/video.js */ "./src/templates/video.js");
+/* harmony import */ var _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../headless/utils/index.js */ "./src/headless/utils/index.js");
+/* harmony import */ var _converse_headless__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! @converse/headless */ "./src/headless/index.js");
+/* harmony import */ var _converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! @converse/headless/utils/url.js */ "./src/headless/utils/url.js");
+/* harmony import */ var lit__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! lit */ "./node_modules/lit/index.js");
+/**
+ * @copyright 2022, the Converse.js contributors
+ * @license Mozilla Public License (MPLv2)
+ * @description This is the DOM/HTML utilities module.
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const {
+  sizzle,
+  Strophe
+} = _converse_headless__WEBPACK_IMPORTED_MODULE_13__.converse.env;
+const APPROVED_URL_PROTOCOLS = ['http', 'https', 'xmpp', 'mailto'];
+function getAutoCompleteProperty(name, options) {
+  return {
+    'muc#roomconfig_lang': 'language',
+    'muc#roomconfig_roomsecret': options?.new_password ? 'new-password' : 'current-password'
+  }[name];
+}
+const XFORM_TYPE_MAP = {
+  'text-private': 'password',
+  'text-single': 'text',
+  'fixed': 'label',
+  'boolean': 'checkbox',
+  'hidden': 'hidden',
+  'jid-multi': 'textarea',
+  'list-single': 'dropdown',
+  'list-multi': 'dropdown'
+};
+const XFORM_VALIDATE_TYPE_MAP = {
+  'xs:anyURI': 'url',
+  'xs:byte': 'number',
+  'xs:date': 'date',
+  'xs:dateTime': 'datetime',
+  'xs:int': 'number',
+  'xs:integer': 'number',
+  'xs:time': 'time'
+};
+const EMPTY_TEXT_REGEX = /\s*\n\s*/;
+function stripEmptyTextNodes(el) {
+  el = el.tree?.() ?? el;
+  let n;
+  const text_nodes = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, node => {
+    if (node.parentElement.nodeName.toLowerCase() === 'body') {
+      return NodeFilter.FILTER_REJECT;
+    }
+    return NodeFilter.FILTER_ACCEPT;
+  });
+  while (n = walker.nextNode()) text_nodes.push(n);
+  text_nodes.forEach(n => EMPTY_TEXT_REGEX.test(n.data) && n.parentElement.removeChild(n));
+  return el;
+}
+const serializer = new XMLSerializer();
+
+/**
+ * Given two XML or HTML elements, determine if they're equal
+ * @param { Element } actual
+ * @param { Element } expected
+ * @returns { Boolean }
+ */
+function isEqualNode(actual, expected) {
+  if (!_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].isElement(actual)) throw new Error("Element being compared must be an Element!");
+  actual = stripEmptyTextNodes(actual);
+  expected = stripEmptyTextNodes(expected);
+  let isEqual = actual.isEqualNode(expected);
+  if (!isEqual) {
+    // XXX: This is a hack.
+    // When creating two XML elements, one via DOMParser, and one via
+    // createElementNS (or createElement), then "isEqualNode" doesn't match.
+    //
+    // For example, in the following code `isEqual` is false:
+    // ------------------------------------------------------
+    // const a = document.createElementNS('foo', 'div');
+    // a.setAttribute('xmlns', 'foo');
+    //
+    // const b = (new DOMParser()).parseFromString('<div xmlns="foo"></div>', 'text/xml').firstElementChild;
+    // const isEqual = a.isEqualNode(div); //  false
+    //
+    // The workaround here is to serialize both elements to string and then use
+    // DOMParser again for both (via xmlHtmlNode).
+    //
+    // This is not efficient, but currently this is only being used in tests.
+    //
+    const {
+      xmlHtmlNode
+    } = Strophe;
+    const actual_string = serializer.serializeToString(actual);
+    const expected_string = serializer.serializeToString(expected);
+    isEqual = actual_string === expected_string || xmlHtmlNode(actual_string).isEqualNode(xmlHtmlNode(expected_string));
+  }
+  return isEqual;
+}
+
+/**
+ * Given an HTMLElement representing a form field, return it's name and value.
+ * @param { HTMLElement } field
+ * @returns { { string, string } | null }
+ */
+function getNameAndValue(field) {
+  const name = field.getAttribute('name');
+  if (!name) {
+    return null; // See #1924
+  }
+
+  let value;
+  if (field.getAttribute('type') === 'checkbox') {
+    value = field.checked && 1 || 0;
+  } else if (field.tagName == "TEXTAREA") {
+    value = field.value.split('\n').filter(s => s.trim());
+  } else if (field.tagName == "SELECT") {
+    value = _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getSelectValues(field);
+  } else {
+    value = field.value;
+  }
+  return {
+    name,
+    value
+  };
+}
+function getInputType(field) {
+  const type = XFORM_TYPE_MAP[field.getAttribute('type')];
+  if (type == 'text') {
+    const datatypes = field.getElementsByTagNameNS("http://jabber.org/protocol/xdata-validate", "validate");
+    if (datatypes.length === 1) {
+      const datatype = datatypes[0].getAttribute("datatype");
+      return XFORM_VALIDATE_TYPE_MAP[datatype] || type;
+    }
+  }
+  return type;
+}
+function slideOutWrapup(el) {
+  /* Wrapup function for slideOut. */
+  el.removeAttribute('data-slider-marker');
+  el.classList.remove('collapsed');
+  el.style.overflow = '';
+  el.style.height = '';
+}
+function getFileName(url) {
+  const uri = (0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_14__.getURI)(url);
+  try {
+    return decodeURI(uri.filename());
+  } catch (error) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_13__.log.debug(error);
+    return uri.filename();
+  }
+}
+
+/**
+ * Returns the markup for a URL that points to a downloadable asset
+ * (such as a video, image or audio file).
+ * @method u#getOOBURLMarkup
+ * @param { String } url
+ * @returns { TemplateResult }
+ */
+function getOOBURLMarkup(url) {
+  const uri = (0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_14__.getURI)(url);
+  if (uri === null) {
+    return url;
+  }
+  if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_14__.isVideoURL)(uri)) {
+    return (0,templates_video_js__WEBPACK_IMPORTED_MODULE_11__["default"])(url);
+  } else if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_14__.isAudioURL)(uri)) {
+    return (0,templates_audio_js__WEBPACK_IMPORTED_MODULE_0__["default"])(url);
+  } else if ((0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_14__.isImageURL)(uri)) {
+    return (0,templates_file_js__WEBPACK_IMPORTED_MODULE_1__["default"])(uri.toString(), getFileName(uri));
+  } else {
+    return (0,templates_file_js__WEBPACK_IMPORTED_MODULE_1__["default"])(uri.toString(), getFileName(uri));
+  }
+}
+
+/**
+ * Return the height of the passed in DOM element,
+ * based on the heights of its children.
+ * @method u#calculateElementHeight
+ * @param { HTMLElement } el
+ * @returns {number}
+ */
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].calculateElementHeight = function (el) {
+  return Array.from(el.children).reduce((result, child) => result + child.offsetHeight, 0);
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getNextElement = function (el) {
+  let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
+  let next_el = el.nextElementSibling;
+  while (next_el !== null && !sizzle.matchesSelector(next_el, selector)) {
+    next_el = next_el.nextElementSibling;
+  }
+  return next_el;
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getPreviousElement = function (el) {
+  let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
+  let prev_el = el.previousElementSibling;
+  while (prev_el !== null && !sizzle.matchesSelector(prev_el, selector)) {
+    prev_el = prev_el.previousElementSibling;
+  }
+  return prev_el;
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getFirstChildElement = function (el) {
+  let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
+  let first_el = el.firstElementChild;
+  while (first_el !== null && !sizzle.matchesSelector(first_el, selector)) {
+    first_el = first_el.nextElementSibling;
+  }
+  return first_el;
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getLastChildElement = function (el) {
+  let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
+  let last_el = el.lastElementChild;
+  while (last_el !== null && !sizzle.matchesSelector(last_el, selector)) {
+    last_el = last_el.previousElementSibling;
+  }
+  return last_el;
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].toggleClass = function (className, el) {
+  _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass(className, el) ? removeClass(className, el) : addClass(className, el);
+};
+
+/**
+ * Has an element a class?
+ * @method u#hasClass
+ * @param { string } className
+ * @param { Element } el
+ */
+function hasClass(className, el) {
+  return el instanceof Element && el.classList.contains(className);
+}
+
+/**
+ * Add a class to an element.
+ * @method u#addClass
+ * @param { string } className
+ * @param { Element } el
+ */
+function addClass(className, el) {
+  el instanceof Element && el.classList.add(className);
+  return el;
+}
+
+/**
+ * Remove a class from an element.
+ * @method u#removeClass
+ * @param { string } className
+ * @param { Element } el
+ */
+function removeClass(className, el) {
+  el instanceof Element && el.classList.remove(className);
+  return el;
+}
+
+/**
+ * Remove an element from its parent
+ * @method u#removeElement
+ * @param { Element } el
+ */
+function removeElement(el) {
+  el instanceof Element && el.parentNode && el.parentNode.removeChild(el);
+  return el;
+}
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getElementFromTemplateResult = function (tr) {
+  const div = document.createElement('div');
+  (0,lit__WEBPACK_IMPORTED_MODULE_15__.render)(tr, div);
+  return div.firstElementChild;
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].showElement = el => {
+  removeClass('collapsed', el);
+  removeClass('hidden', el);
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hideElement = function (el) {
+  el instanceof Element && el.classList.add('hidden');
+  return el;
+};
+function ancestor(el, selector) {
+  let parent = el;
+  while (parent !== null && !sizzle.matchesSelector(parent, selector)) {
+    parent = parent.parentElement;
+  }
+  return parent;
+}
+
+/**
+ * Return the element's siblings until one matches the selector.
+ * @private
+ * @method u#nextUntil
+ * @param { HTMLElement } el
+ * @param { String } selector
+ */
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].nextUntil = function (el, selector) {
+  const matches = [];
+  let sibling_el = el.nextElementSibling;
+  while (sibling_el !== null && !sibling_el.matches(selector)) {
+    matches.push(sibling_el);
+    sibling_el = sibling_el.nextElementSibling;
+  }
+  return matches;
+};
+
+/**
+ * Helper method that replace HTML-escaped symbols with equivalent characters
+ * (e.g. transform occurrences of '&amp;' to '&')
+ * @private
+ * @method u#unescapeHTML
+ * @param { String } string - a String containing the HTML-escaped symbols.
+ */
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].unescapeHTML = function (string) {
+  var div = document.createElement('div');
+  div.innerHTML = string;
+  return div.innerText;
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].escapeHTML = function (string) {
+  return string.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+};
+function isProtocolApproved(protocol) {
+  let safeProtocolsList = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : APPROVED_URL_PROTOCOLS;
+  return !!safeProtocolsList.includes(protocol);
+}
+
+// Will return false if URL is malformed or contains disallowed characters
+function isUrlValid(urlString) {
+  try {
+    const url = new URL(urlString);
+    return !!url;
+  } catch (error) {
+    return false;
+  }
+}
+function getHyperlinkTemplate(url) {
+  const http_url = RegExp('^w{3}.', 'ig').test(url) ? `http://${url}` : url;
+  const uri = (0,_converse_headless_utils_url_js__WEBPACK_IMPORTED_MODULE_14__.getURI)(url);
+  if (uri !== null && isUrlValid(http_url) && (isProtocolApproved(uri._parts.protocol) || !uri._parts.protocol)) {
+    return (0,templates_hyperlink_js__WEBPACK_IMPORTED_MODULE_10__["default"])(uri, url);
+  }
+  return url;
+}
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].slideInAllElements = function (elements) {
+  let duration = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 300;
+  return Promise.all(Array.from(elements).map(e => _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].slideIn(e, duration)));
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].slideToggleElement = function (el, duration) {
+  if (_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass('collapsed', el) || _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass('hidden', el)) {
+    return _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].slideOut(el, duration);
+  } else {
+    return _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].slideIn(el, duration);
+  }
+};
+
+/**
+ * Shows/expands an element by sliding it out of itself
+ * @method slideOut
+ * @param { HTMLElement } el - The HTML string
+ * @param { Number } duration - The duration amount in milliseconds
+ */
+function slideOut(el) {
+  let duration = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 200;
+  return new Promise((resolve, reject) => {
+    if (!el) {
+      const err = 'An element needs to be passed in to slideOut';
+      _converse_headless__WEBPACK_IMPORTED_MODULE_13__.log.warn(err);
+      reject(new Error(err));
+      return;
+    }
+    const marker = el.getAttribute('data-slider-marker');
+    if (marker) {
+      el.removeAttribute('data-slider-marker');
+      cancelAnimationFrame(marker);
+    }
+    const end_height = _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].calculateElementHeight(el);
+    if (window.converse_disable_effects) {
+      // Effects are disabled (for tests)
+      el.style.height = end_height + 'px';
+      slideOutWrapup(el);
+      resolve();
+      return;
+    }
+    if (!_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass('collapsed', el) && !_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass('hidden', el)) {
+      resolve();
+      return;
+    }
+    const steps = duration / 17; // We assume 17ms per animation which is ~60FPS
+    let height = 0;
+    function draw() {
+      height += end_height / steps;
+      if (height < end_height) {
+        el.style.height = height + 'px';
+        el.setAttribute('data-slider-marker', requestAnimationFrame(draw).toString());
+      } else {
+        // We recalculate the height to work around an apparent
+        // browser bug where browsers don't know the correct
+        // offsetHeight beforehand.
+        el.removeAttribute('data-slider-marker');
+        el.style.height = _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].calculateElementHeight(el) + 'px';
+        el.style.overflow = '';
+        el.style.height = '';
+        resolve();
+      }
+    }
+    el.style.height = '0';
+    el.style.overflow = 'hidden';
+    el.classList.remove('hidden');
+    el.classList.remove('collapsed');
+    el.setAttribute('data-slider-marker', requestAnimationFrame(draw).toString());
+  });
+}
+
+/**
+ * Hides/contracts an element by sliding it into itself
+ * @method slideIn
+ * @param { HTMLElement } el - The HTML string
+ * @param { Number } duration - The duration amount in milliseconds
+ */
+function slideIn(el) {
+  let duration = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 200;
+  return new Promise((resolve, reject) => {
+    if (!el) {
+      const err = 'An element needs to be passed in to slideIn';
+      _converse_headless__WEBPACK_IMPORTED_MODULE_13__.log.warn(err);
+      return reject(new Error(err));
+    } else if (_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass('collapsed', el)) {
+      return resolve(el);
+    } else if (window.converse_disable_effects) {
+      // Effects are disabled (for tests)
+      el.classList.add('collapsed');
+      el.style.height = '';
+      return resolve(el);
+    }
+    const marker = el.getAttribute('data-slider-marker');
+    if (marker) {
+      el.removeAttribute('data-slider-marker');
+      cancelAnimationFrame(marker);
+    }
+    const original_height = el.offsetHeight,
+      steps = duration / 17; // We assume 17ms per animation which is ~60FPS
+    let height = original_height;
+    el.style.overflow = 'hidden';
+    function draw() {
+      height -= original_height / steps;
+      if (height > 0) {
+        el.style.height = height + 'px';
+        el.setAttribute('data-slider-marker', requestAnimationFrame(draw).toString());
+      } else {
+        el.removeAttribute('data-slider-marker');
+        el.classList.add('collapsed');
+        el.style.height = '';
+        resolve(el);
+      }
+    }
+    el.setAttribute('data-slider-marker', requestAnimationFrame(draw).toString());
+  });
+}
+function afterAnimationEnds(el, callback) {
+  el.classList.remove('visible');
+  callback?.();
+}
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].isInDOM = function (el) {
+  return document.querySelector('body').contains(el);
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].isVisible = function (el) {
+  if (el === null) {
+    return false;
+  }
+  if (_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass('hidden', el)) {
+    return false;
+  }
+  // XXX: Taken from jQuery's "visible" implementation
+  return el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0;
+};
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].fadeIn = function (el, callback) {
+  if (!el) {
+    _converse_headless__WEBPACK_IMPORTED_MODULE_13__.log.warn('An element needs to be passed in to fadeIn');
+  }
+  if (window.converse_disable_effects) {
+    el.classList.remove('hidden');
+    return afterAnimationEnds(el, callback);
+  }
+  if (_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].hasClass('hidden', el)) {
+    el.classList.add('visible');
+    el.classList.remove('hidden');
+    el.addEventListener('webkitAnimationEnd', () => afterAnimationEnds(el, callback));
+    el.addEventListener('animationend', () => afterAnimationEnds(el, callback));
+    el.addEventListener('oanimationend', () => afterAnimationEnds(el, callback));
+  } else {
+    afterAnimationEnds(el, callback);
+  }
+};
+
+/**
+ * Takes an XML field in XMPP XForm (XEP-004: Data Forms) format returns a
+ * [TemplateResult](https://lit.polymer-project.org/api/classes/_lit_html_.templateresult.html).
+ * @method u#xForm2TemplateResult
+ * @param { Element } field - the field to convert
+ * @param { Element } stanza - the containing stanza
+ * @param { Object } options
+ * @returns { TemplateResult }
+ */
+_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].xForm2TemplateResult = function (field, stanza) {
+  let options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  if (field.getAttribute('type') === 'list-single' || field.getAttribute('type') === 'list-multi') {
+    const values = _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].queryChildren(field, 'value').map(el => el?.textContent);
+    const options = _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].queryChildren(field, 'option').map(option => {
+      const value = option.querySelector('value')?.textContent;
+      return {
+        'value': value,
+        'label': option.getAttribute('label'),
+        'selected': values.includes(value),
+        'required': !!field.querySelector('required')
+      };
+    });
+    return (0,_templates_form_select_js__WEBPACK_IMPORTED_MODULE_6__["default"])({
+      options,
+      'id': _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getUniqueId(),
+      'label': field.getAttribute('label'),
+      'multiple': field.getAttribute('type') === 'list-multi',
+      'name': field.getAttribute('var'),
+      'required': !!field.querySelector('required')
+    });
+  } else if (field.getAttribute('type') === 'fixed') {
+    const text = field.querySelector('value')?.textContent;
+    return (0,_templates_form_help_js__WEBPACK_IMPORTED_MODULE_4__["default"])({
+      text
+    });
+  } else if (field.getAttribute('type') === 'jid-multi') {
+    return (0,_templates_form_textarea_js__WEBPACK_IMPORTED_MODULE_7__["default"])({
+      'name': field.getAttribute('var'),
+      'label': field.getAttribute('label') || '',
+      'value': field.querySelector('value')?.textContent,
+      'required': !!field.querySelector('required')
+    });
+  } else if (field.getAttribute('type') === 'boolean') {
+    const value = field.querySelector('value')?.textContent;
+    return (0,_templates_form_checkbox_js__WEBPACK_IMPORTED_MODULE_3__["default"])({
+      'id': _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getUniqueId(),
+      'name': field.getAttribute('var'),
+      'label': field.getAttribute('label') || '',
+      'checked': (value === '1' || value === 'true') && 'checked="1"' || ''
+    });
+  } else if (field.getAttribute('var') === 'url') {
+    return (0,_templates_form_url_js__WEBPACK_IMPORTED_MODULE_8__["default"])({
+      'label': field.getAttribute('label') || '',
+      'value': field.querySelector('value')?.textContent
+    });
+  } else if (field.getAttribute('var') === 'username') {
+    return (0,_templates_form_username_js__WEBPACK_IMPORTED_MODULE_9__["default"])({
+      'domain': ' @' + options.domain,
+      'name': field.getAttribute('var'),
+      'type': getInputType(field),
+      'label': field.getAttribute('label') || '',
+      'value': field.querySelector('value')?.textContent,
+      'required': !!field.querySelector('required')
+    });
+  } else if (field.getAttribute('var') === 'password') {
+    return (0,_templates_form_input_js__WEBPACK_IMPORTED_MODULE_5__["default"])({
+      'name': field.getAttribute('var'),
+      'type': 'password',
+      'label': field.getAttribute('label') || '',
+      'value': field.querySelector('value')?.textContent,
+      'required': !!field.querySelector('required')
+    });
+  } else if (field.getAttribute('var') === 'ocr') {
+    // Captcha
+    const uri = field.querySelector('uri');
+    const el = sizzle('data[cid="' + uri.textContent.replace(/^cid:/, '') + '"]', stanza)[0];
+    return (0,_templates_form_captcha_js__WEBPACK_IMPORTED_MODULE_2__["default"])({
+      'label': field.getAttribute('label'),
+      'name': field.getAttribute('var'),
+      'data': el?.textContent,
+      'type': uri.getAttribute('type'),
+      'required': !!field.querySelector('required')
+    });
+  } else {
+    const name = field.getAttribute('var');
+    return (0,_templates_form_input_js__WEBPACK_IMPORTED_MODULE_5__["default"])({
+      'id': _headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"].getUniqueId(),
+      'label': field.getAttribute('label') || '',
+      'name': name,
+      'fixed_username': options?.fixed_username,
+      'autocomplete': getAutoCompleteProperty(name, options),
+      'placeholder': null,
+      'required': !!field.querySelector('required'),
+      'type': getInputType(field),
+      'value': field.querySelector('value')?.textContent
+    });
+  }
+};
+Object.assign(_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"], {
+  hasClass,
+  addClass,
+  ancestor,
+  getOOBURLMarkup,
+  isEqualNode,
+  removeClass,
+  removeElement,
+  slideIn,
+  slideOut
+});
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_headless_utils_index_js__WEBPACK_IMPORTED_MODULE_12__["default"]);
 
 /***/ }),
 
@@ -33330,6 +37765,606 @@ function getDummyXMLDOMDocument() {
 /***/ (function(module) {
 
 !function(t,e){ true?module.exports=e():0}(this,(function(){"use strict";var t=1e3,e=6e4,n=36e5,r="millisecond",i="second",s="minute",u="hour",a="day",o="week",c="month",f="quarter",h="year",d="date",l="Invalid Date",$=/^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/,y=/\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g,M={name:"en",weekdays:"Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"),months:"January_February_March_April_May_June_July_August_September_October_November_December".split("_"),ordinal:function(t){var e=["th","st","nd","rd"],n=t%100;return"["+t+(e[(n-20)%10]||e[n]||e[0])+"]"}},m=function(t,e,n){var r=String(t);return!r||r.length>=e?t:""+Array(e+1-r.length).join(n)+t},v={s:m,z:function(t){var e=-t.utcOffset(),n=Math.abs(e),r=Math.floor(n/60),i=n%60;return(e<=0?"+":"-")+m(r,2,"0")+":"+m(i,2,"0")},m:function t(e,n){if(e.date()<n.date())return-t(n,e);var r=12*(n.year()-e.year())+(n.month()-e.month()),i=e.clone().add(r,c),s=n-i<0,u=e.clone().add(r+(s?-1:1),c);return+(-(r+(n-i)/(s?i-u:u-i))||0)},a:function(t){return t<0?Math.ceil(t)||0:Math.floor(t)},p:function(t){return{M:c,y:h,w:o,d:a,D:d,h:u,m:s,s:i,ms:r,Q:f}[t]||String(t||"").toLowerCase().replace(/s$/,"")},u:function(t){return void 0===t}},g="en",D={};D[g]=M;var p="$isDayjsObject",S=function(t){return t instanceof _||!(!t||!t[p])},w=function t(e,n,r){var i;if(!e)return g;if("string"==typeof e){var s=e.toLowerCase();D[s]&&(i=s),n&&(D[s]=n,i=s);var u=e.split("-");if(!i&&u.length>1)return t(u[0])}else{var a=e.name;D[a]=e,i=a}return!r&&i&&(g=i),i||!r&&g},O=function(t,e){if(S(t))return t.clone();var n="object"==typeof e?e:{};return n.date=t,n.args=arguments,new _(n)},b=v;b.l=w,b.i=S,b.w=function(t,e){return O(t,{locale:e.$L,utc:e.$u,x:e.$x,$offset:e.$offset})};var _=function(){function M(t){this.$L=w(t.locale,null,!0),this.parse(t),this.$x=this.$x||t.x||{},this[p]=!0}var m=M.prototype;return m.parse=function(t){this.$d=function(t){var e=t.date,n=t.utc;if(null===e)return new Date(NaN);if(b.u(e))return new Date;if(e instanceof Date)return new Date(e);if("string"==typeof e&&!/Z$/i.test(e)){var r=e.match($);if(r){var i=r[2]-1||0,s=(r[7]||"0").substring(0,3);return n?new Date(Date.UTC(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)):new Date(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)}}return new Date(e)}(t),this.init()},m.init=function(){var t=this.$d;this.$y=t.getFullYear(),this.$M=t.getMonth(),this.$D=t.getDate(),this.$W=t.getDay(),this.$H=t.getHours(),this.$m=t.getMinutes(),this.$s=t.getSeconds(),this.$ms=t.getMilliseconds()},m.$utils=function(){return b},m.isValid=function(){return!(this.$d.toString()===l)},m.isSame=function(t,e){var n=O(t);return this.startOf(e)<=n&&n<=this.endOf(e)},m.isAfter=function(t,e){return O(t)<this.startOf(e)},m.isBefore=function(t,e){return this.endOf(e)<O(t)},m.$g=function(t,e,n){return b.u(t)?this[e]:this.set(n,t)},m.unix=function(){return Math.floor(this.valueOf()/1e3)},m.valueOf=function(){return this.$d.getTime()},m.startOf=function(t,e){var n=this,r=!!b.u(e)||e,f=b.p(t),l=function(t,e){var i=b.w(n.$u?Date.UTC(n.$y,e,t):new Date(n.$y,e,t),n);return r?i:i.endOf(a)},$=function(t,e){return b.w(n.toDate()[t].apply(n.toDate("s"),(r?[0,0,0,0]:[23,59,59,999]).slice(e)),n)},y=this.$W,M=this.$M,m=this.$D,v="set"+(this.$u?"UTC":"");switch(f){case h:return r?l(1,0):l(31,11);case c:return r?l(1,M):l(0,M+1);case o:var g=this.$locale().weekStart||0,D=(y<g?y+7:y)-g;return l(r?m-D:m+(6-D),M);case a:case d:return $(v+"Hours",0);case u:return $(v+"Minutes",1);case s:return $(v+"Seconds",2);case i:return $(v+"Milliseconds",3);default:return this.clone()}},m.endOf=function(t){return this.startOf(t,!1)},m.$set=function(t,e){var n,o=b.p(t),f="set"+(this.$u?"UTC":""),l=(n={},n[a]=f+"Date",n[d]=f+"Date",n[c]=f+"Month",n[h]=f+"FullYear",n[u]=f+"Hours",n[s]=f+"Minutes",n[i]=f+"Seconds",n[r]=f+"Milliseconds",n)[o],$=o===a?this.$D+(e-this.$W):e;if(o===c||o===h){var y=this.clone().set(d,1);y.$d[l]($),y.init(),this.$d=y.set(d,Math.min(this.$D,y.daysInMonth())).$d}else l&&this.$d[l]($);return this.init(),this},m.set=function(t,e){return this.clone().$set(t,e)},m.get=function(t){return this[b.p(t)]()},m.add=function(r,f){var d,l=this;r=Number(r);var $=b.p(f),y=function(t){var e=O(l);return b.w(e.date(e.date()+Math.round(t*r)),l)};if($===c)return this.set(c,this.$M+r);if($===h)return this.set(h,this.$y+r);if($===a)return y(1);if($===o)return y(7);var M=(d={},d[s]=e,d[u]=n,d[i]=t,d)[$]||1,m=this.$d.getTime()+r*M;return b.w(m,this)},m.subtract=function(t,e){return this.add(-1*t,e)},m.format=function(t){var e=this,n=this.$locale();if(!this.isValid())return n.invalidDate||l;var r=t||"YYYY-MM-DDTHH:mm:ssZ",i=b.z(this),s=this.$H,u=this.$m,a=this.$M,o=n.weekdays,c=n.months,f=n.meridiem,h=function(t,n,i,s){return t&&(t[n]||t(e,r))||i[n].slice(0,s)},d=function(t){return b.s(s%12||12,t,"0")},$=f||function(t,e,n){var r=t<12?"AM":"PM";return n?r.toLowerCase():r};return r.replace(y,(function(t,r){return r||function(t){switch(t){case"YY":return String(e.$y).slice(-2);case"YYYY":return b.s(e.$y,4,"0");case"M":return a+1;case"MM":return b.s(a+1,2,"0");case"MMM":return h(n.monthsShort,a,c,3);case"MMMM":return h(c,a);case"D":return e.$D;case"DD":return b.s(e.$D,2,"0");case"d":return String(e.$W);case"dd":return h(n.weekdaysMin,e.$W,o,2);case"ddd":return h(n.weekdaysShort,e.$W,o,3);case"dddd":return o[e.$W];case"H":return String(s);case"HH":return b.s(s,2,"0");case"h":return d(1);case"hh":return d(2);case"a":return $(s,u,!0);case"A":return $(s,u,!1);case"m":return String(u);case"mm":return b.s(u,2,"0");case"s":return String(e.$s);case"ss":return b.s(e.$s,2,"0");case"SSS":return b.s(e.$ms,3,"0");case"Z":return i}return null}(t)||i.replace(":","")}))},m.utcOffset=function(){return 15*-Math.round(this.$d.getTimezoneOffset()/15)},m.diff=function(r,d,l){var $,y=this,M=b.p(d),m=O(r),v=(m.utcOffset()-this.utcOffset())*e,g=this-m,D=function(){return b.m(y,m)};switch(M){case h:$=D()/12;break;case c:$=D();break;case f:$=D()/3;break;case o:$=(g-v)/6048e5;break;case a:$=(g-v)/864e5;break;case u:$=g/n;break;case s:$=g/e;break;case i:$=g/t;break;default:$=g}return l?$:b.a($)},m.daysInMonth=function(){return this.endOf(c).$D},m.$locale=function(){return D[this.$L]},m.locale=function(t,e){if(!t)return this.$L;var n=this.clone(),r=w(t,e,!0);return r&&(n.$L=r),n},m.clone=function(){return b.w(this.$d,this)},m.toDate=function(){return new Date(this.valueOf())},m.toJSON=function(){return this.isValid()?this.toISOString():null},m.toISOString=function(){return this.$d.toISOString()},m.toString=function(){return this.$d.toUTCString()},M}(),k=_.prototype;return O.prototype=k,[["$ms",r],["$s",i],["$m",s],["$H",u],["$W",a],["$M",c],["$y",h],["$D",d]].forEach((function(t){k[t[1]]=function(e){return this.$g(e,t[0],t[1])}})),O.extend=function(t,e){return t.$i||(t(e,_,O),t.$i=!0),O},O.locale=w,O.isDayjs=S,O.unix=function(t){return O(1e3*t)},O.en=D[g],O.Ls=D,O.p={},O}));
+
+/***/ }),
+
+/***/ "./node_modules/dayjs/locale lazy recursive ^\\.\\/.*\\.js$":
+/*!**********************************************************************************************************!*\
+  !*** ./node_modules/dayjs/locale/ lazy ^\.\/.*\.js$ chunkName: locales/dayjs/[request] namespace object ***!
+  \**********************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+var map = {
+	"./af.js": [
+		"./node_modules/dayjs/locale/af.js",
+		"locales/dayjs/af-js"
+	],
+	"./am.js": [
+		"./node_modules/dayjs/locale/am.js",
+		"locales/dayjs/am-js"
+	],
+	"./ar-dz.js": [
+		"./node_modules/dayjs/locale/ar-dz.js",
+		"locales/dayjs/ar-dz-js"
+	],
+	"./ar-iq.js": [
+		"./node_modules/dayjs/locale/ar-iq.js",
+		"locales/dayjs/ar-iq-js"
+	],
+	"./ar-kw.js": [
+		"./node_modules/dayjs/locale/ar-kw.js",
+		"locales/dayjs/ar-kw-js"
+	],
+	"./ar-ly.js": [
+		"./node_modules/dayjs/locale/ar-ly.js",
+		"locales/dayjs/ar-ly-js"
+	],
+	"./ar-ma.js": [
+		"./node_modules/dayjs/locale/ar-ma.js",
+		"locales/dayjs/ar-ma-js"
+	],
+	"./ar-sa.js": [
+		"./node_modules/dayjs/locale/ar-sa.js",
+		"locales/dayjs/ar-sa-js"
+	],
+	"./ar-tn.js": [
+		"./node_modules/dayjs/locale/ar-tn.js",
+		"locales/dayjs/ar-tn-js"
+	],
+	"./ar.js": [
+		"./node_modules/dayjs/locale/ar.js",
+		"locales/dayjs/ar-js"
+	],
+	"./az.js": [
+		"./node_modules/dayjs/locale/az.js",
+		"locales/dayjs/az-js"
+	],
+	"./be.js": [
+		"./node_modules/dayjs/locale/be.js",
+		"locales/dayjs/be-js"
+	],
+	"./bg.js": [
+		"./node_modules/dayjs/locale/bg.js",
+		"locales/dayjs/bg-js"
+	],
+	"./bi.js": [
+		"./node_modules/dayjs/locale/bi.js",
+		"locales/dayjs/bi-js"
+	],
+	"./bm.js": [
+		"./node_modules/dayjs/locale/bm.js",
+		"locales/dayjs/bm-js"
+	],
+	"./bn-bd.js": [
+		"./node_modules/dayjs/locale/bn-bd.js",
+		"locales/dayjs/bn-bd-js"
+	],
+	"./bn.js": [
+		"./node_modules/dayjs/locale/bn.js",
+		"locales/dayjs/bn-js"
+	],
+	"./bo.js": [
+		"./node_modules/dayjs/locale/bo.js",
+		"locales/dayjs/bo-js"
+	],
+	"./br.js": [
+		"./node_modules/dayjs/locale/br.js",
+		"locales/dayjs/br-js"
+	],
+	"./bs.js": [
+		"./node_modules/dayjs/locale/bs.js",
+		"locales/dayjs/bs-js"
+	],
+	"./ca.js": [
+		"./node_modules/dayjs/locale/ca.js",
+		"locales/dayjs/ca-js"
+	],
+	"./cs.js": [
+		"./node_modules/dayjs/locale/cs.js",
+		"locales/dayjs/cs-js"
+	],
+	"./cv.js": [
+		"./node_modules/dayjs/locale/cv.js",
+		"locales/dayjs/cv-js"
+	],
+	"./cy.js": [
+		"./node_modules/dayjs/locale/cy.js",
+		"locales/dayjs/cy-js"
+	],
+	"./da.js": [
+		"./node_modules/dayjs/locale/da.js",
+		"locales/dayjs/da-js"
+	],
+	"./de-at.js": [
+		"./node_modules/dayjs/locale/de-at.js",
+		"locales/dayjs/de-at-js"
+	],
+	"./de-ch.js": [
+		"./node_modules/dayjs/locale/de-ch.js",
+		"locales/dayjs/de-ch-js"
+	],
+	"./de.js": [
+		"./node_modules/dayjs/locale/de.js",
+		"locales/dayjs/de-js"
+	],
+	"./dv.js": [
+		"./node_modules/dayjs/locale/dv.js",
+		"locales/dayjs/dv-js"
+	],
+	"./el.js": [
+		"./node_modules/dayjs/locale/el.js",
+		"locales/dayjs/el-js"
+	],
+	"./en-au.js": [
+		"./node_modules/dayjs/locale/en-au.js",
+		"locales/dayjs/en-au-js"
+	],
+	"./en-ca.js": [
+		"./node_modules/dayjs/locale/en-ca.js",
+		"locales/dayjs/en-ca-js"
+	],
+	"./en-gb.js": [
+		"./node_modules/dayjs/locale/en-gb.js",
+		"locales/dayjs/en-gb-js"
+	],
+	"./en-ie.js": [
+		"./node_modules/dayjs/locale/en-ie.js",
+		"locales/dayjs/en-ie-js"
+	],
+	"./en-il.js": [
+		"./node_modules/dayjs/locale/en-il.js",
+		"locales/dayjs/en-il-js"
+	],
+	"./en-in.js": [
+		"./node_modules/dayjs/locale/en-in.js",
+		"locales/dayjs/en-in-js"
+	],
+	"./en-nz.js": [
+		"./node_modules/dayjs/locale/en-nz.js",
+		"locales/dayjs/en-nz-js"
+	],
+	"./en-sg.js": [
+		"./node_modules/dayjs/locale/en-sg.js",
+		"locales/dayjs/en-sg-js"
+	],
+	"./en-tt.js": [
+		"./node_modules/dayjs/locale/en-tt.js",
+		"locales/dayjs/en-tt-js"
+	],
+	"./en.js": [
+		"./node_modules/dayjs/locale/en.js",
+		"locales/dayjs/en-js"
+	],
+	"./eo.js": [
+		"./node_modules/dayjs/locale/eo.js",
+		"locales/dayjs/eo-js"
+	],
+	"./es-do.js": [
+		"./node_modules/dayjs/locale/es-do.js",
+		"locales/dayjs/es-do-js"
+	],
+	"./es-mx.js": [
+		"./node_modules/dayjs/locale/es-mx.js",
+		"locales/dayjs/es-mx-js"
+	],
+	"./es-pr.js": [
+		"./node_modules/dayjs/locale/es-pr.js",
+		"locales/dayjs/es-pr-js"
+	],
+	"./es-us.js": [
+		"./node_modules/dayjs/locale/es-us.js",
+		"locales/dayjs/es-us-js"
+	],
+	"./es.js": [
+		"./node_modules/dayjs/locale/es.js",
+		"locales/dayjs/es-js"
+	],
+	"./et.js": [
+		"./node_modules/dayjs/locale/et.js",
+		"locales/dayjs/et-js"
+	],
+	"./eu.js": [
+		"./node_modules/dayjs/locale/eu.js",
+		"locales/dayjs/eu-js"
+	],
+	"./fa.js": [
+		"./node_modules/dayjs/locale/fa.js",
+		"locales/dayjs/fa-js"
+	],
+	"./fi.js": [
+		"./node_modules/dayjs/locale/fi.js",
+		"locales/dayjs/fi-js"
+	],
+	"./fo.js": [
+		"./node_modules/dayjs/locale/fo.js",
+		"locales/dayjs/fo-js"
+	],
+	"./fr-ca.js": [
+		"./node_modules/dayjs/locale/fr-ca.js",
+		"locales/dayjs/fr-ca-js"
+	],
+	"./fr-ch.js": [
+		"./node_modules/dayjs/locale/fr-ch.js",
+		"locales/dayjs/fr-ch-js"
+	],
+	"./fr.js": [
+		"./node_modules/dayjs/locale/fr.js",
+		"locales/dayjs/fr-js"
+	],
+	"./fy.js": [
+		"./node_modules/dayjs/locale/fy.js",
+		"locales/dayjs/fy-js"
+	],
+	"./ga.js": [
+		"./node_modules/dayjs/locale/ga.js",
+		"locales/dayjs/ga-js"
+	],
+	"./gd.js": [
+		"./node_modules/dayjs/locale/gd.js",
+		"locales/dayjs/gd-js"
+	],
+	"./gl.js": [
+		"./node_modules/dayjs/locale/gl.js",
+		"locales/dayjs/gl-js"
+	],
+	"./gom-latn.js": [
+		"./node_modules/dayjs/locale/gom-latn.js",
+		"locales/dayjs/gom-latn-js"
+	],
+	"./gu.js": [
+		"./node_modules/dayjs/locale/gu.js",
+		"locales/dayjs/gu-js"
+	],
+	"./he.js": [
+		"./node_modules/dayjs/locale/he.js",
+		"locales/dayjs/he-js"
+	],
+	"./hi.js": [
+		"./node_modules/dayjs/locale/hi.js",
+		"locales/dayjs/hi-js"
+	],
+	"./hr.js": [
+		"./node_modules/dayjs/locale/hr.js",
+		"locales/dayjs/hr-js"
+	],
+	"./ht.js": [
+		"./node_modules/dayjs/locale/ht.js",
+		"locales/dayjs/ht-js"
+	],
+	"./hu.js": [
+		"./node_modules/dayjs/locale/hu.js",
+		"locales/dayjs/hu-js"
+	],
+	"./hy-am.js": [
+		"./node_modules/dayjs/locale/hy-am.js",
+		"locales/dayjs/hy-am-js"
+	],
+	"./id.js": [
+		"./node_modules/dayjs/locale/id.js",
+		"locales/dayjs/id-js"
+	],
+	"./is.js": [
+		"./node_modules/dayjs/locale/is.js",
+		"locales/dayjs/is-js"
+	],
+	"./it-ch.js": [
+		"./node_modules/dayjs/locale/it-ch.js",
+		"locales/dayjs/it-ch-js"
+	],
+	"./it.js": [
+		"./node_modules/dayjs/locale/it.js",
+		"locales/dayjs/it-js"
+	],
+	"./ja.js": [
+		"./node_modules/dayjs/locale/ja.js",
+		"locales/dayjs/ja-js"
+	],
+	"./jv.js": [
+		"./node_modules/dayjs/locale/jv.js",
+		"locales/dayjs/jv-js"
+	],
+	"./ka.js": [
+		"./node_modules/dayjs/locale/ka.js",
+		"locales/dayjs/ka-js"
+	],
+	"./kk.js": [
+		"./node_modules/dayjs/locale/kk.js",
+		"locales/dayjs/kk-js"
+	],
+	"./km.js": [
+		"./node_modules/dayjs/locale/km.js",
+		"locales/dayjs/km-js"
+	],
+	"./kn.js": [
+		"./node_modules/dayjs/locale/kn.js",
+		"locales/dayjs/kn-js"
+	],
+	"./ko.js": [
+		"./node_modules/dayjs/locale/ko.js",
+		"locales/dayjs/ko-js"
+	],
+	"./ku.js": [
+		"./node_modules/dayjs/locale/ku.js",
+		"locales/dayjs/ku-js"
+	],
+	"./ky.js": [
+		"./node_modules/dayjs/locale/ky.js",
+		"locales/dayjs/ky-js"
+	],
+	"./lb.js": [
+		"./node_modules/dayjs/locale/lb.js",
+		"locales/dayjs/lb-js"
+	],
+	"./lo.js": [
+		"./node_modules/dayjs/locale/lo.js",
+		"locales/dayjs/lo-js"
+	],
+	"./lt.js": [
+		"./node_modules/dayjs/locale/lt.js",
+		"locales/dayjs/lt-js"
+	],
+	"./lv.js": [
+		"./node_modules/dayjs/locale/lv.js",
+		"locales/dayjs/lv-js"
+	],
+	"./me.js": [
+		"./node_modules/dayjs/locale/me.js",
+		"locales/dayjs/me-js"
+	],
+	"./mi.js": [
+		"./node_modules/dayjs/locale/mi.js",
+		"locales/dayjs/mi-js"
+	],
+	"./mk.js": [
+		"./node_modules/dayjs/locale/mk.js",
+		"locales/dayjs/mk-js"
+	],
+	"./ml.js": [
+		"./node_modules/dayjs/locale/ml.js",
+		"locales/dayjs/ml-js"
+	],
+	"./mn.js": [
+		"./node_modules/dayjs/locale/mn.js",
+		"locales/dayjs/mn-js"
+	],
+	"./mr.js": [
+		"./node_modules/dayjs/locale/mr.js",
+		"locales/dayjs/mr-js"
+	],
+	"./ms-my.js": [
+		"./node_modules/dayjs/locale/ms-my.js",
+		"locales/dayjs/ms-my-js"
+	],
+	"./ms.js": [
+		"./node_modules/dayjs/locale/ms.js",
+		"locales/dayjs/ms-js"
+	],
+	"./mt.js": [
+		"./node_modules/dayjs/locale/mt.js",
+		"locales/dayjs/mt-js"
+	],
+	"./my.js": [
+		"./node_modules/dayjs/locale/my.js",
+		"locales/dayjs/my-js"
+	],
+	"./nb.js": [
+		"./node_modules/dayjs/locale/nb.js",
+		"locales/dayjs/nb-js"
+	],
+	"./ne.js": [
+		"./node_modules/dayjs/locale/ne.js",
+		"locales/dayjs/ne-js"
+	],
+	"./nl-be.js": [
+		"./node_modules/dayjs/locale/nl-be.js",
+		"locales/dayjs/nl-be-js"
+	],
+	"./nl.js": [
+		"./node_modules/dayjs/locale/nl.js",
+		"locales/dayjs/nl-js"
+	],
+	"./nn.js": [
+		"./node_modules/dayjs/locale/nn.js",
+		"locales/dayjs/nn-js"
+	],
+	"./oc-lnc.js": [
+		"./node_modules/dayjs/locale/oc-lnc.js",
+		"locales/dayjs/oc-lnc-js"
+	],
+	"./pa-in.js": [
+		"./node_modules/dayjs/locale/pa-in.js",
+		"locales/dayjs/pa-in-js"
+	],
+	"./pl.js": [
+		"./node_modules/dayjs/locale/pl.js",
+		"locales/dayjs/pl-js"
+	],
+	"./pt-br.js": [
+		"./node_modules/dayjs/locale/pt-br.js",
+		"locales/dayjs/pt-br-js"
+	],
+	"./pt.js": [
+		"./node_modules/dayjs/locale/pt.js",
+		"locales/dayjs/pt-js"
+	],
+	"./rn.js": [
+		"./node_modules/dayjs/locale/rn.js",
+		"locales/dayjs/rn-js"
+	],
+	"./ro.js": [
+		"./node_modules/dayjs/locale/ro.js",
+		"locales/dayjs/ro-js"
+	],
+	"./ru.js": [
+		"./node_modules/dayjs/locale/ru.js",
+		"locales/dayjs/ru-js"
+	],
+	"./rw.js": [
+		"./node_modules/dayjs/locale/rw.js",
+		"locales/dayjs/rw-js"
+	],
+	"./sd.js": [
+		"./node_modules/dayjs/locale/sd.js",
+		"locales/dayjs/sd-js"
+	],
+	"./se.js": [
+		"./node_modules/dayjs/locale/se.js",
+		"locales/dayjs/se-js"
+	],
+	"./si.js": [
+		"./node_modules/dayjs/locale/si.js",
+		"locales/dayjs/si-js"
+	],
+	"./sk.js": [
+		"./node_modules/dayjs/locale/sk.js",
+		"locales/dayjs/sk-js"
+	],
+	"./sl.js": [
+		"./node_modules/dayjs/locale/sl.js",
+		"locales/dayjs/sl-js"
+	],
+	"./sq.js": [
+		"./node_modules/dayjs/locale/sq.js",
+		"locales/dayjs/sq-js"
+	],
+	"./sr-cyrl.js": [
+		"./node_modules/dayjs/locale/sr-cyrl.js",
+		"locales/dayjs/sr-cyrl-js"
+	],
+	"./sr.js": [
+		"./node_modules/dayjs/locale/sr.js",
+		"locales/dayjs/sr-js"
+	],
+	"./ss.js": [
+		"./node_modules/dayjs/locale/ss.js",
+		"locales/dayjs/ss-js"
+	],
+	"./sv-fi.js": [
+		"./node_modules/dayjs/locale/sv-fi.js",
+		"locales/dayjs/sv-fi-js"
+	],
+	"./sv.js": [
+		"./node_modules/dayjs/locale/sv.js",
+		"locales/dayjs/sv-js"
+	],
+	"./sw.js": [
+		"./node_modules/dayjs/locale/sw.js",
+		"locales/dayjs/sw-js"
+	],
+	"./ta.js": [
+		"./node_modules/dayjs/locale/ta.js",
+		"locales/dayjs/ta-js"
+	],
+	"./te.js": [
+		"./node_modules/dayjs/locale/te.js",
+		"locales/dayjs/te-js"
+	],
+	"./tet.js": [
+		"./node_modules/dayjs/locale/tet.js",
+		"locales/dayjs/tet-js"
+	],
+	"./tg.js": [
+		"./node_modules/dayjs/locale/tg.js",
+		"locales/dayjs/tg-js"
+	],
+	"./th.js": [
+		"./node_modules/dayjs/locale/th.js",
+		"locales/dayjs/th-js"
+	],
+	"./tk.js": [
+		"./node_modules/dayjs/locale/tk.js",
+		"locales/dayjs/tk-js"
+	],
+	"./tl-ph.js": [
+		"./node_modules/dayjs/locale/tl-ph.js",
+		"locales/dayjs/tl-ph-js"
+	],
+	"./tlh.js": [
+		"./node_modules/dayjs/locale/tlh.js",
+		"locales/dayjs/tlh-js"
+	],
+	"./tr.js": [
+		"./node_modules/dayjs/locale/tr.js",
+		"locales/dayjs/tr-js"
+	],
+	"./tzl.js": [
+		"./node_modules/dayjs/locale/tzl.js",
+		"locales/dayjs/tzl-js"
+	],
+	"./tzm-latn.js": [
+		"./node_modules/dayjs/locale/tzm-latn.js",
+		"locales/dayjs/tzm-latn-js"
+	],
+	"./tzm.js": [
+		"./node_modules/dayjs/locale/tzm.js",
+		"locales/dayjs/tzm-js"
+	],
+	"./ug-cn.js": [
+		"./node_modules/dayjs/locale/ug-cn.js",
+		"locales/dayjs/ug-cn-js"
+	],
+	"./uk.js": [
+		"./node_modules/dayjs/locale/uk.js",
+		"locales/dayjs/uk-js"
+	],
+	"./ur.js": [
+		"./node_modules/dayjs/locale/ur.js",
+		"locales/dayjs/ur-js"
+	],
+	"./uz-latn.js": [
+		"./node_modules/dayjs/locale/uz-latn.js",
+		"locales/dayjs/uz-latn-js"
+	],
+	"./uz.js": [
+		"./node_modules/dayjs/locale/uz.js",
+		"locales/dayjs/uz-js"
+	],
+	"./vi.js": [
+		"./node_modules/dayjs/locale/vi.js",
+		"locales/dayjs/vi-js"
+	],
+	"./x-pseudo.js": [
+		"./node_modules/dayjs/locale/x-pseudo.js",
+		"locales/dayjs/x-pseudo-js"
+	],
+	"./yo.js": [
+		"./node_modules/dayjs/locale/yo.js",
+		"locales/dayjs/yo-js"
+	],
+	"./zh-cn.js": [
+		"./node_modules/dayjs/locale/zh-cn.js",
+		"locales/dayjs/zh-cn-js"
+	],
+	"./zh-hk.js": [
+		"./node_modules/dayjs/locale/zh-hk.js",
+		"locales/dayjs/zh-hk-js"
+	],
+	"./zh-tw.js": [
+		"./node_modules/dayjs/locale/zh-tw.js",
+		"locales/dayjs/zh-tw-js"
+	],
+	"./zh.js": [
+		"./node_modules/dayjs/locale/zh.js",
+		"locales/dayjs/zh-js"
+	]
+};
+function webpackAsyncContext(req) {
+	if(!__webpack_require__.o(map, req)) {
+		return Promise.resolve().then(() => {
+			var e = new Error("Cannot find module '" + req + "'");
+			e.code = 'MODULE_NOT_FOUND';
+			throw e;
+		});
+	}
+
+	var ids = map[req], id = ids[0];
+	return __webpack_require__.e(ids[1]).then(() => {
+		return __webpack_require__.t(id, 7 | 16);
+	});
+}
+webpackAsyncContext.keys = () => (Object.keys(map));
+webpackAsyncContext.id = "./node_modules/dayjs/locale lazy recursive ^\\.\\/.*\\.js$";
+module.exports = webpackAsyncContext;
 
 /***/ }),
 
@@ -33419,6 +38454,1035 @@ function immediate(task) {
     scheduleDrain();
   }
 }
+
+
+/***/ }),
+
+/***/ "./node_modules/jed/jed.js":
+/*!*********************************!*\
+  !*** ./node_modules/jed/jed.js ***!
+  \*********************************/
+/***/ (function(module, exports) {
+
+/**
+ * @preserve jed.js https://github.com/SlexAxton/Jed
+ */
+/*
+-----------
+A gettext compatible i18n library for modern JavaScript Applications
+
+by Alex Sexton - AlexSexton [at] gmail - @SlexAxton
+
+MIT License
+
+A jQuery Foundation project - requires CLA to contribute -
+https://contribute.jquery.org/CLA/
+
+
+
+Jed offers the entire applicable GNU gettext spec'd set of
+functions, but also offers some nicer wrappers around them.
+The api for gettext was written for a language with no function
+overloading, so Jed allows a little more of that.
+
+Many thanks to Joshua I. Miller - unrtst@cpan.org - who wrote
+gettext.js back in 2008. I was able to vet a lot of my ideas
+against his. I also made sure Jed passed against his tests
+in order to offer easy upgrades -- jsgettext.berlios.de
+*/
+(function (root, undef) {
+
+  // Set up some underscore-style functions, if you already have
+  // underscore, feel free to delete this section, and use it
+  // directly, however, the amount of functions used doesn't
+  // warrant having underscore as a full dependency.
+  // Underscore 1.3.0 was used to port and is licensed
+  // under the MIT License by Jeremy Ashkenas.
+  var ArrayProto    = Array.prototype,
+      ObjProto      = Object.prototype,
+      slice         = ArrayProto.slice,
+      hasOwnProp    = ObjProto.hasOwnProperty,
+      nativeForEach = ArrayProto.forEach,
+      breaker       = {};
+
+  // We're not using the OOP style _ so we don't need the
+  // extra level of indirection. This still means that you
+  // sub out for real `_` though.
+  var _ = {
+    forEach : function( obj, iterator, context ) {
+      var i, l, key;
+      if ( obj === null ) {
+        return;
+      }
+
+      if ( nativeForEach && obj.forEach === nativeForEach ) {
+        obj.forEach( iterator, context );
+      }
+      else if ( obj.length === +obj.length ) {
+        for ( i = 0, l = obj.length; i < l; i++ ) {
+          if ( i in obj && iterator.call( context, obj[i], i, obj ) === breaker ) {
+            return;
+          }
+        }
+      }
+      else {
+        for ( key in obj) {
+          if ( hasOwnProp.call( obj, key ) ) {
+            if ( iterator.call (context, obj[key], key, obj ) === breaker ) {
+              return;
+            }
+          }
+        }
+      }
+    },
+    extend : function( obj ) {
+      this.forEach( slice.call( arguments, 1 ), function ( source ) {
+        for ( var prop in source ) {
+          obj[prop] = source[prop];
+        }
+      });
+      return obj;
+    }
+  };
+  // END Miniature underscore impl
+
+  // Jed is a constructor function
+  var Jed = function ( options ) {
+    // Some minimal defaults
+    this.defaults = {
+      "locale_data" : {
+        "messages" : {
+          "" : {
+            "domain"       : "messages",
+            "lang"         : "en",
+            "plural_forms" : "nplurals=2; plural=(n != 1);"
+          }
+          // There are no default keys, though
+        }
+      },
+      // The default domain if one is missing
+      "domain" : "messages",
+      // enable debug mode to log untranslated strings to the console
+      "debug" : false
+    };
+
+    // Mix in the sent options with the default options
+    this.options = _.extend( {}, this.defaults, options );
+    this.textdomain( this.options.domain );
+
+    if ( options.domain && ! this.options.locale_data[ this.options.domain ] ) {
+      throw new Error('Text domain set to non-existent domain: `' + options.domain + '`');
+    }
+  };
+
+  // The gettext spec sets this character as the default
+  // delimiter for context lookups.
+  // e.g.: context\u0004key
+  // If your translation company uses something different,
+  // just change this at any time and it will use that instead.
+  Jed.context_delimiter = String.fromCharCode( 4 );
+
+  function getPluralFormFunc ( plural_form_string ) {
+    return Jed.PF.compile( plural_form_string || "nplurals=2; plural=(n != 1);");
+  }
+
+  function Chain( key, i18n ){
+    this._key = key;
+    this._i18n = i18n;
+  }
+
+  // Create a chainable api for adding args prettily
+  _.extend( Chain.prototype, {
+    onDomain : function ( domain ) {
+      this._domain = domain;
+      return this;
+    },
+    withContext : function ( context ) {
+      this._context = context;
+      return this;
+    },
+    ifPlural : function ( num, pkey ) {
+      this._val = num;
+      this._pkey = pkey;
+      return this;
+    },
+    fetch : function ( sArr ) {
+      if ( {}.toString.call( sArr ) != '[object Array]' ) {
+        sArr = [].slice.call(arguments, 0);
+      }
+      return ( sArr && sArr.length ? Jed.sprintf : function(x){ return x; } )(
+        this._i18n.dcnpgettext(this._domain, this._context, this._key, this._pkey, this._val),
+        sArr
+      );
+    }
+  });
+
+  // Add functions to the Jed prototype.
+  // These will be the functions on the object that's returned
+  // from creating a `new Jed()`
+  // These seem redundant, but they gzip pretty well.
+  _.extend( Jed.prototype, {
+    // The sexier api start point
+    translate : function ( key ) {
+      return new Chain( key, this );
+    },
+
+    textdomain : function ( domain ) {
+      if ( ! domain ) {
+        return this._textdomain;
+      }
+      this._textdomain = domain;
+    },
+
+    gettext : function ( key ) {
+      return this.dcnpgettext.call( this, undef, undef, key );
+    },
+
+    dgettext : function ( domain, key ) {
+     return this.dcnpgettext.call( this, domain, undef, key );
+    },
+
+    dcgettext : function ( domain , key /*, category */ ) {
+      // Ignores the category anyways
+      return this.dcnpgettext.call( this, domain, undef, key );
+    },
+
+    ngettext : function ( skey, pkey, val ) {
+      return this.dcnpgettext.call( this, undef, undef, skey, pkey, val );
+    },
+
+    dngettext : function ( domain, skey, pkey, val ) {
+      return this.dcnpgettext.call( this, domain, undef, skey, pkey, val );
+    },
+
+    dcngettext : function ( domain, skey, pkey, val/*, category */) {
+      return this.dcnpgettext.call( this, domain, undef, skey, pkey, val );
+    },
+
+    pgettext : function ( context, key ) {
+      return this.dcnpgettext.call( this, undef, context, key );
+    },
+
+    dpgettext : function ( domain, context, key ) {
+      return this.dcnpgettext.call( this, domain, context, key );
+    },
+
+    dcpgettext : function ( domain, context, key/*, category */) {
+      return this.dcnpgettext.call( this, domain, context, key );
+    },
+
+    npgettext : function ( context, skey, pkey, val ) {
+      return this.dcnpgettext.call( this, undef, context, skey, pkey, val );
+    },
+
+    dnpgettext : function ( domain, context, skey, pkey, val ) {
+      return this.dcnpgettext.call( this, domain, context, skey, pkey, val );
+    },
+
+    // The most fully qualified gettext function. It has every option.
+    // Since it has every option, we can use it from every other method.
+    // This is the bread and butter.
+    // Technically there should be one more argument in this function for 'Category',
+    // but since we never use it, we might as well not waste the bytes to define it.
+    dcnpgettext : function ( domain, context, singular_key, plural_key, val ) {
+      // Set some defaults
+
+      plural_key = plural_key || singular_key;
+
+      // Use the global domain default if one
+      // isn't explicitly passed in
+      domain = domain || this._textdomain;
+
+      var fallback;
+
+      // Handle special cases
+
+      // No options found
+      if ( ! this.options ) {
+        // There's likely something wrong, but we'll return the correct key for english
+        // We do this by instantiating a brand new Jed instance with the default set
+        // for everything that could be broken.
+        fallback = new Jed();
+        return fallback.dcnpgettext.call( fallback, undefined, undefined, singular_key, plural_key, val );
+      }
+
+      // No translation data provided
+      if ( ! this.options.locale_data ) {
+        throw new Error('No locale data provided.');
+      }
+
+      if ( ! this.options.locale_data[ domain ] ) {
+        throw new Error('Domain `' + domain + '` was not found.');
+      }
+
+      if ( ! this.options.locale_data[ domain ][ "" ] ) {
+        throw new Error('No locale meta information provided.');
+      }
+
+      // Make sure we have a truthy key. Otherwise we might start looking
+      // into the empty string key, which is the options for the locale
+      // data.
+      if ( ! singular_key ) {
+        throw new Error('No translation key found.');
+      }
+
+      var key  = context ? context + Jed.context_delimiter + singular_key : singular_key,
+          locale_data = this.options.locale_data,
+          dict = locale_data[ domain ],
+          defaultConf = (locale_data.messages || this.defaults.locale_data.messages)[""],
+          pluralForms = dict[""].plural_forms || dict[""]["Plural-Forms"] || dict[""]["plural-forms"] || defaultConf.plural_forms || defaultConf["Plural-Forms"] || defaultConf["plural-forms"],
+          val_list,
+          res;
+
+      var val_idx;
+      if (val === undefined) {
+        // No value passed in; assume singular key lookup.
+        val_idx = 0;
+
+      } else {
+        // Value has been passed in; use plural-forms calculations.
+
+        // Handle invalid numbers, but try casting strings for good measure
+        if ( typeof val != 'number' ) {
+          val = parseInt( val, 10 );
+
+          if ( isNaN( val ) ) {
+            throw new Error('The number that was passed in is not a number.');
+          }
+        }
+
+        val_idx = getPluralFormFunc(pluralForms)(val);
+      }
+
+      // Throw an error if a domain isn't found
+      if ( ! dict ) {
+        throw new Error('No domain named `' + domain + '` could be found.');
+      }
+
+      val_list = dict[ key ];
+
+      // If there is no match, then revert back to
+      // english style singular/plural with the keys passed in.
+      if ( ! val_list || val_idx > val_list.length ) {
+        if (this.options.missing_key_callback) {
+          this.options.missing_key_callback(key, domain);
+        }
+        res = [ singular_key, plural_key ];
+
+        // collect untranslated strings
+        if (this.options.debug===true) {
+          console.log(res[ getPluralFormFunc(pluralForms)( val ) ]);
+        }
+        return res[ getPluralFormFunc()( val ) ];
+      }
+
+      res = val_list[ val_idx ];
+
+      // This includes empty strings on purpose
+      if ( ! res  ) {
+        res = [ singular_key, plural_key ];
+        return res[ getPluralFormFunc()( val ) ];
+      }
+      return res;
+    }
+  });
+
+
+  // We add in sprintf capabilities for post translation value interolation
+  // This is not internally used, so you can remove it if you have this
+  // available somewhere else, or want to use a different system.
+
+  // We _slightly_ modify the normal sprintf behavior to more gracefully handle
+  // undefined values.
+
+  /**
+   sprintf() for JavaScript 0.7-beta1
+   http://www.diveintojavascript.com/projects/javascript-sprintf
+
+   Copyright (c) Alexandru Marasteanu <alexaholic [at) gmail (dot] com>
+   All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+       * Redistributions of source code must retain the above copyright
+         notice, this list of conditions and the following disclaimer.
+       * Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+       * Neither the name of sprintf() for JavaScript nor the
+         names of its contributors may be used to endorse or promote products
+         derived from this software without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL Alexandru Marasteanu BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+  var sprintf = (function() {
+    function get_type(variable) {
+      return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
+    }
+    function str_repeat(input, multiplier) {
+      for (var output = []; multiplier > 0; output[--multiplier] = input) {/* do nothing */}
+      return output.join('');
+    }
+
+    var str_format = function() {
+      if (!str_format.cache.hasOwnProperty(arguments[0])) {
+        str_format.cache[arguments[0]] = str_format.parse(arguments[0]);
+      }
+      return str_format.format.call(null, str_format.cache[arguments[0]], arguments);
+    };
+
+    str_format.format = function(parse_tree, argv) {
+      var cursor = 1, tree_length = parse_tree.length, node_type = '', arg, output = [], i, k, match, pad, pad_character, pad_length;
+      for (i = 0; i < tree_length; i++) {
+        node_type = get_type(parse_tree[i]);
+        if (node_type === 'string') {
+          output.push(parse_tree[i]);
+        }
+        else if (node_type === 'array') {
+          match = parse_tree[i]; // convenience purposes only
+          if (match[2]) { // keyword argument
+            arg = argv[cursor];
+            for (k = 0; k < match[2].length; k++) {
+              if (!arg.hasOwnProperty(match[2][k])) {
+                throw(sprintf('[sprintf] property "%s" does not exist', match[2][k]));
+              }
+              arg = arg[match[2][k]];
+            }
+          }
+          else if (match[1]) { // positional argument (explicit)
+            arg = argv[match[1]];
+          }
+          else { // positional argument (implicit)
+            arg = argv[cursor++];
+          }
+
+          if (/[^s]/.test(match[8]) && (get_type(arg) != 'number')) {
+            throw(sprintf('[sprintf] expecting number but found %s', get_type(arg)));
+          }
+
+          // Jed EDIT
+          if ( typeof arg == 'undefined' || arg === null ) {
+            arg = '';
+          }
+          // Jed EDIT
+
+          switch (match[8]) {
+            case 'b': arg = arg.toString(2); break;
+            case 'c': arg = String.fromCharCode(arg); break;
+            case 'd': arg = parseInt(arg, 10); break;
+            case 'e': arg = match[7] ? arg.toExponential(match[7]) : arg.toExponential(); break;
+            case 'f': arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg); break;
+            case 'o': arg = arg.toString(8); break;
+            case 's': arg = ((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg); break;
+            case 'u': arg = Math.abs(arg); break;
+            case 'x': arg = arg.toString(16); break;
+            case 'X': arg = arg.toString(16).toUpperCase(); break;
+          }
+          arg = (/[def]/.test(match[8]) && match[3] && arg >= 0 ? '+'+ arg : arg);
+          pad_character = match[4] ? match[4] == '0' ? '0' : match[4].charAt(1) : ' ';
+          pad_length = match[6] - String(arg).length;
+          pad = match[6] ? str_repeat(pad_character, pad_length) : '';
+          output.push(match[5] ? arg + pad : pad + arg);
+        }
+      }
+      return output.join('');
+    };
+
+    str_format.cache = {};
+
+    str_format.parse = function(fmt) {
+      var _fmt = fmt, match = [], parse_tree = [], arg_names = 0;
+      while (_fmt) {
+        if ((match = /^[^\x25]+/.exec(_fmt)) !== null) {
+          parse_tree.push(match[0]);
+        }
+        else if ((match = /^\x25{2}/.exec(_fmt)) !== null) {
+          parse_tree.push('%');
+        }
+        else if ((match = /^\x25(?:([1-9]\d*)\$|\(([^\)]+)\))?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([b-fosuxX])/.exec(_fmt)) !== null) {
+          if (match[2]) {
+            arg_names |= 1;
+            var field_list = [], replacement_field = match[2], field_match = [];
+            if ((field_match = /^([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+              field_list.push(field_match[1]);
+              while ((replacement_field = replacement_field.substring(field_match[0].length)) !== '') {
+                if ((field_match = /^\.([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+                  field_list.push(field_match[1]);
+                }
+                else if ((field_match = /^\[(\d+)\]/.exec(replacement_field)) !== null) {
+                  field_list.push(field_match[1]);
+                }
+                else {
+                  throw('[sprintf] huh?');
+                }
+              }
+            }
+            else {
+              throw('[sprintf] huh?');
+            }
+            match[2] = field_list;
+          }
+          else {
+            arg_names |= 2;
+          }
+          if (arg_names === 3) {
+            throw('[sprintf] mixing positional and named placeholders is not (yet) supported');
+          }
+          parse_tree.push(match);
+        }
+        else {
+          throw('[sprintf] huh?');
+        }
+        _fmt = _fmt.substring(match[0].length);
+      }
+      return parse_tree;
+    };
+
+    return str_format;
+  })();
+
+  var vsprintf = function(fmt, argv) {
+    argv.unshift(fmt);
+    return sprintf.apply(null, argv);
+  };
+
+  Jed.parse_plural = function ( plural_forms, n ) {
+    plural_forms = plural_forms.replace(/n/g, n);
+    return Jed.parse_expression(plural_forms);
+  };
+
+  Jed.sprintf = function ( fmt, args ) {
+    if ( {}.toString.call( args ) == '[object Array]' ) {
+      return vsprintf( fmt, [].slice.call(args) );
+    }
+    return sprintf.apply(this, [].slice.call(arguments) );
+  };
+
+  Jed.prototype.sprintf = function () {
+    return Jed.sprintf.apply(this, arguments);
+  };
+  // END sprintf Implementation
+
+  // Start the Plural forms section
+  // This is a full plural form expression parser. It is used to avoid
+  // running 'eval' or 'new Function' directly against the plural
+  // forms.
+  //
+  // This can be important if you get translations done through a 3rd
+  // party vendor. I encourage you to use this instead, however, I
+  // also will provide a 'precompiler' that you can use at build time
+  // to output valid/safe function representations of the plural form
+  // expressions. This means you can build this code out for the most
+  // part.
+  Jed.PF = {};
+
+  Jed.PF.parse = function ( p ) {
+    var plural_str = Jed.PF.extractPluralExpr( p );
+    return Jed.PF.parser.parse.call(Jed.PF.parser, plural_str);
+  };
+
+  Jed.PF.compile = function ( p ) {
+    // Handle trues and falses as 0 and 1
+    function imply( val ) {
+      return (val === true ? 1 : val ? val : 0);
+    }
+
+    var ast = Jed.PF.parse( p );
+    return function ( n ) {
+      return imply( Jed.PF.interpreter( ast )( n ) );
+    };
+  };
+
+  Jed.PF.interpreter = function ( ast ) {
+    return function ( n ) {
+      var res;
+      switch ( ast.type ) {
+        case 'GROUP':
+          return Jed.PF.interpreter( ast.expr )( n );
+        case 'TERNARY':
+          if ( Jed.PF.interpreter( ast.expr )( n ) ) {
+            return Jed.PF.interpreter( ast.truthy )( n );
+          }
+          return Jed.PF.interpreter( ast.falsey )( n );
+        case 'OR':
+          return Jed.PF.interpreter( ast.left )( n ) || Jed.PF.interpreter( ast.right )( n );
+        case 'AND':
+          return Jed.PF.interpreter( ast.left )( n ) && Jed.PF.interpreter( ast.right )( n );
+        case 'LT':
+          return Jed.PF.interpreter( ast.left )( n ) < Jed.PF.interpreter( ast.right )( n );
+        case 'GT':
+          return Jed.PF.interpreter( ast.left )( n ) > Jed.PF.interpreter( ast.right )( n );
+        case 'LTE':
+          return Jed.PF.interpreter( ast.left )( n ) <= Jed.PF.interpreter( ast.right )( n );
+        case 'GTE':
+          return Jed.PF.interpreter( ast.left )( n ) >= Jed.PF.interpreter( ast.right )( n );
+        case 'EQ':
+          return Jed.PF.interpreter( ast.left )( n ) == Jed.PF.interpreter( ast.right )( n );
+        case 'NEQ':
+          return Jed.PF.interpreter( ast.left )( n ) != Jed.PF.interpreter( ast.right )( n );
+        case 'MOD':
+          return Jed.PF.interpreter( ast.left )( n ) % Jed.PF.interpreter( ast.right )( n );
+        case 'VAR':
+          return n;
+        case 'NUM':
+          return ast.val;
+        default:
+          throw new Error("Invalid Token found.");
+      }
+    };
+  };
+
+  Jed.PF.extractPluralExpr = function ( p ) {
+    // trim first
+    p = p.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+
+    if (! /;\s*$/.test(p)) {
+      p = p.concat(';');
+    }
+
+    var nplurals_re = /nplurals\=(\d+);/,
+        plural_re = /plural\=(.*);/,
+        nplurals_matches = p.match( nplurals_re ),
+        res = {},
+        plural_matches;
+
+    // Find the nplurals number
+    if ( nplurals_matches.length > 1 ) {
+      res.nplurals = nplurals_matches[1];
+    }
+    else {
+      throw new Error('nplurals not found in plural_forms string: ' + p );
+    }
+
+    // remove that data to get to the formula
+    p = p.replace( nplurals_re, "" );
+    plural_matches = p.match( plural_re );
+
+    if (!( plural_matches && plural_matches.length > 1 ) ) {
+      throw new Error('`plural` expression not found: ' + p);
+    }
+    return plural_matches[ 1 ];
+  };
+
+  /* Jison generated parser */
+  Jed.PF.parser = (function(){
+
+var parser = {trace: function trace() { },
+yy: {},
+symbols_: {"error":2,"expressions":3,"e":4,"EOF":5,"?":6,":":7,"||":8,"&&":9,"<":10,"<=":11,">":12,">=":13,"!=":14,"==":15,"%":16,"(":17,")":18,"n":19,"NUMBER":20,"$accept":0,"$end":1},
+terminals_: {2:"error",5:"EOF",6:"?",7:":",8:"||",9:"&&",10:"<",11:"<=",12:">",13:">=",14:"!=",15:"==",16:"%",17:"(",18:")",19:"n",20:"NUMBER"},
+productions_: [0,[3,2],[4,5],[4,3],[4,3],[4,3],[4,3],[4,3],[4,3],[4,3],[4,3],[4,3],[4,3],[4,1],[4,1]],
+performAction: function anonymous(yytext,yyleng,yylineno,yy,yystate,$$,_$) {
+
+var $0 = $$.length - 1;
+switch (yystate) {
+case 1: return { type : 'GROUP', expr: $$[$0-1] };
+break;
+case 2:this.$ = { type: 'TERNARY', expr: $$[$0-4], truthy : $$[$0-2], falsey: $$[$0] };
+break;
+case 3:this.$ = { type: "OR", left: $$[$0-2], right: $$[$0] };
+break;
+case 4:this.$ = { type: "AND", left: $$[$0-2], right: $$[$0] };
+break;
+case 5:this.$ = { type: 'LT', left: $$[$0-2], right: $$[$0] };
+break;
+case 6:this.$ = { type: 'LTE', left: $$[$0-2], right: $$[$0] };
+break;
+case 7:this.$ = { type: 'GT', left: $$[$0-2], right: $$[$0] };
+break;
+case 8:this.$ = { type: 'GTE', left: $$[$0-2], right: $$[$0] };
+break;
+case 9:this.$ = { type: 'NEQ', left: $$[$0-2], right: $$[$0] };
+break;
+case 10:this.$ = { type: 'EQ', left: $$[$0-2], right: $$[$0] };
+break;
+case 11:this.$ = { type: 'MOD', left: $$[$0-2], right: $$[$0] };
+break;
+case 12:this.$ = { type: 'GROUP', expr: $$[$0-1] };
+break;
+case 13:this.$ = { type: 'VAR' };
+break;
+case 14:this.$ = { type: 'NUM', val: Number(yytext) };
+break;
+}
+},
+table: [{3:1,4:2,17:[1,3],19:[1,4],20:[1,5]},{1:[3]},{5:[1,6],6:[1,7],8:[1,8],9:[1,9],10:[1,10],11:[1,11],12:[1,12],13:[1,13],14:[1,14],15:[1,15],16:[1,16]},{4:17,17:[1,3],19:[1,4],20:[1,5]},{5:[2,13],6:[2,13],7:[2,13],8:[2,13],9:[2,13],10:[2,13],11:[2,13],12:[2,13],13:[2,13],14:[2,13],15:[2,13],16:[2,13],18:[2,13]},{5:[2,14],6:[2,14],7:[2,14],8:[2,14],9:[2,14],10:[2,14],11:[2,14],12:[2,14],13:[2,14],14:[2,14],15:[2,14],16:[2,14],18:[2,14]},{1:[2,1]},{4:18,17:[1,3],19:[1,4],20:[1,5]},{4:19,17:[1,3],19:[1,4],20:[1,5]},{4:20,17:[1,3],19:[1,4],20:[1,5]},{4:21,17:[1,3],19:[1,4],20:[1,5]},{4:22,17:[1,3],19:[1,4],20:[1,5]},{4:23,17:[1,3],19:[1,4],20:[1,5]},{4:24,17:[1,3],19:[1,4],20:[1,5]},{4:25,17:[1,3],19:[1,4],20:[1,5]},{4:26,17:[1,3],19:[1,4],20:[1,5]},{4:27,17:[1,3],19:[1,4],20:[1,5]},{6:[1,7],8:[1,8],9:[1,9],10:[1,10],11:[1,11],12:[1,12],13:[1,13],14:[1,14],15:[1,15],16:[1,16],18:[1,28]},{6:[1,7],7:[1,29],8:[1,8],9:[1,9],10:[1,10],11:[1,11],12:[1,12],13:[1,13],14:[1,14],15:[1,15],16:[1,16]},{5:[2,3],6:[2,3],7:[2,3],8:[2,3],9:[1,9],10:[1,10],11:[1,11],12:[1,12],13:[1,13],14:[1,14],15:[1,15],16:[1,16],18:[2,3]},{5:[2,4],6:[2,4],7:[2,4],8:[2,4],9:[2,4],10:[1,10],11:[1,11],12:[1,12],13:[1,13],14:[1,14],15:[1,15],16:[1,16],18:[2,4]},{5:[2,5],6:[2,5],7:[2,5],8:[2,5],9:[2,5],10:[2,5],11:[2,5],12:[2,5],13:[2,5],14:[2,5],15:[2,5],16:[1,16],18:[2,5]},{5:[2,6],6:[2,6],7:[2,6],8:[2,6],9:[2,6],10:[2,6],11:[2,6],12:[2,6],13:[2,6],14:[2,6],15:[2,6],16:[1,16],18:[2,6]},{5:[2,7],6:[2,7],7:[2,7],8:[2,7],9:[2,7],10:[2,7],11:[2,7],12:[2,7],13:[2,7],14:[2,7],15:[2,7],16:[1,16],18:[2,7]},{5:[2,8],6:[2,8],7:[2,8],8:[2,8],9:[2,8],10:[2,8],11:[2,8],12:[2,8],13:[2,8],14:[2,8],15:[2,8],16:[1,16],18:[2,8]},{5:[2,9],6:[2,9],7:[2,9],8:[2,9],9:[2,9],10:[2,9],11:[2,9],12:[2,9],13:[2,9],14:[2,9],15:[2,9],16:[1,16],18:[2,9]},{5:[2,10],6:[2,10],7:[2,10],8:[2,10],9:[2,10],10:[2,10],11:[2,10],12:[2,10],13:[2,10],14:[2,10],15:[2,10],16:[1,16],18:[2,10]},{5:[2,11],6:[2,11],7:[2,11],8:[2,11],9:[2,11],10:[2,11],11:[2,11],12:[2,11],13:[2,11],14:[2,11],15:[2,11],16:[2,11],18:[2,11]},{5:[2,12],6:[2,12],7:[2,12],8:[2,12],9:[2,12],10:[2,12],11:[2,12],12:[2,12],13:[2,12],14:[2,12],15:[2,12],16:[2,12],18:[2,12]},{4:30,17:[1,3],19:[1,4],20:[1,5]},{5:[2,2],6:[1,7],7:[2,2],8:[1,8],9:[1,9],10:[1,10],11:[1,11],12:[1,12],13:[1,13],14:[1,14],15:[1,15],16:[1,16],18:[2,2]}],
+defaultActions: {6:[2,1]},
+parseError: function parseError(str, hash) {
+    throw new Error(str);
+},
+parse: function parse(input) {
+    var self = this,
+        stack = [0],
+        vstack = [null], // semantic value stack
+        lstack = [], // location stack
+        table = this.table,
+        yytext = '',
+        yylineno = 0,
+        yyleng = 0,
+        recovering = 0,
+        TERROR = 2,
+        EOF = 1;
+
+    //this.reductionCount = this.shiftCount = 0;
+
+    this.lexer.setInput(input);
+    this.lexer.yy = this.yy;
+    this.yy.lexer = this.lexer;
+    if (typeof this.lexer.yylloc == 'undefined')
+        this.lexer.yylloc = {};
+    var yyloc = this.lexer.yylloc;
+    lstack.push(yyloc);
+
+    if (typeof this.yy.parseError === 'function')
+        this.parseError = this.yy.parseError;
+
+    function popStack (n) {
+        stack.length = stack.length - 2*n;
+        vstack.length = vstack.length - n;
+        lstack.length = lstack.length - n;
+    }
+
+    function lex() {
+        var token;
+        token = self.lexer.lex() || 1; // $end = 1
+        // if token isn't its numeric value, convert
+        if (typeof token !== 'number') {
+            token = self.symbols_[token] || token;
+        }
+        return token;
+    }
+
+    var symbol, preErrorSymbol, state, action, a, r, yyval={},p,len,newState, expected;
+    while (true) {
+        // retreive state number from top of stack
+        state = stack[stack.length-1];
+
+        // use default actions if available
+        if (this.defaultActions[state]) {
+            action = this.defaultActions[state];
+        } else {
+            if (symbol == null)
+                symbol = lex();
+            // read action for current state and first input
+            action = table[state] && table[state][symbol];
+        }
+
+        // handle parse error
+        _handle_error:
+        if (typeof action === 'undefined' || !action.length || !action[0]) {
+
+            if (!recovering) {
+                // Report error
+                expected = [];
+                for (p in table[state]) if (this.terminals_[p] && p > 2) {
+                    expected.push("'"+this.terminals_[p]+"'");
+                }
+                var errStr = '';
+                if (this.lexer.showPosition) {
+                    errStr = 'Parse error on line '+(yylineno+1)+":\n"+this.lexer.showPosition()+"\nExpecting "+expected.join(', ') + ", got '" + this.terminals_[symbol]+ "'";
+                } else {
+                    errStr = 'Parse error on line '+(yylineno+1)+": Unexpected " +
+                                  (symbol == 1 /*EOF*/ ? "end of input" :
+                                              ("'"+(this.terminals_[symbol] || symbol)+"'"));
+                }
+                this.parseError(errStr,
+                    {text: this.lexer.match, token: this.terminals_[symbol] || symbol, line: this.lexer.yylineno, loc: yyloc, expected: expected});
+            }
+
+            // just recovered from another error
+            if (recovering == 3) {
+                if (symbol == EOF) {
+                    throw new Error(errStr || 'Parsing halted.');
+                }
+
+                // discard current lookahead and grab another
+                yyleng = this.lexer.yyleng;
+                yytext = this.lexer.yytext;
+                yylineno = this.lexer.yylineno;
+                yyloc = this.lexer.yylloc;
+                symbol = lex();
+            }
+
+            // try to recover from error
+            while (1) {
+                // check for error recovery rule in this state
+                if ((TERROR.toString()) in table[state]) {
+                    break;
+                }
+                if (state == 0) {
+                    throw new Error(errStr || 'Parsing halted.');
+                }
+                popStack(1);
+                state = stack[stack.length-1];
+            }
+
+            preErrorSymbol = symbol; // save the lookahead token
+            symbol = TERROR;         // insert generic error symbol as new lookahead
+            state = stack[stack.length-1];
+            action = table[state] && table[state][TERROR];
+            recovering = 3; // allow 3 real symbols to be shifted before reporting a new error
+        }
+
+        // this shouldn't happen, unless resolve defaults are off
+        if (action[0] instanceof Array && action.length > 1) {
+            throw new Error('Parse Error: multiple actions possible at state: '+state+', token: '+symbol);
+        }
+
+        switch (action[0]) {
+
+            case 1: // shift
+                //this.shiftCount++;
+
+                stack.push(symbol);
+                vstack.push(this.lexer.yytext);
+                lstack.push(this.lexer.yylloc);
+                stack.push(action[1]); // push state
+                symbol = null;
+                if (!preErrorSymbol) { // normal execution/no error
+                    yyleng = this.lexer.yyleng;
+                    yytext = this.lexer.yytext;
+                    yylineno = this.lexer.yylineno;
+                    yyloc = this.lexer.yylloc;
+                    if (recovering > 0)
+                        recovering--;
+                } else { // error just occurred, resume old lookahead f/ before error
+                    symbol = preErrorSymbol;
+                    preErrorSymbol = null;
+                }
+                break;
+
+            case 2: // reduce
+                //this.reductionCount++;
+
+                len = this.productions_[action[1]][1];
+
+                // perform semantic action
+                yyval.$ = vstack[vstack.length-len]; // default to $$ = $1
+                // default location, uses first token for firsts, last for lasts
+                yyval._$ = {
+                    first_line: lstack[lstack.length-(len||1)].first_line,
+                    last_line: lstack[lstack.length-1].last_line,
+                    first_column: lstack[lstack.length-(len||1)].first_column,
+                    last_column: lstack[lstack.length-1].last_column
+                };
+                r = this.performAction.call(yyval, yytext, yyleng, yylineno, this.yy, action[1], vstack, lstack);
+
+                if (typeof r !== 'undefined') {
+                    return r;
+                }
+
+                // pop off stack
+                if (len) {
+                    stack = stack.slice(0,-1*len*2);
+                    vstack = vstack.slice(0, -1*len);
+                    lstack = lstack.slice(0, -1*len);
+                }
+
+                stack.push(this.productions_[action[1]][0]);    // push nonterminal (reduce)
+                vstack.push(yyval.$);
+                lstack.push(yyval._$);
+                // goto new state = table[STATE][NONTERMINAL]
+                newState = table[stack[stack.length-2]][stack[stack.length-1]];
+                stack.push(newState);
+                break;
+
+            case 3: // accept
+                return true;
+        }
+
+    }
+
+    return true;
+}};/* Jison generated lexer */
+var lexer = (function(){
+
+var lexer = ({EOF:1,
+parseError:function parseError(str, hash) {
+        if (this.yy.parseError) {
+            this.yy.parseError(str, hash);
+        } else {
+            throw new Error(str);
+        }
+    },
+setInput:function (input) {
+        this._input = input;
+        this._more = this._less = this.done = false;
+        this.yylineno = this.yyleng = 0;
+        this.yytext = this.matched = this.match = '';
+        this.conditionStack = ['INITIAL'];
+        this.yylloc = {first_line:1,first_column:0,last_line:1,last_column:0};
+        return this;
+    },
+input:function () {
+        var ch = this._input[0];
+        this.yytext+=ch;
+        this.yyleng++;
+        this.match+=ch;
+        this.matched+=ch;
+        var lines = ch.match(/\n/);
+        if (lines) this.yylineno++;
+        this._input = this._input.slice(1);
+        return ch;
+    },
+unput:function (ch) {
+        this._input = ch + this._input;
+        return this;
+    },
+more:function () {
+        this._more = true;
+        return this;
+    },
+pastInput:function () {
+        var past = this.matched.substr(0, this.matched.length - this.match.length);
+        return (past.length > 20 ? '...':'') + past.substr(-20).replace(/\n/g, "");
+    },
+upcomingInput:function () {
+        var next = this.match;
+        if (next.length < 20) {
+            next += this._input.substr(0, 20-next.length);
+        }
+        return (next.substr(0,20)+(next.length > 20 ? '...':'')).replace(/\n/g, "");
+    },
+showPosition:function () {
+        var pre = this.pastInput();
+        var c = new Array(pre.length + 1).join("-");
+        return pre + this.upcomingInput() + "\n" + c+"^";
+    },
+next:function () {
+        if (this.done) {
+            return this.EOF;
+        }
+        if (!this._input) this.done = true;
+
+        var token,
+            match,
+            col,
+            lines;
+        if (!this._more) {
+            this.yytext = '';
+            this.match = '';
+        }
+        var rules = this._currentRules();
+        for (var i=0;i < rules.length; i++) {
+            match = this._input.match(this.rules[rules[i]]);
+            if (match) {
+                lines = match[0].match(/\n.*/g);
+                if (lines) this.yylineno += lines.length;
+                this.yylloc = {first_line: this.yylloc.last_line,
+                               last_line: this.yylineno+1,
+                               first_column: this.yylloc.last_column,
+                               last_column: lines ? lines[lines.length-1].length-1 : this.yylloc.last_column + match[0].length}
+                this.yytext += match[0];
+                this.match += match[0];
+                this.matches = match;
+                this.yyleng = this.yytext.length;
+                this._more = false;
+                this._input = this._input.slice(match[0].length);
+                this.matched += match[0];
+                token = this.performAction.call(this, this.yy, this, rules[i],this.conditionStack[this.conditionStack.length-1]);
+                if (token) return token;
+                else return;
+            }
+        }
+        if (this._input === "") {
+            return this.EOF;
+        } else {
+            this.parseError('Lexical error on line '+(this.yylineno+1)+'. Unrecognized text.\n'+this.showPosition(),
+                    {text: "", token: null, line: this.yylineno});
+        }
+    },
+lex:function lex() {
+        var r = this.next();
+        if (typeof r !== 'undefined') {
+            return r;
+        } else {
+            return this.lex();
+        }
+    },
+begin:function begin(condition) {
+        this.conditionStack.push(condition);
+    },
+popState:function popState() {
+        return this.conditionStack.pop();
+    },
+_currentRules:function _currentRules() {
+        return this.conditions[this.conditionStack[this.conditionStack.length-1]].rules;
+    },
+topState:function () {
+        return this.conditionStack[this.conditionStack.length-2];
+    },
+pushState:function begin(condition) {
+        this.begin(condition);
+    }});
+lexer.performAction = function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
+
+var YYSTATE=YY_START;
+switch($avoiding_name_collisions) {
+case 0:/* skip whitespace */
+break;
+case 1:return 20
+break;
+case 2:return 19
+break;
+case 3:return 8
+break;
+case 4:return 9
+break;
+case 5:return 6
+break;
+case 6:return 7
+break;
+case 7:return 11
+break;
+case 8:return 13
+break;
+case 9:return 10
+break;
+case 10:return 12
+break;
+case 11:return 14
+break;
+case 12:return 15
+break;
+case 13:return 16
+break;
+case 14:return 17
+break;
+case 15:return 18
+break;
+case 16:return 5
+break;
+case 17:return 'INVALID'
+break;
+}
+};
+lexer.rules = [/^\s+/,/^[0-9]+(\.[0-9]+)?\b/,/^n\b/,/^\|\|/,/^&&/,/^\?/,/^:/,/^<=/,/^>=/,/^</,/^>/,/^!=/,/^==/,/^%/,/^\(/,/^\)/,/^$/,/^./];
+lexer.conditions = {"INITIAL":{"rules":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],"inclusive":true}};return lexer;})()
+parser.lexer = lexer;
+return parser;
+})();
+// End parser
+
+  // Handle node, amd, and global systems
+  if (true) {
+    if ( true && module.exports) {
+      exports = module.exports = Jed;
+    }
+    exports.Jed = Jed;
+  }
+  else {}
+
+})(this);
 
 
 /***/ }),
@@ -37698,7 +43762,6 @@ module.exports = localforage_js;
   !*** ./node_modules/sizzle/dist/sizzle.js ***!
   \********************************************/
 /***/ ((module, exports, __webpack_require__) => {
-  var document = self.document;
 
 var __WEBPACK_AMD_DEFINE_RESULT__;/*!
  * Sizzle CSS Selector Engine v2.3.10
@@ -37725,6 +43788,7 @@ var i,
 
 	// Local document vars
 	setDocument,
+	document,
 	docElem,
 	documentIsHTML,
 	rbuggyQSA,
@@ -40214,6 +46278,202 @@ if ( true ) {
 
 /***/ }),
 
+/***/ "./src/i18n lazy recursive ^\\.\\/.*\\/LC_MESSAGES\\/converse\\.po$ referencedExports: default":
+/*!*************************************************************************************************************************************!*\
+  !*** ./src/i18n/ lazy ^\.\/.*\/LC_MESSAGES\/converse\.po$ referencedExports: default chunkName: locales/[request] namespace object ***!
+  \*************************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+var map = {
+	"./af/LC_MESSAGES/converse.po": [
+		"./src/i18n/af/LC_MESSAGES/converse.po",
+		"locales/af-LC_MESSAGES-converse-po"
+	],
+	"./ar/LC_MESSAGES/converse.po": [
+		"./src/i18n/ar/LC_MESSAGES/converse.po",
+		"locales/ar-LC_MESSAGES-converse-po"
+	],
+	"./bg/LC_MESSAGES/converse.po": [
+		"./src/i18n/bg/LC_MESSAGES/converse.po",
+		"locales/bg-LC_MESSAGES-converse-po"
+	],
+	"./ca/LC_MESSAGES/converse.po": [
+		"./src/i18n/ca/LC_MESSAGES/converse.po",
+		"locales/ca-LC_MESSAGES-converse-po"
+	],
+	"./cs/LC_MESSAGES/converse.po": [
+		"./src/i18n/cs/LC_MESSAGES/converse.po",
+		"locales/cs-LC_MESSAGES-converse-po"
+	],
+	"./da/LC_MESSAGES/converse.po": [
+		"./src/i18n/da/LC_MESSAGES/converse.po",
+		"locales/da-LC_MESSAGES-converse-po"
+	],
+	"./de/LC_MESSAGES/converse.po": [
+		"./src/i18n/de/LC_MESSAGES/converse.po",
+		"locales/de-LC_MESSAGES-converse-po"
+	],
+	"./el/LC_MESSAGES/converse.po": [
+		"./src/i18n/el/LC_MESSAGES/converse.po",
+		"locales/el-LC_MESSAGES-converse-po"
+	],
+	"./eo/LC_MESSAGES/converse.po": [
+		"./src/i18n/eo/LC_MESSAGES/converse.po",
+		"locales/eo-LC_MESSAGES-converse-po"
+	],
+	"./es/LC_MESSAGES/converse.po": [
+		"./src/i18n/es/LC_MESSAGES/converse.po",
+		"locales/es-LC_MESSAGES-converse-po"
+	],
+	"./eu/LC_MESSAGES/converse.po": [
+		"./src/i18n/eu/LC_MESSAGES/converse.po",
+		"locales/eu-LC_MESSAGES-converse-po"
+	],
+	"./fa/LC_MESSAGES/converse.po": [
+		"./src/i18n/fa/LC_MESSAGES/converse.po",
+		"locales/fa-LC_MESSAGES-converse-po"
+	],
+	"./fi/LC_MESSAGES/converse.po": [
+		"./src/i18n/fi/LC_MESSAGES/converse.po",
+		"locales/fi-LC_MESSAGES-converse-po"
+	],
+	"./fr/LC_MESSAGES/converse.po": [
+		"./src/i18n/fr/LC_MESSAGES/converse.po",
+		"locales/fr-LC_MESSAGES-converse-po"
+	],
+	"./gl/LC_MESSAGES/converse.po": [
+		"./src/i18n/gl/LC_MESSAGES/converse.po",
+		"locales/gl-LC_MESSAGES-converse-po"
+	],
+	"./he/LC_MESSAGES/converse.po": [
+		"./src/i18n/he/LC_MESSAGES/converse.po",
+		"locales/he-LC_MESSAGES-converse-po"
+	],
+	"./hi/LC_MESSAGES/converse.po": [
+		"./src/i18n/hi/LC_MESSAGES/converse.po",
+		"locales/hi-LC_MESSAGES-converse-po"
+	],
+	"./hu/LC_MESSAGES/converse.po": [
+		"./src/i18n/hu/LC_MESSAGES/converse.po",
+		"locales/hu-LC_MESSAGES-converse-po"
+	],
+	"./id/LC_MESSAGES/converse.po": [
+		"./src/i18n/id/LC_MESSAGES/converse.po",
+		"locales/id-LC_MESSAGES-converse-po"
+	],
+	"./it/LC_MESSAGES/converse.po": [
+		"./src/i18n/it/LC_MESSAGES/converse.po",
+		"locales/it-LC_MESSAGES-converse-po"
+	],
+	"./ja/LC_MESSAGES/converse.po": [
+		"./src/i18n/ja/LC_MESSAGES/converse.po",
+		"locales/ja-LC_MESSAGES-converse-po"
+	],
+	"./lt/LC_MESSAGES/converse.po": [
+		"./src/i18n/lt/LC_MESSAGES/converse.po",
+		"locales/lt-LC_MESSAGES-converse-po"
+	],
+	"./mr/LC_MESSAGES/converse.po": [
+		"./src/i18n/mr/LC_MESSAGES/converse.po",
+		"locales/mr-LC_MESSAGES-converse-po"
+	],
+	"./nb/LC_MESSAGES/converse.po": [
+		"./src/i18n/nb/LC_MESSAGES/converse.po",
+		"locales/nb-LC_MESSAGES-converse-po"
+	],
+	"./nl/LC_MESSAGES/converse.po": [
+		"./src/i18n/nl/LC_MESSAGES/converse.po",
+		"locales/nl-LC_MESSAGES-converse-po"
+	],
+	"./nl_BE/LC_MESSAGES/converse.po": [
+		"./src/i18n/nl_BE/LC_MESSAGES/converse.po",
+		"locales/nl_BE-LC_MESSAGES-converse-po"
+	],
+	"./oc/LC_MESSAGES/converse.po": [
+		"./src/i18n/oc/LC_MESSAGES/converse.po",
+		"locales/oc-LC_MESSAGES-converse-po"
+	],
+	"./pl/LC_MESSAGES/converse.po": [
+		"./src/i18n/pl/LC_MESSAGES/converse.po",
+		"locales/pl-LC_MESSAGES-converse-po"
+	],
+	"./pt/LC_MESSAGES/converse.po": [
+		"./src/i18n/pt/LC_MESSAGES/converse.po",
+		"locales/pt-LC_MESSAGES-converse-po"
+	],
+	"./pt_BR/LC_MESSAGES/converse.po": [
+		"./src/i18n/pt_BR/LC_MESSAGES/converse.po",
+		"locales/pt_BR-LC_MESSAGES-converse-po"
+	],
+	"./ro/LC_MESSAGES/converse.po": [
+		"./src/i18n/ro/LC_MESSAGES/converse.po",
+		"locales/ro-LC_MESSAGES-converse-po"
+	],
+	"./ru/LC_MESSAGES/converse.po": [
+		"./src/i18n/ru/LC_MESSAGES/converse.po",
+		"locales/ru-LC_MESSAGES-converse-po"
+	],
+	"./si/LC_MESSAGES/converse.po": [
+		"./src/i18n/si/LC_MESSAGES/converse.po",
+		"locales/si-LC_MESSAGES-converse-po"
+	],
+	"./sq/LC_MESSAGES/converse.po": [
+		"./src/i18n/sq/LC_MESSAGES/converse.po",
+		"locales/sq-LC_MESSAGES-converse-po"
+	],
+	"./sv/LC_MESSAGES/converse.po": [
+		"./src/i18n/sv/LC_MESSAGES/converse.po",
+		"locales/sv-LC_MESSAGES-converse-po"
+	],
+	"./th/LC_MESSAGES/converse.po": [
+		"./src/i18n/th/LC_MESSAGES/converse.po",
+		"locales/th-LC_MESSAGES-converse-po"
+	],
+	"./tr/LC_MESSAGES/converse.po": [
+		"./src/i18n/tr/LC_MESSAGES/converse.po",
+		"locales/tr-LC_MESSAGES-converse-po"
+	],
+	"./ug/LC_MESSAGES/converse.po": [
+		"./src/i18n/ug/LC_MESSAGES/converse.po",
+		"locales/ug-LC_MESSAGES-converse-po"
+	],
+	"./uk/LC_MESSAGES/converse.po": [
+		"./src/i18n/uk/LC_MESSAGES/converse.po",
+		"locales/uk-LC_MESSAGES-converse-po"
+	],
+	"./vi/LC_MESSAGES/converse.po": [
+		"./src/i18n/vi/LC_MESSAGES/converse.po",
+		"locales/vi-LC_MESSAGES-converse-po"
+	],
+	"./zh_CN/LC_MESSAGES/converse.po": [
+		"./src/i18n/zh_CN/LC_MESSAGES/converse.po",
+		"locales/zh_CN-LC_MESSAGES-converse-po"
+	],
+	"./zh_TW/LC_MESSAGES/converse.po": [
+		"./src/i18n/zh_TW/LC_MESSAGES/converse.po",
+		"locales/zh_TW-LC_MESSAGES-converse-po"
+	]
+};
+function webpackAsyncContext(req) {
+	if(!__webpack_require__.o(map, req)) {
+		return Promise.resolve().then(() => {
+			var e = new Error("Cannot find module '" + req + "'");
+			e.code = 'MODULE_NOT_FOUND';
+			throw e;
+		});
+	}
+
+	var ids = map[req], id = ids[0];
+	return __webpack_require__.e(ids[1]).then(() => {
+		return __webpack_require__.t(id, 3 | 16);
+	});
+}
+webpackAsyncContext.keys = () => (Object.keys(map));
+webpackAsyncContext.id = "./src/i18n lazy recursive ^\\.\\/.*\\/LC_MESSAGES\\/converse\\.po$ referencedExports: default";
+module.exports = webpackAsyncContext;
+
+/***/ }),
+
 /***/ "./node_modules/@babel/runtime/helpers/asyncToGenerator.js":
 /*!*****************************************************************!*\
   !*** ./node_modules/@babel/runtime/helpers/asyncToGenerator.js ***!
@@ -41908,6 +48168,787 @@ if (DEV_MODE && global.reactiveElementVersions.length > 1) {
 
 /***/ }),
 
+/***/ "./node_modules/lit-html/development/async-directive.js":
+/*!**************************************************************!*\
+  !*** ./node_modules/lit-html/development/async-directive.js ***!
+  \**************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   AsyncDirective: () => (/* binding */ AsyncDirective),
+/* harmony export */   Directive: () => (/* reexport safe */ _directive_js__WEBPACK_IMPORTED_MODULE_1__.Directive),
+/* harmony export */   PartType: () => (/* reexport safe */ _directive_js__WEBPACK_IMPORTED_MODULE_1__.PartType),
+/* harmony export */   directive: () => (/* reexport safe */ _directive_js__WEBPACK_IMPORTED_MODULE_1__.directive)
+/* harmony export */ });
+/* harmony import */ var _directive_helpers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./directive-helpers.js */ "./node_modules/lit-html/development/directive-helpers.js");
+/* harmony import */ var _directive_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./directive.js */ "./node_modules/lit-html/development/directive.js");
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+
+
+const DEV_MODE = true;
+/**
+ * Recursively walks down the tree of Parts/TemplateInstances/Directives to set
+ * the connected state of directives and run `disconnected`/ `reconnected`
+ * callbacks.
+ *
+ * @return True if there were children to disconnect; false otherwise
+ */
+const notifyChildrenConnectedChanged = (parent, isConnected) => {
+  var _a, _b;
+  const children = parent._$disconnectableChildren;
+  if (children === undefined) {
+    return false;
+  }
+  for (const obj of children) {
+    // The existence of `_$notifyDirectiveConnectionChanged` is used as a "brand" to
+    // disambiguate AsyncDirectives from other DisconnectableChildren
+    // (as opposed to using an instanceof check to know when to call it); the
+    // redundancy of "Directive" in the API name is to avoid conflicting with
+    // `_$notifyConnectionChanged`, which exists `ChildParts` which are also in
+    // this list
+    // Disconnect Directive (and any nested directives contained within)
+    // This property needs to remain unminified.
+    (_b = (_a = obj)['_$notifyDirectiveConnectionChanged']) === null || _b === void 0 ? void 0 : _b.call(_a, isConnected, false);
+    // Disconnect Part/TemplateInstance
+    notifyChildrenConnectedChanged(obj, isConnected);
+  }
+  return true;
+};
+/**
+ * Removes the given child from its parent list of disconnectable children, and
+ * if the parent list becomes empty as a result, removes the parent from its
+ * parent, and so forth up the tree when that causes subsequent parent lists to
+ * become empty.
+ */
+const removeDisconnectableFromParent = obj => {
+  let parent, children;
+  do {
+    if ((parent = obj._$parent) === undefined) {
+      break;
+    }
+    children = parent._$disconnectableChildren;
+    children.delete(obj);
+    obj = parent;
+  } while ((children === null || children === void 0 ? void 0 : children.size) === 0);
+};
+const addDisconnectableToParent = obj => {
+  // Climb the parent tree, creating a sparse tree of children needing
+  // disconnection
+  for (let parent; parent = obj._$parent; obj = parent) {
+    let children = parent._$disconnectableChildren;
+    if (children === undefined) {
+      parent._$disconnectableChildren = children = new Set();
+    } else if (children.has(obj)) {
+      // Once we've reached a parent that already contains this child, we
+      // can short-circuit
+      break;
+    }
+    children.add(obj);
+    installDisconnectAPI(parent);
+  }
+};
+/**
+ * Changes the parent reference of the ChildPart, and updates the sparse tree of
+ * Disconnectable children accordingly.
+ *
+ * Note, this method will be patched onto ChildPart instances and called from
+ * the core code when parts are moved between different parents.
+ */
+function reparentDisconnectables(newParent) {
+  if (this._$disconnectableChildren !== undefined) {
+    removeDisconnectableFromParent(this);
+    this._$parent = newParent;
+    addDisconnectableToParent(this);
+  } else {
+    this._$parent = newParent;
+  }
+}
+/**
+ * Sets the connected state on any directives contained within the committed
+ * value of this part (i.e. within a TemplateInstance or iterable of
+ * ChildParts) and runs their `disconnected`/`reconnected`s, as well as within
+ * any directives stored on the ChildPart (when `valueOnly` is false).
+ *
+ * `isClearingValue` should be passed as `true` on a top-level part that is
+ * clearing itself, and not as a result of recursively disconnecting directives
+ * as part of a `clear` operation higher up the tree. This both ensures that any
+ * directive on this ChildPart that produced a value that caused the clear
+ * operation is not disconnected, and also serves as a performance optimization
+ * to avoid needless bookkeeping when a subtree is going away; when clearing a
+ * subtree, only the top-most part need to remove itself from the parent.
+ *
+ * `fromPartIndex` is passed only in the case of a partial `_clear` running as a
+ * result of truncating an iterable.
+ *
+ * Note, this method will be patched onto ChildPart instances and called from the
+ * core code when parts are cleared or the connection state is changed by the
+ * user.
+ */
+function notifyChildPartConnectedChanged(isConnected) {
+  let isClearingValue = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+  let fromPartIndex = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+  const value = this._$committedValue;
+  const children = this._$disconnectableChildren;
+  if (children === undefined || children.size === 0) {
+    return;
+  }
+  if (isClearingValue) {
+    if (Array.isArray(value)) {
+      // Iterable case: Any ChildParts created by the iterable should be
+      // disconnected and removed from this ChildPart's disconnectable
+      // children (starting at `fromPartIndex` in the case of truncation)
+      for (let i = fromPartIndex; i < value.length; i++) {
+        notifyChildrenConnectedChanged(value[i], false);
+        removeDisconnectableFromParent(value[i]);
+      }
+    } else if (value != null) {
+      // TemplateInstance case: If the value has disconnectable children (will
+      // only be in the case that it is a TemplateInstance), we disconnect it
+      // and remove it from this ChildPart's disconnectable children
+      notifyChildrenConnectedChanged(value, false);
+      removeDisconnectableFromParent(value);
+    }
+  } else {
+    notifyChildrenConnectedChanged(this, isConnected);
+  }
+}
+/**
+ * Patches disconnection API onto ChildParts.
+ */
+const installDisconnectAPI = obj => {
+  var _a, _b;
+  var _c, _d;
+  if (obj.type == _directive_js__WEBPACK_IMPORTED_MODULE_1__.PartType.CHILD) {
+    (_a = (_c = obj)._$notifyConnectionChanged) !== null && _a !== void 0 ? _a : _c._$notifyConnectionChanged = notifyChildPartConnectedChanged;
+    (_b = (_d = obj)._$reparentDisconnectables) !== null && _b !== void 0 ? _b : _d._$reparentDisconnectables = reparentDisconnectables;
+  }
+};
+/**
+ * An abstract `Directive` base class whose `disconnected` method will be
+ * called when the part containing the directive is cleared as a result of
+ * re-rendering, or when the user calls `part.setConnected(false)` on
+ * a part that was previously rendered containing the directive (as happens
+ * when e.g. a LitElement disconnects from the DOM).
+ *
+ * If `part.setConnected(true)` is subsequently called on a
+ * containing part, the directive's `reconnected` method will be called prior
+ * to its next `update`/`render` callbacks. When implementing `disconnected`,
+ * `reconnected` should also be implemented to be compatible with reconnection.
+ *
+ * Note that updates may occur while the directive is disconnected. As such,
+ * directives should generally check the `this.isConnected` flag during
+ * render/update to determine whether it is safe to subscribe to resources
+ * that may prevent garbage collection.
+ */
+class AsyncDirective extends _directive_js__WEBPACK_IMPORTED_MODULE_1__.Directive {
+  constructor() {
+    super(...arguments);
+    // @internal
+    this._$disconnectableChildren = undefined;
+  }
+  /**
+   * Initialize the part with internal fields
+   * @param part
+   * @param parent
+   * @param attributeIndex
+   */
+  _$initialize(part, parent, attributeIndex) {
+    super._$initialize(part, parent, attributeIndex);
+    addDisconnectableToParent(this);
+    this.isConnected = part._$isConnected;
+  }
+  // This property needs to remain unminified.
+  /**
+   * Called from the core code when a directive is going away from a part (in
+   * which case `shouldRemoveFromParent` should be true), and from the
+   * `setChildrenConnected` helper function when recursively changing the
+   * connection state of a tree (in which case `shouldRemoveFromParent` should
+   * be false).
+   *
+   * @param isConnected
+   * @param isClearingDirective - True when the directive itself is being
+   *     removed; false when the tree is being disconnected
+   * @internal
+   */
+  ['_$notifyDirectiveConnectionChanged'](isConnected) {
+    let isClearingDirective = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+    var _a, _b;
+    if (isConnected !== this.isConnected) {
+      this.isConnected = isConnected;
+      if (isConnected) {
+        (_a = this.reconnected) === null || _a === void 0 ? void 0 : _a.call(this);
+      } else {
+        (_b = this.disconnected) === null || _b === void 0 ? void 0 : _b.call(this);
+      }
+    }
+    if (isClearingDirective) {
+      notifyChildrenConnectedChanged(this, isConnected);
+      removeDisconnectableFromParent(this);
+    }
+  }
+  /**
+   * Sets the value of the directive's Part outside the normal `update`/`render`
+   * lifecycle of a directive.
+   *
+   * This method should not be called synchronously from a directive's `update`
+   * or `render`.
+   *
+   * @param directive The directive to update
+   * @param value The value to set
+   */
+  setValue(value) {
+    if ((0,_directive_helpers_js__WEBPACK_IMPORTED_MODULE_0__.isSingleExpression)(this.__part)) {
+      this.__part._$setValue(value, this);
+    } else {
+      // this.__attributeIndex will be defined in this case, but
+      // assert it in dev mode
+      if (DEV_MODE && this.__attributeIndex === undefined) {
+        throw new Error(`Expected this.__attributeIndex to be a number`);
+      }
+      const newValues = [...this.__part._$committedValue];
+      newValues[this.__attributeIndex] = value;
+      this.__part._$setValue(newValues, this, 0);
+    }
+  }
+  /**
+   * User callbacks for implementing logic to release any resources/subscriptions
+   * that may have been retained by this directive. Since directives may also be
+   * re-connected, `reconnected` should also be implemented to restore the
+   * working state of the directive prior to the next render.
+   */
+  disconnected() {}
+  reconnected() {}
+}
+
+/***/ }),
+
+/***/ "./node_modules/lit-html/development/directive-helpers.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/lit-html/development/directive-helpers.js ***!
+  \****************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   TemplateResultType: () => (/* binding */ TemplateResultType),
+/* harmony export */   clearPart: () => (/* binding */ clearPart),
+/* harmony export */   getCommittedValue: () => (/* binding */ getCommittedValue),
+/* harmony export */   getDirectiveClass: () => (/* binding */ getDirectiveClass),
+/* harmony export */   insertPart: () => (/* binding */ insertPart),
+/* harmony export */   isCompiledTemplateResult: () => (/* binding */ isCompiledTemplateResult),
+/* harmony export */   isDirectiveResult: () => (/* binding */ isDirectiveResult),
+/* harmony export */   isPrimitive: () => (/* binding */ isPrimitive),
+/* harmony export */   isSingleExpression: () => (/* binding */ isSingleExpression),
+/* harmony export */   isTemplateResult: () => (/* binding */ isTemplateResult),
+/* harmony export */   removePart: () => (/* binding */ removePart),
+/* harmony export */   setChildPartValue: () => (/* binding */ setChildPartValue),
+/* harmony export */   setCommittedValue: () => (/* binding */ setCommittedValue)
+/* harmony export */ });
+/* harmony import */ var _lit_html_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lit-html.js */ "./node_modules/lit-html/development/lit-html.js");
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+var _a, _b;
+
+const {
+  _ChildPart: ChildPart
+} = _lit_html_js__WEBPACK_IMPORTED_MODULE_0__._$LH;
+const ENABLE_SHADYDOM_NOPATCH = true;
+const wrap = ENABLE_SHADYDOM_NOPATCH && ((_a = window.ShadyDOM) === null || _a === void 0 ? void 0 : _a.inUse) && ((_b = window.ShadyDOM) === null || _b === void 0 ? void 0 : _b.noPatch) === true ? window.ShadyDOM.wrap : node => node;
+/**
+ * Tests if a value is a primitive value.
+ *
+ * See https://tc39.github.io/ecma262/#sec-typeof-operator
+ */
+const isPrimitive = value => value === null || typeof value != 'object' && typeof value != 'function';
+const TemplateResultType = {
+  HTML: 1,
+  SVG: 2
+};
+/**
+ * Tests if a value is a TemplateResult or a CompiledTemplateResult.
+ */
+const isTemplateResult = (value, type) => type === undefined ?
+// This property needs to remain unminified.
+(value === null || value === void 0 ? void 0 : value['_$litType$']) !== undefined : (value === null || value === void 0 ? void 0 : value['_$litType$']) === type;
+/**
+ * Tests if a value is a CompiledTemplateResult.
+ */
+const isCompiledTemplateResult = value => {
+  var _a;
+  return ((_a = value === null || value === void 0 ? void 0 : value['_$litType$']) === null || _a === void 0 ? void 0 : _a.h) != null;
+};
+/**
+ * Tests if a value is a DirectiveResult.
+ */
+const isDirectiveResult = value =>
+// This property needs to remain unminified.
+(value === null || value === void 0 ? void 0 : value['_$litDirective$']) !== undefined;
+/**
+ * Retrieves the Directive class for a DirectiveResult
+ */
+const getDirectiveClass = value =>
+// This property needs to remain unminified.
+value === null || value === void 0 ? void 0 : value['_$litDirective$'];
+/**
+ * Tests whether a part has only a single-expression with no strings to
+ * interpolate between.
+ *
+ * Only AttributePart and PropertyPart can have multiple expressions.
+ * Multi-expression parts have a `strings` property and single-expression
+ * parts do not.
+ */
+const isSingleExpression = part => part.strings === undefined;
+const createMarker = () => document.createComment('');
+/**
+ * Inserts a ChildPart into the given container ChildPart's DOM, either at the
+ * end of the container ChildPart, or before the optional `refPart`.
+ *
+ * This does not add the part to the containerPart's committed value. That must
+ * be done by callers.
+ *
+ * @param containerPart Part within which to add the new ChildPart
+ * @param refPart Part before which to add the new ChildPart; when omitted the
+ *     part added to the end of the `containerPart`
+ * @param part Part to insert, or undefined to create a new part
+ */
+const insertPart = (containerPart, refPart, part) => {
+  var _a;
+  const container = wrap(containerPart._$startNode).parentNode;
+  const refNode = refPart === undefined ? containerPart._$endNode : refPart._$startNode;
+  if (part === undefined) {
+    const startNode = wrap(container).insertBefore(createMarker(), refNode);
+    const endNode = wrap(container).insertBefore(createMarker(), refNode);
+    part = new ChildPart(startNode, endNode, containerPart, containerPart.options);
+  } else {
+    const endNode = wrap(part._$endNode).nextSibling;
+    const oldParent = part._$parent;
+    const parentChanged = oldParent !== containerPart;
+    if (parentChanged) {
+      (_a = part._$reparentDisconnectables) === null || _a === void 0 ? void 0 : _a.call(part, containerPart);
+      // Note that although `_$reparentDisconnectables` updates the part's
+      // `_$parent` reference after unlinking from its current parent, that
+      // method only exists if Disconnectables are present, so we need to
+      // unconditionally set it here
+      part._$parent = containerPart;
+      // Since the _$isConnected getter is somewhat costly, only
+      // read it once we know the subtree has directives that need
+      // to be notified
+      let newConnectionState;
+      if (part._$notifyConnectionChanged !== undefined && (newConnectionState = containerPart._$isConnected) !== oldParent._$isConnected) {
+        part._$notifyConnectionChanged(newConnectionState);
+      }
+    }
+    if (endNode !== refNode || parentChanged) {
+      let start = part._$startNode;
+      while (start !== endNode) {
+        const n = wrap(start).nextSibling;
+        wrap(container).insertBefore(start, refNode);
+        start = n;
+      }
+    }
+  }
+  return part;
+};
+/**
+ * Sets the value of a Part.
+ *
+ * Note that this should only be used to set/update the value of user-created
+ * parts (i.e. those created using `insertPart`); it should not be used
+ * by directives to set the value of the directive's container part. Directives
+ * should return a value from `update`/`render` to update their part state.
+ *
+ * For directives that require setting their part value asynchronously, they
+ * should extend `AsyncDirective` and call `this.setValue()`.
+ *
+ * @param part Part to set
+ * @param value Value to set
+ * @param index For `AttributePart`s, the index to set
+ * @param directiveParent Used internally; should not be set by user
+ */
+const setChildPartValue = function (part, value) {
+  let directiveParent = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : part;
+  part._$setValue(value, directiveParent);
+  return part;
+};
+// A sentinel value that can never appear as a part value except when set by
+// live(). Used to force a dirty-check to fail and cause a re-render.
+const RESET_VALUE = {};
+/**
+ * Sets the committed value of a ChildPart directly without triggering the
+ * commit stage of the part.
+ *
+ * This is useful in cases where a directive needs to update the part such
+ * that the next update detects a value change or not. When value is omitted,
+ * the next update will be guaranteed to be detected as a change.
+ *
+ * @param part
+ * @param value
+ */
+const setCommittedValue = function (part) {
+  let value = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : RESET_VALUE;
+  return part._$committedValue = value;
+};
+/**
+ * Returns the committed value of a ChildPart.
+ *
+ * The committed value is used for change detection and efficient updates of
+ * the part. It can differ from the value set by the template or directive in
+ * cases where the template value is transformed before being committed.
+ *
+ * - `TemplateResult`s are committed as a `TemplateInstance`
+ * - Iterables are committed as `Array<ChildPart>`
+ * - All other types are committed as the template value or value returned or
+ *   set by a directive.
+ *
+ * @param part
+ */
+const getCommittedValue = part => part._$committedValue;
+/**
+ * Removes a ChildPart from the DOM, including any of its content.
+ *
+ * @param part The Part to remove
+ */
+const removePart = part => {
+  var _a;
+  (_a = part._$notifyConnectionChanged) === null || _a === void 0 ? void 0 : _a.call(part, false, true);
+  let start = part._$startNode;
+  const end = wrap(part._$endNode).nextSibling;
+  while (start !== end) {
+    const n = wrap(start).nextSibling;
+    wrap(start).remove();
+    start = n;
+  }
+};
+const clearPart = part => {
+  part._$clear();
+};
+
+/***/ }),
+
+/***/ "./node_modules/lit-html/development/directive.js":
+/*!********************************************************!*\
+  !*** ./node_modules/lit-html/development/directive.js ***!
+  \********************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Directive: () => (/* binding */ Directive),
+/* harmony export */   PartType: () => (/* binding */ PartType),
+/* harmony export */   directive: () => (/* binding */ directive)
+/* harmony export */ });
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const PartType = {
+  ATTRIBUTE: 1,
+  CHILD: 2,
+  PROPERTY: 3,
+  BOOLEAN_ATTRIBUTE: 4,
+  EVENT: 5,
+  ELEMENT: 6
+};
+/**
+ * Creates a user-facing directive function from a Directive class. This
+ * function has the same parameters as the directive's render() method.
+ */
+const directive = c => function () {
+  for (var _len = arguments.length, values = new Array(_len), _key = 0; _key < _len; _key++) {
+    values[_key] = arguments[_key];
+  }
+  return {
+    // This property needs to remain unminified.
+    ['_$litDirective$']: c,
+    values
+  };
+};
+/**
+ * Base class for creating custom directives. Users should extend this class,
+ * implement `render` and/or `update`, and then pass their subclass to
+ * `directive`.
+ */
+class Directive {
+  constructor(_partInfo) {}
+  // See comment in Disconnectable interface for why this is a getter
+  get _$isConnected() {
+    return this._$parent._$isConnected;
+  }
+  /** @internal */
+  _$initialize(part, parent, attributeIndex) {
+    this.__part = part;
+    this._$parent = parent;
+    this.__attributeIndex = attributeIndex;
+  }
+  /** @internal */
+  _$resolve(part, props) {
+    return this.update(part, props);
+  }
+  update(_part, props) {
+    return this.render(...props);
+  }
+}
+
+/***/ }),
+
+/***/ "./node_modules/lit-html/development/directives/private-async-helpers.js":
+/*!*******************************************************************************!*\
+  !*** ./node_modules/lit-html/development/directives/private-async-helpers.js ***!
+  \*******************************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Pauser: () => (/* binding */ Pauser),
+/* harmony export */   PseudoWeakRef: () => (/* binding */ PseudoWeakRef),
+/* harmony export */   forAwaitOf: () => (/* binding */ forAwaitOf)
+/* harmony export */ });
+/**
+ * @license
+ * Copyright 2021 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+// Note, this module is not included in package exports so that it's private to
+// our first-party directives. If it ends up being useful, we can open it up and
+// export it.
+/**
+ * Helper to iterate an AsyncIterable in its own closure.
+ * @param iterable The iterable to iterate
+ * @param callback The callback to call for each value. If the callback returns
+ * `false`, the loop will be broken.
+ */
+const forAwaitOf = async (iterable, callback) => {
+  for await (const v of iterable) {
+    if ((await callback(v)) === false) {
+      return;
+    }
+  }
+};
+/**
+ * Holds a reference to an instance that can be disconnected and reconnected,
+ * so that a closure over the ref (e.g. in a then function to a promise) does
+ * not strongly hold a ref to the instance. Approximates a WeakRef but must
+ * be manually connected & disconnected to the backing instance.
+ */
+class PseudoWeakRef {
+  constructor(ref) {
+    this._ref = ref;
+  }
+  /**
+   * Disassociates the ref with the backing instance.
+   */
+  disconnect() {
+    this._ref = undefined;
+  }
+  /**
+   * Reassociates the ref with the backing instance.
+   */
+  reconnect(ref) {
+    this._ref = ref;
+  }
+  /**
+   * Retrieves the backing instance (will be undefined when disconnected)
+   */
+  deref() {
+    return this._ref;
+  }
+}
+/**
+ * A helper to pause and resume waiting on a condition in an async function
+ */
+class Pauser {
+  constructor() {
+    this._promise = undefined;
+    this._resolve = undefined;
+  }
+  /**
+   * When paused, returns a promise to be awaited; when unpaused, returns
+   * undefined. Note that in the microtask between the pauser being resumed
+   * an an await of this promise resolving, the pauser could be paused again,
+   * hence callers should check the promise in a loop when awaiting.
+   * @returns A promise to be awaited when paused or undefined
+   */
+  get() {
+    return this._promise;
+  }
+  /**
+   * Creates a promise to be awaited
+   */
+  pause() {
+    var _a;
+    (_a = this._promise) !== null && _a !== void 0 ? _a : this._promise = new Promise(resolve => this._resolve = resolve);
+  }
+  /**
+   * Resolves the promise which may be awaited
+   */
+  resume() {
+    var _a;
+    (_a = this._resolve) === null || _a === void 0 ? void 0 : _a.call(this);
+    this._promise = this._resolve = undefined;
+  }
+}
+
+/***/ }),
+
+/***/ "./node_modules/lit-html/development/directives/until.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/lit-html/development/directives/until.js ***!
+  \***************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   UntilDirective: () => (/* binding */ UntilDirective),
+/* harmony export */   until: () => (/* binding */ until)
+/* harmony export */ });
+/* harmony import */ var _lit_html_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../lit-html.js */ "./node_modules/lit-html/development/lit-html.js");
+/* harmony import */ var _directive_helpers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../directive-helpers.js */ "./node_modules/lit-html/development/directive-helpers.js");
+/* harmony import */ var _async_directive_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../async-directive.js */ "./node_modules/lit-html/development/async-directive.js");
+/* harmony import */ var _private_async_helpers_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./private-async-helpers.js */ "./node_modules/lit-html/development/directives/private-async-helpers.js");
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+
+
+
+const isPromise = x => {
+  return !(0,_directive_helpers_js__WEBPACK_IMPORTED_MODULE_1__.isPrimitive)(x) && typeof x.then === 'function';
+};
+// Effectively infinity, but a SMI.
+const _infinity = 0x3fffffff;
+class UntilDirective extends _async_directive_js__WEBPACK_IMPORTED_MODULE_2__.AsyncDirective {
+  constructor() {
+    super(...arguments);
+    this.__lastRenderedIndex = _infinity;
+    this.__values = [];
+    this.__weakThis = new _private_async_helpers_js__WEBPACK_IMPORTED_MODULE_3__.PseudoWeakRef(this);
+    this.__pauser = new _private_async_helpers_js__WEBPACK_IMPORTED_MODULE_3__.Pauser();
+  }
+  render() {
+    var _a;
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+    return (_a = args.find(x => !isPromise(x))) !== null && _a !== void 0 ? _a : _lit_html_js__WEBPACK_IMPORTED_MODULE_0__.noChange;
+  }
+  update(_part, args) {
+    const previousValues = this.__values;
+    let previousLength = previousValues.length;
+    this.__values = args;
+    const weakThis = this.__weakThis;
+    const pauser = this.__pauser;
+    // If our initial render occurs while disconnected, ensure that the pauser
+    // and weakThis are in the disconnected state
+    if (!this.isConnected) {
+      this.disconnected();
+    }
+    for (let i = 0; i < args.length; i++) {
+      // If we've rendered a higher-priority value already, stop.
+      if (i > this.__lastRenderedIndex) {
+        break;
+      }
+      const value = args[i];
+      // Render non-Promise values immediately
+      if (!isPromise(value)) {
+        this.__lastRenderedIndex = i;
+        // Since a lower-priority value will never overwrite a higher-priority
+        // synchronous value, we can stop processing now.
+        return value;
+      }
+      // If this is a Promise we've already handled, skip it.
+      if (i < previousLength && value === previousValues[i]) {
+        continue;
+      }
+      // We have a Promise that we haven't seen before, so priorities may have
+      // changed. Forget what we rendered before.
+      this.__lastRenderedIndex = _infinity;
+      previousLength = 0;
+      // Note, the callback avoids closing over `this` so that the directive
+      // can be gc'ed before the promise resolves; instead `this` is retrieved
+      // from `weakThis`, which can break the hard reference in the closure when
+      // the directive disconnects
+      Promise.resolve(value).then(async result => {
+        // If we're disconnected, wait until we're (maybe) reconnected
+        // The while loop here handles the case that the connection state
+        // thrashes, causing the pauser to resume and then get re-paused
+        while (pauser.get()) {
+          await pauser.get();
+        }
+        // If the callback gets here and there is no `this`, it means that the
+        // directive has been disconnected and garbage collected and we don't
+        // need to do anything else
+        const _this = weakThis.deref();
+        if (_this !== undefined) {
+          const index = _this.__values.indexOf(value);
+          // If state.values doesn't contain the value, we've re-rendered without
+          // the value, so don't render it. Then, only render if the value is
+          // higher-priority than what's already been rendered.
+          if (index > -1 && index < _this.__lastRenderedIndex) {
+            _this.__lastRenderedIndex = index;
+            _this.setValue(result);
+          }
+        }
+      });
+    }
+    return _lit_html_js__WEBPACK_IMPORTED_MODULE_0__.noChange;
+  }
+  disconnected() {
+    this.__weakThis.disconnect();
+    this.__pauser.pause();
+  }
+  reconnected() {
+    this.__weakThis.reconnect(this);
+    this.__pauser.resume();
+  }
+}
+/**
+ * Renders one of a series of values, including Promises, to a Part.
+ *
+ * Values are rendered in priority order, with the first argument having the
+ * highest priority and the last argument having the lowest priority. If a
+ * value is a Promise, low-priority values will be rendered until it resolves.
+ *
+ * The priority of values can be used to create placeholder content for async
+ * data. For example, a Promise with pending content can be the first,
+ * highest-priority, argument, and a non_promise loading indicator template can
+ * be used as the second, lower-priority, argument. The loading indicator will
+ * render immediately, and the primary content will render when the Promise
+ * resolves.
+ *
+ * Example:
+ *
+ * ```js
+ * const content = fetch('./content.txt').then(r => r.text());
+ * html`${until(content, html`<span>Loading...</span>`)}`
+ * ```
+ */
+const until = (0,_async_directive_js__WEBPACK_IMPORTED_MODULE_2__.directive)(UntilDirective);
+/**
+ * The type of the class that powers this directive. Necessary for naming the
+ * directive's return type.
+ */
+// export type {UntilDirective};
+
+/***/ }),
+
 /***/ "./node_modules/lit-html/development/is-server.js":
 /*!********************************************************!*\
   !*** ./node_modules/lit-html/development/is-server.js ***!
@@ -42054,7 +49095,6 @@ const d = NODE_MODE && global.document === undefined ? {
     return {};
   }
 } : document;
-console.log("TEST",NODE_MODE && global.document === undefined)
 // Creates a dynamic marker. We never have to search for these in the DOM.
 const createMarker = () => d.createComment('');
 const isPrimitive = value => value === null || typeof value != 'object' && typeof value != 'function';
@@ -43878,6 +50918,66 @@ if (DEV_MODE && globalThis.litElementVersions.length > 1) {
         `is not recommended.`);
 }
 //# sourceMappingURL=lit-element.js.map
+
+/***/ }),
+
+/***/ "./node_modules/lit/async-directive.js":
+/*!*********************************************!*\
+  !*** ./node_modules/lit/async-directive.js ***!
+  \*********************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   AsyncDirective: () => (/* reexport safe */ lit_html_async_directive_js__WEBPACK_IMPORTED_MODULE_0__.AsyncDirective),
+/* harmony export */   Directive: () => (/* reexport safe */ lit_html_async_directive_js__WEBPACK_IMPORTED_MODULE_0__.Directive),
+/* harmony export */   PartType: () => (/* reexport safe */ lit_html_async_directive_js__WEBPACK_IMPORTED_MODULE_0__.PartType),
+/* harmony export */   directive: () => (/* reexport safe */ lit_html_async_directive_js__WEBPACK_IMPORTED_MODULE_0__.directive)
+/* harmony export */ });
+/* harmony import */ var lit_html_async_directive_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit-html/async-directive.js */ "./node_modules/lit-html/development/async-directive.js");
+
+//# sourceMappingURL=async-directive.js.map
+
+
+/***/ }),
+
+/***/ "./node_modules/lit/directive.js":
+/*!***************************************!*\
+  !*** ./node_modules/lit/directive.js ***!
+  \***************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Directive: () => (/* reexport safe */ lit_html_directive_js__WEBPACK_IMPORTED_MODULE_0__.Directive),
+/* harmony export */   PartType: () => (/* reexport safe */ lit_html_directive_js__WEBPACK_IMPORTED_MODULE_0__.PartType),
+/* harmony export */   directive: () => (/* reexport safe */ lit_html_directive_js__WEBPACK_IMPORTED_MODULE_0__.directive)
+/* harmony export */ });
+/* harmony import */ var lit_html_directive_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit-html/directive.js */ "./node_modules/lit-html/development/directive.js");
+
+//# sourceMappingURL=directive.js.map
+
+
+/***/ }),
+
+/***/ "./node_modules/lit/directives/until.js":
+/*!**********************************************!*\
+  !*** ./node_modules/lit/directives/until.js ***!
+  \**********************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   UntilDirective: () => (/* reexport safe */ lit_html_directives_until_js__WEBPACK_IMPORTED_MODULE_0__.UntilDirective),
+/* harmony export */   until: () => (/* reexport safe */ lit_html_directives_until_js__WEBPACK_IMPORTED_MODULE_0__.until)
+/* harmony export */ });
+/* harmony import */ var lit_html_directives_until_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lit-html/directives/until.js */ "./node_modules/lit-html/development/directives/until.js");
+
+//# sourceMappingURL=until.js.map
+
 
 /***/ }),
 
@@ -46754,6 +53854,49 @@ function basePropertyDeep(path) {
 
 /***/ }),
 
+/***/ "./node_modules/lodash-es/_baseRange.js":
+/*!**********************************************!*\
+  !*** ./node_modules/lodash-es/_baseRange.js ***!
+  \**********************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* Built-in method references for those with the same name as other `lodash` methods. */
+var nativeCeil = Math.ceil,
+    nativeMax = Math.max;
+
+/**
+ * The base implementation of `_.range` and `_.rangeRight` which doesn't
+ * coerce arguments.
+ *
+ * @private
+ * @param {number} start The start of the range.
+ * @param {number} end The end of the range.
+ * @param {number} step The value to increment or decrement by.
+ * @param {boolean} [fromRight] Specify iterating from right to left.
+ * @returns {Array} Returns the range of numbers.
+ */
+function baseRange(start, end, step, fromRight) {
+  var index = -1,
+      length = nativeMax(nativeCeil((end - start) / (step || 1)), 0),
+      result = Array(length);
+
+  while (length--) {
+    result[fromRight ? length : ++index] = start;
+    start += step;
+  }
+  return result;
+}
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (baseRange);
+
+
+/***/ }),
+
 /***/ "./node_modules/lodash-es/_baseRest.js":
 /*!*********************************************!*\
   !*** ./node_modules/lodash-es/_baseRest.js ***!
@@ -47967,6 +55110,54 @@ function createInverter(setter, toIteratee) {
 }
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (createInverter);
+
+
+/***/ }),
+
+/***/ "./node_modules/lodash-es/_createRange.js":
+/*!************************************************!*\
+  !*** ./node_modules/lodash-es/_createRange.js ***!
+  \************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _baseRange_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./_baseRange.js */ "./node_modules/lodash-es/_baseRange.js");
+/* harmony import */ var _isIterateeCall_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./_isIterateeCall.js */ "./node_modules/lodash-es/_isIterateeCall.js");
+/* harmony import */ var _toFinite_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./toFinite.js */ "./node_modules/lodash-es/toFinite.js");
+
+
+
+
+/**
+ * Creates a `_.range` or `_.rangeRight` function.
+ *
+ * @private
+ * @param {boolean} [fromRight] Specify iterating from right to left.
+ * @returns {Function} Returns the new range function.
+ */
+function createRange(fromRight) {
+  return function(start, end, step) {
+    if (step && typeof step != 'number' && (0,_isIterateeCall_js__WEBPACK_IMPORTED_MODULE_0__["default"])(start, end, step)) {
+      end = step = undefined;
+    }
+    // Ensure the sign of `-0` is preserved.
+    start = (0,_toFinite_js__WEBPACK_IMPORTED_MODULE_1__["default"])(start);
+    if (end === undefined) {
+      end = start;
+      start = 0;
+    } else {
+      end = (0,_toFinite_js__WEBPACK_IMPORTED_MODULE_1__["default"])(end);
+    }
+    step = step === undefined ? (start < end ? 1 : -1) : (0,_toFinite_js__WEBPACK_IMPORTED_MODULE_1__["default"])(step);
+    return (0,_baseRange_js__WEBPACK_IMPORTED_MODULE_2__["default"])(start, end, step, fromRight);
+  };
+}
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (createRange);
 
 
 /***/ }),
@@ -53697,6 +60888,68 @@ function property(path) {
 }
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (property);
+
+
+/***/ }),
+
+/***/ "./node_modules/lodash-es/range.js":
+/*!*****************************************!*\
+  !*** ./node_modules/lodash-es/range.js ***!
+  \*****************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _createRange_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./_createRange.js */ "./node_modules/lodash-es/_createRange.js");
+
+
+/**
+ * Creates an array of numbers (positive and/or negative) progressing from
+ * `start` up to, but not including, `end`. A step of `-1` is used if a negative
+ * `start` is specified without an `end` or `step`. If `end` is not specified,
+ * it's set to `start` with `start` then set to `0`.
+ *
+ * **Note:** JavaScript follows the IEEE-754 standard for resolving
+ * floating-point values which can produce unexpected results.
+ *
+ * @static
+ * @since 0.1.0
+ * @memberOf _
+ * @category Util
+ * @param {number} [start=0] The start of the range.
+ * @param {number} end The end of the range.
+ * @param {number} [step=1] The value to increment or decrement by.
+ * @returns {Array} Returns the range of numbers.
+ * @see _.inRange, _.rangeRight
+ * @example
+ *
+ * _.range(4);
+ * // => [0, 1, 2, 3]
+ *
+ * _.range(-4);
+ * // => [0, -1, -2, -3]
+ *
+ * _.range(1, 5);
+ * // => [1, 2, 3, 4]
+ *
+ * _.range(0, 20, 5);
+ * // => [0, 5, 10, 15]
+ *
+ * _.range(0, -4, -1);
+ * // => [0, -1, -2, -3]
+ *
+ * _.range(1, 4, 0);
+ * // => [1, 1, 1]
+ *
+ * _.range(0);
+ * // => []
+ */
+var range = (0,_createRange_js__WEBPACK_IMPORTED_MODULE_0__["default"])();
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (range);
 
 
 /***/ }),
