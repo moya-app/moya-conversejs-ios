@@ -26560,9 +26560,12 @@ _converse_headless__WEBPACK_IMPORTED_MODULE_9__.converse.plugins.add('converse-o
     _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.waitUntil('chatBoxesInitialized').then(_utils_js__WEBPACK_IMPORTED_MODULE_11__.onChatBoxesInitialized);
     _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('getOutgoingMessageAttributes', _utils_js__WEBPACK_IMPORTED_MODULE_11__.getOutgoingMessageAttributes);
     _converse_headless__WEBPACK_IMPORTED_MODULE_9__.api.listen.on('createMessageStanza', async (chat, data) => {
+      console.log("CREATE OMEMO MESSAGE STANZA CAUGHT IN OMEMO PLUGIN");
       try {
         data = await (0,_utils_js__WEBPACK_IMPORTED_MODULE_11__.createOMEMOMessageStanza)(chat, data);
+        console.log("SUCCESSFULLY CREATED OMEMO MESSAGE STANZA");
       } catch (e) {
+        console.log("FAILED TO CREATE OMEMO MESSAGE STANZA");
         (0,_utils_js__WEBPACK_IMPORTED_MODULE_11__.handleMessageSendError)(e, chat);
       }
       return data;
