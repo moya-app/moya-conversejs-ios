@@ -34,7 +34,7 @@ window.main = ()=>{
     localStorage.clear();
     init();
 }
-window.thread = ()=>myWorker = new Worker('./worker.js', );
+window.thread = ()=> {myWorker = new Worker('./worker.js', ); (window).worker = myWorker; };
 // let mainThread = true;
 // mainThread=false;
 // if(mainThread){
@@ -52,3 +52,4 @@ window.thread = ()=>myWorker = new Worker('./worker.js', );
 //     jid: '123@test.com',
 //     password: 'pass',
 // })
+

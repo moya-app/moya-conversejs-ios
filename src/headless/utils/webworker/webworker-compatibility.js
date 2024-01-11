@@ -5,10 +5,14 @@ var r,
         r = res;
         rej = reje;
     });
+async function prepare(){
+
+
 self.webworkerScriptsLoaded = p;
 self['auto_init_mock'] = true;
 let scriptsFolder = self.userProvidedScriptsPath;
 try {
+
     if (scriptsFolder) {
         await importScripts(scriptsFolder + '/libsignal-protocol.min.js');
         await importScripts(scriptsFolder + '/webworker/xmlw3cdom.js');
@@ -24,9 +28,13 @@ try {
     await import('./storage.js');
     await import('./dom-parser.js');
     await import('./serializer.js');
+    console.log("Imports done");
     r();
 } catch (error) {
     rej(error);
     throw(error)
 }
-export default p;
+return p;
+}
+
+export default prepare;

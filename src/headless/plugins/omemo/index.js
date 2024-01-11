@@ -74,9 +74,12 @@ converse.plugins.add('converse-omemo', {
         api.listen.on('getOutgoingMessageAttributes', getOutgoingMessageAttributes);
 
         api.listen.on('createMessageStanza', async (chat, data) => {
+            console.log("CREATE OMEMO MESSAGE STANZA CAUGHT IN OMEMO PLUGIN")
             try {
                 data = await createOMEMOMessageStanza(chat, data);
+                console.log("SUCCESSFULLY CREATED OMEMO MESSAGE STANZA");
             } catch (e) {
+                console.log("FAILED TO CREATE OMEMO MESSAGE STANZA");
                 handleMessageSendError(e, chat);
             }
             return data;

@@ -21,7 +21,10 @@ async function init() {
 
         console.log('%cImportted xmlw3cdom.js', 'color: green; font-size: 20px');
         //Load manaual compatibility scripts
-        await import('../../src/headless/utils/webworker/webworker-compatibility.js');
+        await import('../../src/headless/utils/webworker/webworker-compatibility.js').then(async (module)=>{
+            let prepare = module.default
+            return await prepare();
+        });
         //End of Load manaual compatibility scripts
     } catch (e) {
         hasError = true;
@@ -62,3 +65,13 @@ async function init() {
     }
 }
 init();
+onmessage = async function (e) {
+    console.log(e.data);
+    let _c = window.converse._converse;
+    let chat = await _c.api.chats.open('4917692171798@binu-test.m.in-app.io');
+    console.log(chat);
+    let res = await chat.sendMessage({body:'Hello'});
+    console.log(res);
+
+
+};

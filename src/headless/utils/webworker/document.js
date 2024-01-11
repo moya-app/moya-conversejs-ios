@@ -29,9 +29,25 @@ Object.defineProperty(DOMDocument.prototype, 'firstElementChild', {
 let implementation = new DOMImplementation();
 let defaultDoc = implementation.loadXML('<html><head></head></html>');
 defaultDoc.head = {
-    appendChild: function (node) {
+    appendChild: async function (node) {
         if (node.tagName.toLowerCase() === 'script' && node.src) {
             console.warn('Trying to load script in webworker mode:', node.src);
+            try{
+
+            
+            let res =await  importScripts(node.src);
+            node.onload();
+            }
+            catch(err){
+                node.onerror(err);
+            }
+
+
+            // importScripts(node.src + "").then(res=>{
+            //     node.onload();
+            // }).catch(err=>{
+            //     node.onerror(err);
+            // });
         }
     },
 };
