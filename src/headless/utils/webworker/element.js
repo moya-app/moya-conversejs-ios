@@ -390,7 +390,7 @@ DOMElement.prototype.querySelector = function (selector) {
         // Start the search with this element
         result = searchChildren(this);
 
-        return result;
+        return result || null;
 
 };
 
@@ -431,6 +431,13 @@ Object.defineProperty(DOMElement.prototype, 'outerHTML', {
         .join(' ');
     
     return `<${this.tagName} ${attrs}>${this.innerHTML}</${this.tagName}>`;
+    }
+});
+
+
+Object.defineProperty(DOMElement.prototype, 'children', {
+    get: function() {
+        return this.childNodes._nodes.filter(node=>node.nodeType === 1);
     }
 });
 

@@ -1,5 +1,5 @@
 import spinner from "templates/spinner.js";
-import { formatFingerprint } from 'plugins/omemo/utils.js';
+import { formatFingerprint } from '../utils.js';
 import { html } from "lit";
 import { __ } from 'i18n';
 
