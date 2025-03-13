@@ -1,4 +1,7 @@
 
+
+
+
 DOMNamedNodeMap.prototype[Symbol.iterator] = function* (){
     let attrs = [];
     if(this.parentNode){
@@ -9,7 +12,7 @@ DOMNamedNodeMap.prototype[Symbol.iterator] = function* (){
         }
         if (this.parentNode.namespaceURI){
             let newAttr = document.createAttribute('xmlns');
-            newAttr.value = this.parentNode.namespaceUri;
+            newAttr.value = this.parentNode.namespaceURI;
             attrs.push(newAttr);
         }
     }
@@ -19,6 +22,11 @@ DOMNamedNodeMap.prototype[Symbol.iterator] = function* (){
     }
 
 }
+
+
+
+
+
 DOMElement.prototype.querySelectorAll = function (selector) {
     const results = [];
 
@@ -262,6 +270,15 @@ DOMDocument.prototype.addEventListener= function (...args){
 DOMDocument.prototype.removeEventListener= function (...args){
     // console.log("removed empty event listener",args);
 }
+
+
+Object.defineProperty(DOMElement.prototype, 'firstElementChild', {
+    get: function() {
+       return Array.from(this.childNodes).find(node=>node.nodeType === 1);
+    }
+    
+});
+
 
 function makeIterable(obj, arrayName = '_nodes'){
     obj.prototype.map = function (callback) {
