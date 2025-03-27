@@ -1,3 +1,16 @@
+/**
+ * dom-parser.js - DOMParser Implementation for WebWorkers
+ * 
+ * This module provides a mock implementation of the browser's DOMParser
+ * for parsing XML in WebWorker environments. It includes functions to 
+ * properly set up XML documents with traversable attributes and node structures.
+ */
+
+/**
+ * Makes all attributes on a document node iterable
+ * Recursively processes all child nodes
+ * @param {DOMNode} doc - The document node to process
+ */
 function makeAttributesIteratable(doc){
     doc.attributes.properlySetArray();
     doc.childNodes._nodes.forEach((node)=>{
@@ -24,7 +37,10 @@ function makeAttributesIteratable(doc){
 //     });
 // }
 
-
+/**
+ * Override appendChild to maintain parent-child relationships
+ * and ensure attributes are properly iterable
+ */
 let oldAppend = DOMNode.prototype.appendChild;
 DOMNode.prototype.appendChild = function (node) {
     let old = oldAppend.call(this, node);
@@ -33,32 +49,33 @@ DOMNode.prototype.appendChild = function (node) {
     return old;
 }
 
+/**
+ * Mock DOMParser implementation for XML parsing in WebWorkers
+ */
 export class MockDOMParser {
+    /**
+     * Parse an XML or HTML string into a DOM Document
+     * @param {string} str - The XML or HTML string to parse
+     * @param {string} contentType - The MIME type of the document (text/xml or text/html)
+     * @returns {Document} The parsed document
+     * @throws {Error} If contentType is not supported
+     */
     parseFromString(str, contentType) {
-        // This method will create a simplified mock DOM based on the input string.
-        // It doesn't fully parse the HTML/XML string due to the complexity of real parsing,
-        // but will provide a basic implementation for demonstration purposes.
+        // This method creates a DOM from the input string
+        // Currently supports XML and HTML content types
 
-        // For a more complete implementation, you might need a real HTML/XML parser library
-        // that works in a Web Worker environment.
-
-        // Create a new MockDocument
         if(['text/xml','text/html'].includes(contentType) ){
             let doc = new DOMImplementation().loadXML(str);
             makeAttributesIteratable(doc);
             return doc;
         }
         else{
-            throw new Error(contentType + "Not Implemented for webworker");
+            throw new Error(contentType + " not implemented for webworker");
         }
-        throw('Something went Wrong')
-       
-
-        
     }
 }
 
-
+// Initialize the DOMParser in the global context if auto_init_mock is enabled
 if(self['auto_init_mock']){
     console.log("HIT");
     self.DOMParser = MockDOMParser;

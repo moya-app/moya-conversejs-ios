@@ -1,188 +1,92 @@
-<h2 align="center">
-  <a href="https://conversejs.org" target="_blank" rel="noopener">
-    <img alt="Converse.js" src="https://github.com/conversejs/converse.js/blob/master/logo/readme.png" width="480">
-  </a>
-</h2>
+# Converse.js Webworker Compatibility
 
+This project provides webworker compatibility for Converse.js, allowing it to run in a WebWorker context rather than just the main browser thread.
 
-[![XMPP Chat](https://conference.conversejs.org/muc_badge/discuss@conference.conversejs.org)](https://inverse.chat/#converse/room?jid=discuss@conference.conversejs.org)
-[![CI Tests](https://github.com/conversejs/converse.js/actions/workflows/karma-tests.yml/badge.svg)](https://github.com/conversejs/converse.js/actions/workflows/karma-tests.yml)
-[![Bountysource bounties](https://img.shields.io/bountysource/team/converse.js/activity.svg?maxAge=2592000)](https://www.bountysource.com/teams/converse.js/issues?tracker_ids=194169)
-[![Translation status](https://hosted.weblate.org/widgets/conversejs/-/svg-badge.svg)](https://hosted.weblate.org/engage/conversejs/?utm_source=widget)
+## Overview
 
-[Converse](https://conversejs.org) is a web based [XMPP/Jabber](https://xmpp.org) chat client.
+The scripts in this directory add WebWorker support for Converse.js by implementing browser DOM APIs that are not natively available in a WebWorker context. This primarily involves adding XML parsing support and other DOM-related functionality.
 
-You can either use it as a webchat app, or you can integrate it into your own website.
+## Why Run Converse.js in a WebWorker?
 
-It's 100% client-side JavaScript, HTML and CSS and the only backend required
-is a modern XMPP server.
+Running Converse.js in a WebWorker offers several benefits:
 
-Please support this project via [Patreon](https://www.patreon.com/jcbrand) or [Liberapay](https://liberapay.com/jcbrand)
+- **Performance**: Offloading XMPP processing to a background thread keeps the main UI thread responsive
+- **Resource isolation**: Separate memory space for the XMPP client
+- **Background processing**: Continue XMPP operations even when the UI is not in focus
 
-## Demo
+## Files in the WebWorker Utility Directory
 
-Converse is hosted and can be used at [https://conversejs.org](https://conversejs.org).
+### Key Components
 
-A demo showing anonymous login is available at [https://conversejs.org/demo/anonymous.html](https://conversejs.org/demo/anonymous.html)
-and a demo which shows how you can embed a single chat room into a page is
-avialable at [https://conversejs.org/demo/embedded.html](https://conversejs.org/demo/embedded.html).
+- **webworker-compatibility.js** - Entry point that bootstraps the DOM environment in the worker
+- **element.js** - Implements DOM Element functionality
+- **document.js** - Provides document object implementation
+- **dom-parser.js** - Adds XML parsing capabilities
+- **xmlw3cdom.js** - W3C DOM implementation for XML processing
+- **xmlsax.js** - SAX parser for XML processing
+- **serializer.js** - XML serialization utilities
+- **storage.js** - localStorage and sessionStorage implementations
 
-## Documentation
+## How It Works
 
-The developer/integrator documentation can be found at [https://conversejs.org/docs/html](https://conversejs.org/docs/html).
+The implementation creates mock versions of browser DOM APIs that are missing in the WebWorker context:
 
-You'll probably want to begin with the [quickstart guide](https://conversejs.org/docs/html/quickstart.html),
-which shows you how to use the CDN (content delivery network) to quickly get a demo up and running.
+1. When initializing Converse.js in a worker, first import `webworker-compatibility.js`
+2. This module sets up the worker environment by importing necessary dependencies
+3. It creates polyfills for DOM objects, XML parsing, and storage
+4. Once the environment is ready, Converse.js can be loaded and initialized
 
-## Converse modes
+## Usage Example
 
-### Overlay
+The project demonstrates two modes of operation:
 
-In overlay mode, Converse appears overlayed chats on top of the website.
+1. **Main Thread**: Running Converse.js in the main browser thread
+2. **Worker Thread**: Running Converse.js in a WebWorker
 
-![Screenshot of Converse in overlay mode](https://conversejs.org/screenshots/Converse-overlayed.png)
+Example code (from demo/headless):
 
-### Fullpage
+`
 
-In fullpage mode, Converse behaves like a single-page app that covers the whole browser viewport.
+Inside the worker:
 
-![Screenshot of Converse 9.0.0 in fullpage mode](https://conversejs.org/screenshots/Converse-fullscreen.png)
+```javascript
+async function init(configObject) {
+    // Set up the environment
+    self.window = self;
 
-### Dark mode
+    //Load scripts : (libsignal-protocol.min.js, xmlw3cdom.js, xmlsax.js) or set script folder (that include these scripts) like this :
+    // self.userProvidedScriptsPath = '/src/headless/utils';
+    
+    // Load compatibility scripts
+    await import('../../src/headless/utils/webworker/webworker-compatibility.js').then(async (module) => {
+        let prepare = module.default;
+        return await prepare();
+    });
+    
+    // Load Converse.js
+    importScripts('/src/headless/dist/converse-headless.js');
+    
+    // Initialize
+    let { converse } = window.converse;
+    converse.initialize(configObject);
+}
+```
 
-![Screenshot of Converse 9.1.0 with a dark theme](https://conversejs.org/screenshots/Converse-Dracula-Theme.png)
+## Implementation Details
 
-### Embedded
+- **DOM Element Support**: `element.js` implements various DOM Element properties and methods like `innerHTML`, `querySelectorAll`, etc.
+- **Storage**: `storage.js` provides localStorage and sessionStorage implementations
+- **XML Parsing**: Uses a combination of SAX and DOM parsers to replicate browser XML handling
 
-In embedded mode, Converse can be embedded into an element in the DOM.
+## Development and Testing
 
-![Screenshot of Converse in embedded mode](https://conversejs.org/screenshots/Converse-embedded.png)
+To test the functionality:
+1. Run the demo headless application
+2. Use the "Worker Thread" button to initialize Converse.js in a worker
+3. Check the console for logs and any errors
 
-## Features
--   Available as overlayed chat boxes or as a fullscreen application. See [inverse.chat](https://inverse.chat) for the fullscreen version.
--   Custom status messages
--   Desktop notifications
--   A [plugin architecture](https://conversejs.org/docs/html/plugin_development.html) based on [pluggable.js](https://conversejs.github.io/pluggable.js/)
--   Chat statuses (online, busy, away, offline)
--   Anonymous logins, see the [anonymous login demo](https://conversejs.org/demo/anonymous.html)
--   URL Previews (requires server support, for example [mod_ogp](https://modules.prosody.im/mod_ogp.html)
--   Translated into over 30 languages
+## Limitations
 
-### Supported XMPP Extensions
-
-- [RFC-7395](https://tools.ietf.org/html/rfc7395) XMPP Subprotocol support for WebSocket
-- [XEP-0004](https://xmpp.org/extensions/xep-0004.html) Data Forms
-- [XEP-0030](https://xmpp.org/extensions/xep-0030.html) Service discovery
-- [XEP-0045](https://xmpp.org/extensions/xep-0045.html) Multi-user chat rooms
-- [XEP-0048](https://xmpp.org/extensions/xep-0048.html) Bookmarks
-- [XEP-0050](https://xmpp.org/extensions/xep-0050.html) Ad-Hoc Commands
-- [XEP-0054](https://xmpp.org/extensions/xep-0054.html) VCard-temp
-- [XEP-0059](https://xmpp.org/extensions/xep-0059.html) Result Set Management
-- [XEP-0060](https://xmpp.org/extensions/xep-0060.html) Publish-Subscribe (limited support)
-- [XEP-0066](https://xmpp.org/extensions/xep-0066.html) Out of Band Data
-- [XEP-0077](https://xmpp.org/extensions/xep-0077.html) In-band registration
-- [XEP-0085](https://xmpp.org/extensions/xep-0085.html) Chat State Notifications
-- [XEP-0115](https://xmpp.org/extensions/xep-0115.html) Entity Capabilities
-- [XEP-0124](https://xmpp.org/extensions/xep-0124.html) Bidirectional-streams Over Synchronous HTTP (BOSH)
-- [XEP-0144](https://xmpp.org/extensions/xep-0144.html) Roster item exchange
-- [XEP-0156](https://xmpp.org/extensions/xep-0156.html) Discovering Alternative XMPP Connection Methods
-- [XEP-0163](https://xmpp.org/extensions/xep-0163.html) Personal Eventing Protocol (limited support)
-- [XEP-0184](https://xmpp.org/extensions/xep-0184.html) Message Receipt
-- [XEP-0198](https://xmpp.org/extensions/xep-0198.html) Stream Management
-- [XEP-0199](https://xmpp.org/extensions/xep-0199.html) XMPP Ping
-- [XEP-0203](https://xmpp.org/extensions/xep-0203.html) Delayed Delivery
-- [XEP-0206](https://xmpp.org/extensions/xep-0206.html) XMPP Over BOSH
-- [XEP-0245](https://xmpp.org/extensions/xep-0245.html) The /me Command
-- [XEP-0249](https://xmpp.org/extensions/xep-0249.html) Direct MUC Invitations
-- [XEP-0280](https://xmpp.org/extensions/xep-0280.html) Message Carbons
-- [XEP-0297](https://xmpp.org/extensions/xep-0297.html) Stanza Forwarding (limited support)
-- [XEP-0308](https://xmpp.org/extensions/xep-0308.html) Last Message Correction
-- [XEP-0313](https://xmpp.org/extensions/xep-0313.html) Message Archive Management
-- [XEP-0316](https://xmpp.org/extensions/xep-0316.html) MUC Eventing protocol (limited support)
-- [XEP-0317](https://xmpp.org/extensions/xep-0317.html) Hats (limited support)
-- [XEP-0333](https://xmpp.org/extensions/xep-0333.html) Chat Markers (limited support)
-- [XEP-0352](https://xmpp.org/extensions/xep-0352.html) Client State Indication
-- [XEP-0357](https://xmpp.org/extensions/xep-0357.html) Push Notifications
-- [XEP-0359](https://xmpp.org/extensions/xep-0359.html) Unique and Stable Stanza IDs
-- [XEP-0363](https://xmpp.org/extensions/xep-0363.html) HTTP File Upload
-- [XEP-0372](https://xmpp.org/extensions/xep-0372.html) References
-- [XEP-0382](https://xmpp.org/extensions/xep-0382.html) Spoiler messages
-- [XEP-0384](https://xmpp.org/extensions/xep-0384.html) OMEMO Encryption
-- [XEP-0393](https://xmpp.org/extensions/xep-0393.html) Message styling
-- [XEP-0422](https://xmpp.org/extensions/xep-0422.html) Message Fastening (limited support)
-- [XEP-0424](https://xmpp.org/extensions/xep-0424.html) Message Retractions
-- [XEP-0425](https://xmpp.org/extensions/xep-0425.html) Message Moderation
-- [XEP-0437](https://xmpp.org/extensions/xep-0437.html) Room Activity Indicators
-- [XEP-0453](https://xmpp.org/extensions/xep-0453.html) DOAP Usage in XMPP
-- [XEP-0454](https://xmpp.org/extensions/xep-0454.html) OMEMO Media sharing
-
-## Integration into other servers and frameworks
-
-### XMPP servers
-
--   **[Openfire](https://www.igniterealtime.org/projects/openfire/index.jsp)**: [inverse.jar](https://www.igniterealtime.org/projects/openfire/plugins.jsp)
--   **[Prosody](https://prosody.im/)**: [mod_conversejs](https://modules.prosody.im/mod_conversejs.html)
--   **[Ejabberd](https://ejabberd.im/)**: [mod-conversejs](https://docs.ejabberd.im/admin/configuration/modules/#mod-conversejs)
-
-### Other
-
--   **[Alfresco](https://www.alfresco.com)**: [alfresco-js-chat-share](https://github.com/keensoft/alfresco-js-chat-share)
--   **[Django](https://www.djangoproject.com)**: [django-conversejs](https://pypi.python.org/pypi/django-conversejs) or [django-xmpp](https://github.com/fpytloun/django-xmpp)
--   **[Elgg](https://elgg.org)**: [plugin](https://elgg.org/plugins/2997196)
--   **[Friendica](https://friendi.ca)**: [converse](https://github.com/friendica/friendica-addons/tree/master/xmpp/converse)
--   **[Patternslib](http://patternslib.com)**: [patterns.converse](https://github.com/jcbrand/patterns.converse)
--   **[Plone](https://plone.com)**: [collective.converse](https://github.com/collective/collective.converse)
--   **[Pàdé](https://www.igniterealtime.org/projects/pade/index.jsp)**: [Pàdé](https://www.igniterealtime.org/projects/pade/index.jsp)
--   **[Roundcube](https://roundcube.net)**: [roundcube-converse.js-xmpp-plugin](https://github.com/devurandom/roundcube-converse.js-xmpp-plugin)
--   **[Ruby on Rails](https://rubyonrails.org)**: [conversejs-rails](https://github.com/mikemarsian/conversejs-rails)
--   **[Tiki Wiki CMS Groupware](https://tiki.org)**: [built-in optional feature](https://doc.tiki.org/XMPP)
--   **[Wordpress](https://wordpress.org)**: [ConverseJS](https://wordpress.org/plugins/conversejs/)
-
-
-## Tests
-
-We use behavior-driven tests written with [jasmine.js](https://jasmine.github.io/).
-
-Run `make check` to execute all the tests.
-
-## Licence
-
-`Converse.js` is released under the [Mozilla Public License (MPL)](https://www.mozilla.org/MPL/2.0/index.txt).
-
-## Attribution
-
-Emoji images are courtesy of [Twemoji](https://emojitwo.github.io/).
-
-## Support
-
-Issues can be logged on the [Github issue tracker](https://github.com/conversejs/converse.js/issues).
-
-## Donations
-
-A heartfelt thanks for everyone who has supported this project over the years.
-Many people have contributed testing, bugfixes, features and corrections.
-
-We accept donations via [Patreon](https://www.patreon.com/jcbrand) and [Liberapay](https://liberapay.com/jcbrand).
-
-## Sponsors
-
-<p>
-  <a href="https://bairesdev.com/sponsoring-open-source-projects/?utm_source=conversejs" target="_blank" rel="noopener">
-    <img alt="BairesDev" src="https://raw.githubusercontent.com/conversejs/media/main/logos/bairesdev-primary.png" width="200">
-  </a>
-</p>
-<p>
-  <a href="https://blokt.com?utm_source=conversejs" target="_blank" rel="noopener">
-    <img alt="Blokt Crypto & Privacy" src="https://raw.githubusercontent.com/conversejs/converse.js/541613d1fea8aef364af00180f60e959162e5e4b/logo/blokt.png" width="200">
-  </a>
-</p>
-<p>
-  <a href="https://primesound.org/?utm_source=conversejs" target="_blank" rel="noopener">
-    <img alt="Prime Sound" src="https://raw.githubusercontent.com/conversejs/media/main/logos/primesound.png" width="200">
-  </a>
-</p>
-<p>
-  <a href="https://www.keycdn.com?utm_source=conversejs" target="_blank" rel="noopener">
-    <img alt="KeyCDN" src="https://raw.githubusercontent.com/conversejs/converse.js/541613d1fea8aef364af00180f60e959162e5e4b/logo/keycdn.png" width="200">
-  </a>
-</p>
+- Not all DOM APIs are fully implemented; only those required by Converse.js
+- Performance may differ from native DOM implementations
+- Some browser-specific features may not be available
