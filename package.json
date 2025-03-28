@@ -43,7 +43,8 @@
     "watch": "webpack --watch --config webpack/webpack.build.js --mode=development",
     "types": "tsc --declaration --emitDeclarationOnly --allowJs",
     "check:types": "tsc --noEmit",
-    "start:headless": "python3 -m http.server 8000 & open http://localhost:8000/demo/headless/index.html ;  lsof -i :8000"
+    "start:headless": "python3 -m http.server 8000 & open http://localhost:8000/demo/headless/index.html ;  lsof -i :8000",
+    "build:headless:worker": "npm run headless && webpack --config webpack/webpack.headless.worker.js"
   },
   "repository": {
     "type": "git",

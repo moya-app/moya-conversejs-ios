@@ -12,49 +12,70 @@
  * 4. Sets up mock storage for localStorage and sessionStorage
  */
 
-window = self;
-var r,
-    rej,
-    p = new Promise((res, reje) => {
-        r = res;
-        rej = reje;
-    });
+self.window = self;
+self['auto_init_mock'] = true;
+
+
+
+
+
+
 
 /**
- * Prepares the WebWorker environment by loading required scripts and polyfills
+ * Prepares the WebWorker environment and initializes Converse
  * @returns {Promise} Resolves when the environment is ready for Converse.js
  */
-async function prepare(){
-
-// Promise to track when all scripts are loaded
-self.webworkerScriptsLoaded = p;
-self['auto_init_mock'] = true;
-let scriptsFolder = self.userProvidedScriptsPath;
-try {
-    // Load external XML parsing libraries based on provided path or use existing ones
-    if (scriptsFolder) {
-        await importScripts(scriptsFolder + '/libsignal-protocol.min.js');
-        await importScripts(scriptsFolder + '/webworker/xmlw3cdom.js');
-        await importScripts(scriptsFolder + '/webworker/xmlsax.js');
-    } else {
-        //Test if scripts do exist
-        if(!DOMImplementation){
-            throw new Error("DOMImplementation not found");
+export async function prepare(prepareOpts) {
+    const {scripts = './'} = prepareOpts || {};
+    //Check if libsignal is loaded
+    if(!self['dcodeIO']){
+        console.warn("Libsignal not loaded, trying to load in scripts path...");
+        try{
+        await importScripts(`${scripts}libsignal-protocol.min.js`);
+        }
+        catch(err){
+            console.warn("Libsignal not loaded. OMEMO won't be supported")
         }
     }
-    // Import DOM polyfill modules
-    await import('./element.js');
-    await import('./document.js');
-    await import('./storage.js');
-    await import('./dom-parser.js');
-    await import('./serializer.js');
-    console.log("Imports done");
-    r();
-} catch (error) {
-    rej(error);
-    throw(error)
-}
-return p;
+    
+    
+    try{
+        //Load scripts to provide dom functionality
+        const xmlsax = importScripts(`${scripts}xmlsax.js`);
+        const xmlw3cdom = importScripts(`${scripts}xmlw3cdom.js`);
+        }
+        catch(err){
+            console.warn("Default DOM polyfills scripts not found. Please ensure prepare is called with a path where xmlsax.js and xmlw3cdom can be found. E.g. prepare({scripts:'assets/scripts/'}")
+        }
+        
+        
+        
+        //Manual changes to ensure dom functionality and similar is covered.
+        const element = require('./element.js');
+        const document = require('./document.js');
+        const storage = require('./storage.js');
+        const domParser = require('./dom-parser.js');
+        const serializer = require('./serializer.js');
+        
+    try {
+        if (!DOMImplementation) {
+            throw new Error("DOMImplementation not found");
+        }
+        
+        console.log("WebWorker environment initialized");
+        
+        
+        const converse = await import(
+            /* webpackMode: "eager" */ 
+            '@converse/headless'
+          );
+        console.log("Converse imported successfully");
+        
+        return converse;
+    } catch (error) {
+        console.error("Error initializing webworker environment:", error);
+        return Promise.reject(error);
+    }
 }
 
-export default prepare;
+
