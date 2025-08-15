@@ -1,0 +1,75 @@
+{
+  "name": "@converse/headless",
+  "version": "11.0.1",
+  "description": "Converse.js Headless build",
+  "author": "JC Brand <jc@opkode.com>",
+  "contributors": [
+    "cmrd Senya <senya@riseup.net>"
+  ],
+  "homepage": "https://conversejs.org",
+  "license": "MPL-2.0",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./types/index.d.ts",
+        "default": "./index.js"
+      },
+      "require": {
+        "types": "./types/index.d.ts",
+        "default": "./dist/headless.js"
+      }
+    }
+  },
+  "main": "./index.js",
+  "types": "./types/index.d.ts",
+  "module": "./index.js",
+  "files": [
+    "README.md",
+    "dist/",
+    "./**/*.html",
+    "./**/*.js",
+    "./**/*.ts",
+    "./**/*.ts.map",
+    "./**/*.json",
+    "./**/*.md",
+    "./**/*.po",
+    "./**/*.pot",
+    "./**/*.scss",
+    "./**/*.svg"
+  ],
+  "keywords": [
+    "converse.js",
+    "XMPP",
+    "Jabber",
+    "chat",
+    "messaging",
+    "chatrooms",
+    "webchat"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conversejs/converse.js.git",
+    "directory": "src/headless"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/conversejs/converse.js/issues"
+  },
+  "dependencies": {
+    "@converse/log": "^0.0.1",
+    "@converse/openpromise": "^0.0.4",
+    "@converse/skeletor": "^0.0.9",
+    "dayjs": "^1.11.8",
+    "dompurify": "^3.0.8",
+    "filesize": "^10.0.7",
+    "localforage-webextensionstorage-driver": "^3.0.0",
+    "lodash-es": "^4.17.21",
+    "pluggable.js": "3.0.1",
+    "sizzle": "^2.3.5",
+    "sprintf-js": "^1.1.2",
+    "strophe.js": "4.0.0-rc0"
+  },
+  "devDependencies": {}
+}
