@@ -82,7 +82,7 @@ export default function ModelWithMessages(BaseModel) {
          */
         async createMessage(attrs, options) {
             attrs.time = attrs.time || new Date().toISOString();
-            //TOFIND COMMENTED OUT await this.messages.fetched - iOS handles message timing manually
+            /*! TOFIND */ // COMMENTED OUT await this.messages.fetched - iOS handles message timing manually
             // await this.messages.fetched;
             return this.messages.create(attrs, options);
         }

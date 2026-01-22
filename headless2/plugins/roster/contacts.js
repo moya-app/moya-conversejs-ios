@@ -394,7 +394,7 @@ class RosterContacts extends Collection {
      * @param {Element} presence
      */
     handleIncomingSubscription(presence) {
-        //TOFIND Return and handle subs manually - iOS handles subscription requests
+        /*! TOFIND */ // Return and handle subs manually - iOS handles subscription requests
         return;
         const jid = presence.getAttribute('from'),
             bare_jid = Strophe.getBareJidFromJid(jid),

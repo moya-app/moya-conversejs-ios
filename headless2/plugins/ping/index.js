@@ -16,7 +16,7 @@ const { Strophe } = converse.env;
 Strophe.addNamespace('PING', "urn:xmpp:ping");
 
 
-//TOFIND Commented out ping module to remove - ping doesn't work on current server
+/*! TOFIND */ // Commented out ping module to remove - ping doesn't work on current server
 /*
 converse.plugins.add('converse-ping', {
 

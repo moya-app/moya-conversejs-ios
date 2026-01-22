@@ -100,7 +100,7 @@ export function convertASCII2Emoji (str) {
  * @param {string} text
  */
 export function getShortnameReferences (text) {
-    //TOFIND (ADDED EMPTY ARRAY AS WE CHECK FOR EMOJIS MANUALLY LATER - iOS handles emojis)
+    /*! TOFIND */ // (ADDED EMPTY ARRAY AS WE CHECK FOR EMOJIS MANUALLY LATER - iOS handles emojis)
     return [];
     if (!converse.emojis.initialized) {
         throw new Error(

@@ -62,7 +62,7 @@ Object.assign(_converse.constants, constants);
 import * as errors from './shared/errors.js';
 export { api, converse, _converse, i18n, log, u, constants, parsers, errors };
 
-//TOFIND Multi-instance support wrapper for iOS
+/*! TOFIND */ // Multi-instance support wrapper for iOS
 /**
  * Initialize a converse instance and assign it to a window property.
  * This allows multiple simultaneous converse instances (converse0, converse1, etc.)

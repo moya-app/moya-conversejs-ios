@@ -10,21 +10,37 @@ This repository contains a **custom pre-built distribution of the Converse.js he
 
 ```
 moya-conversejs-ios/
-├── headless/           # v7.0.6 - Current production (MODIFIED)
+├── headless/           # v7.0.6 - Current production (MODIFIED, OLD)
 │   ├── dist/
 │   │   └── converse-headless.min.js  # Contains TOFIND markers
 │   └── ...
-├── headless2/          # v12.0.0 - Target migration version (STOCK)
+├── headless2/          # v12.0.0 - Target migration version (MODIFIED, NEW)
 │   ├── plugins/        # Modular plugin architecture
 │   ├── shared/         # Core API, connection, settings
 │   ├── utils/          # Utility functions
-│   ├── dist/           # Built distribution
+│   ├── dist/           # Built distribution (needs rebuild)
 │   ├── types/          # TypeScript type definitions
 │   └── index.js        # ES module entry point
-├── skeletor/           # @converse/skeletor - Backbone-like MVC
+├── skeletor/           # @converse/skeletor v0.0.5 - Backbone-like MVC (OLD)
+├── skeletor2/          # @converse/skeletor v3.0.0 - ES6 classes (NEW)
 ├── openpromise/        # @converse/openpromise - Promise utility
 └── AGENTS.md           # This file
 ```
+
+### Versioning Strategy
+
+During migration, both old and new versions are kept side-by-side for validation:
+
+| Current | Version | New | Version | Status |
+|---------|---------|-----|---------|--------|
+| `headless/` | v7.0.6 | `headless2/` | v12.0.0 | Modifications applied |
+| `skeletor/` | v0.0.5 | `skeletor2/` | v3.0.0 | Ready for use |
+
+**After successful testing with moya-client-ios:**
+1. Remove `headless/` and `skeletor/` (old versions)
+2. Rename `headless2/` → `headless/`
+3. Rename `skeletor2/` → `skeletor/`
+4. Update any path references in moya-client-ios if needed
 
 ## How the iOS Client Uses This Library
 
@@ -697,12 +713,12 @@ The skeletor library (`@converse/skeletor`) provides Backbone-like Model and Col
 
 ### Version Requirements
 
-| Component | Current Version | Required Version |
-|-----------|-----------------|------------------|
-| Current `skeletor/` | **0.0.5** | - |
-| headless (v7) requires | GitHub commit | Works with 0.0.5 |
-| headless2 (v12) requires | **^0.0.9** | **Must update** |
-| Latest available | **3.0.0** | Consider for future |
+| Directory | Version | Used By | Status |
+|-----------|---------|---------|--------|
+| `skeletor/` | **0.0.5** | headless (v7) | OLD - keep for validation |
+| `skeletor2/` | **3.0.0** | headless2 (v12) | NEW - ready for use |
+
+**Note:** headless2 (v12) officially requires `^0.0.9`, but we've verified it's compatible with v3.0.0 since it doesn't use `.extend()` patterns.
 
 ### How moya-client-ios Uses Skeletor
 
@@ -1212,15 +1228,24 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 ### Update History
 
-**January 22, 2026 (Session 2) - MODIFICATIONS APPLIED**:
+**January 22, 2026 (Session 2) - MODIFICATIONS & BUILD**:
 
-All 16 iOS-specific modifications have been applied to headless2 source files. See "Migration Progress" section below for details.
+**Phase 1 Complete**: All 16 iOS-specific modifications applied to headless2 source files.
+
+**Phase 2 In Progress**: Build setup and dist generation.
+- Created `build.js` using esbuild (no build script existed in original package)
+- Added esbuild as devDependency
+- Resolved missing externals (lit, hsluv)
+- Converted TOFIND comments to legal comment format (`/*! TOFIND */`) to preserve in bundled output
+- Added `legalComments: 'inline'` to build options
+- Added `skeletor2/` directory with skeletor v3.0.0
 
 **Key discoveries during implementation:**
-- `createMessage` with `messages.fetched` is in `shared/model-with-messages.js`, NOT `plugins/chat/model.js` (corrected in Files Quick Reference)
-- Storage/DB naming is in `utils/init.js`, NOT `utils/storage.js` (corrected in Files Quick Reference)
-- The "Chat.get Null Check" (original mod #5) was not found/needed in v12 - the code structure is different
-- Ping module import still exists in `index.js` but plugin code is commented out - may want to remove import entirely
+- `createMessage` with `messages.fetched` is in `shared/model-with-messages.js`, NOT `plugins/chat/model.js`
+- Storage/DB naming is in `utils/init.js`, NOT `utils/storage.js`
+- The "Chat.get Null Check" (original mod #5) was not found/needed in v12
+- Ping module import still exists in `index.js` but plugin code is commented out
+- esbuild strips all non-legal comments by default - had to convert `//TOFIND` to `/*! TOFIND */`
 
 **January 22, 2026**:
 - Updated documentation for headless2 v12.0.0 (was v11.0.1)
@@ -1239,9 +1264,10 @@ All 16 iOS-specific modifications have been applied to headless2 source files. S
 
 ## Migration Progress
 
-### Status: Phase 1 Complete ✅
+### Status: Phase 2 In Progress 🔄
 
-All iOS-specific modifications have been applied to headless2 source files.
+- ✅ Phase 1: All iOS-specific modifications applied to headless2 source files
+- 🔄 Phase 2: Building dist files with esbuild
 
 ### Applied Modifications Summary
 
@@ -1272,16 +1298,19 @@ All iOS-specific modifications have been applied to headless2 source files.
    cd headless2 && npm run build
    ```
 
-2. **Update skeletor** - Replace `skeletor/` with v3.0.0
-   - Download from npm or GitHub
-   - Update imports in moya-client-ios if needed
+2. **skeletor2 ready** - `skeletor2/` directory contains v3.0.0 ✅
+   - No action needed here, ready for use
 
 3. **Test in moya-client-ios**
-   - Update package.json to point to headless2
+   - Update package.json to point to headless2 and skeletor2
    - Run through testing checklist below
 
-4. **Update moya-client-ios omemo.service.ts** (if using skeletor v3.0.0)
-   - Convert 5 `.extend()` patterns to ES6 classes
+4. **Update moya-client-ios omemo.service.ts** (required for skeletor v3.0.0)
+   - Convert 5 `.extend()` patterns to ES6 classes (see examples below)
+
+5. **After successful testing**
+   - Remove old directories (`headless/`, `skeletor/`)
+   - Rename: `headless2/` → `headless/`, `skeletor2/` → `skeletor/`
 
 ### Issues Found During Implementation
 
@@ -1319,13 +1348,72 @@ The `return;` statement in `join()` method was placed after the nickname validat
 
 If issues arise, the return position may need adjustment.
 
+### Build Process Setup
+
+#### Build Script Created
+
+headless2 originally had no build script (dist was pre-built from main converse.js repo). A custom build script was created using esbuild:
+
+**File**: `headless2/build.js`
+**Command**: `npm run build`
+
+#### Dependencies Added
+
+```json
+// headless2/package.json devDependencies
+"esbuild": "^0.27.2"
+```
+
+#### Build Issues Encountered
+
+1. **Missing external dependencies**: Initial build failed due to unresolved imports. Added to externals:
+   - `lit`, `lit/*` - UI library used in some components
+   - `hsluv` - Color library
+
+2. **TOFIND comments stripped by esbuild**: esbuild strips all non-legal comments by default, even without minification.
+
+   **Solution**: Convert `//TOFIND` comments to legal comment format:
+   ```javascript
+   // Before (stripped by esbuild)
+   //TOFIND some comment
+
+   // After (preserved by esbuild)
+   /*! TOFIND */ // some comment
+   ```
+
+   All 16 TOFIND markers were converted using:
+   ```bash
+   # Step 1: Convert to legal comment start
+   find . -name "*.js" -not -path "./node_modules/*" -not -path "./dist/*" \
+     -exec sed -i '' 's|//TOFIND|/*!TOFIND|g' {} \;
+
+   # Step 2: Fix format to properly close legal comment
+   find . -name "*.js" -not -path "./node_modules/*" -not -path "./dist/*" \
+     -exec sed -i '' 's|/\*!TOFIND|/*! TOFIND */ //|g' {} \;
+   ```
+
+3. **legalComments option**: Added `legalComments: 'inline'` to build options to ensure legal comments are preserved in output.
+
+#### Build Output
+
+The build creates 4 files in `headless2/dist/`:
+- `converse-headless.esm.js` - ESM format (with TOFIND comments)
+- `converse-headless.min.esm.js` - ESM minified (comments stripped)
+- `converse-headless.js` - CJS format (with TOFIND comments)
+- `converse-headless.min.js` - CJS minified (comments stripped)
+
 ### Verification Commands
 
 After rebuilding, verify modifications with:
 
 ```bash
-# Check all TOFIND markers are present
+# Check all TOFIND markers are present in source files
 grep -r "TOFIND" headless2/ --include="*.js" | grep -v node_modules | grep -v dist
 
 # Expected output: 16 files with TOFIND comments
+
+# Check TOFIND markers in built ESM file
+grep -c "TOFIND" headless2/dist/converse-headless.esm.js
+
+# Expected output: 16 (one per modification)
 ```
