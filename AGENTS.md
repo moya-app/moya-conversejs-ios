@@ -1,6 +1,6 @@
 # AGENTS.md - Converse.js iOS Headless Migration Guide
 
-This document provides context for AI agents working on migrating from the `headless` (v7.0.6) to `headless2` (v11.0.1) version of Converse.js in this iOS integration project.
+This document provides context for AI agents working on migrating from the `headless` (v7.0.6) to `headless2` (v12.0.0) version of Converse.js in this iOS integration project.
 
 ## Project Overview
 
@@ -14,11 +14,12 @@ moya-conversejs-ios/
 │   ├── dist/
 │   │   └── converse-headless.min.js  # Contains TOFIND markers
 │   └── ...
-├── headless2/          # v11.0.1 - Target migration version (STOCK)
+├── headless2/          # v12.0.0 - Target migration version (STOCK)
 │   ├── plugins/        # Modular plugin architecture
 │   ├── shared/         # Core API, connection, settings
 │   ├── utils/          # Utility functions
 │   ├── dist/           # Built distribution
+│   ├── types/          # TypeScript type definitions
 │   └── index.js        # ES module entry point
 ├── skeletor/           # @converse/skeletor - Backbone-like MVC
 ├── openpromise/        # @converse/openpromise - Promise utility
@@ -680,7 +681,7 @@ The skeletor library (`@converse/skeletor`) provides Backbone-like Model and Col
 |-----------|-----------------|------------------|
 | Current `skeletor/` | **0.0.5** | - |
 | headless (v7) requires | GitHub commit | Works with 0.0.5 |
-| headless2 (v11) requires | **^0.0.9** | **Must update** |
+| headless2 (v12) requires | **^0.0.9** | **Must update** |
 | Latest available | **3.0.0** | Consider for future |
 
 ### How moya-client-ios Uses Skeletor
@@ -724,13 +725,19 @@ _converse.DeviceLists = Collection.extend({...});
 ### Skeletor v3.0.0 Compatibility Verification
 
 ```bash
-# Search confirmed NO Model.extend() or Collection.extend() usage in headless2:
+# Search confirmed NO Model.extend() or Collection.extend() usage in headless2 (v12.0.0):
 grep -r "Model\.extend\|Collection\.extend" headless2/
 # Result: No files found
 
 # All .extend() calls in headless2 are:
 # - api.settings.extend() - settings API, not skeletor
 # - dayjs.extend() - date library
+
+# headless2 v12.0.0 uses ES6 class syntax throughout:
+# - class ChatBox extends ModelWithVCard(ModelWithMessages(...))
+# - class MUC extends ModelWithVCard(ModelWithMessages(...))
+# - class RosterContacts extends Collection
+# - class DiscoEntity extends Model
 ```
 
 ### Required Changes in moya-client-ios for Skeletor v3.0.0
@@ -901,26 +908,31 @@ import { Model, Collection } from '@converse/skeletor';
 
 ---
 
-## Version Differences: v7 vs v11
+## Version Differences: v7 vs v12
 
-| Aspect | headless (v7.0.6) | headless2 (v11.0.1) |
+| Aspect | headless (v7.0.6) | headless2 (v12.0.0) |
 |--------|-------------------|---------------------|
 | Structure | Flat files | Modular (plugins/, shared/, utils/) |
-| TypeScript | No | Yes (partial) |
-| Module System | CommonJS-ish | ES Modules |
+| TypeScript | No | Yes (full type definitions in types/) |
+| Module System | CommonJS-ish | ES Modules (ESM + CJS builds) |
 | Plugin Architecture | Single-file | Multi-file with index.js |
-| New Plugins | - | blocklist |
+| New Plugins | - | blocklist, omemo (built-in) |
 | API Changes | converse.* | api.*, _converse.state.* |
 | Skeletor Version | ~0.0.5 | ^0.0.9 |
+| Strophe.js Version | 1.x | 4.0.0-rc0 |
+| Export Format | Single bundle | ESM (dist/converse-headless.esm.js) + CJS |
 
 ---
 
-## Key API Changes in v11
+## Key API Changes in v12
 
 1. **State access**: `_converse.roster` -> `_converse.state.roster`
 2. **Connection**: `_converse.connection` -> `_converse.state.connection` or `api.connection.get()`
 3. **Promises**: Many methods now return proper Promises
 4. **Events**: Event names may have changed
+5. **Stanza building**: New `stx` tagged template literal for XML stanzas (replacing `$build`/`$msg`/`$iq`)
+6. **Built-in OMEMO**: OMEMO plugin is now included with Device, Devices, DeviceList, DeviceLists exports
+7. **Exports**: More granular exports from index.js (ChatBox, Message, MUC, etc.)
 
 ---
 
@@ -978,7 +990,7 @@ For reference, here are the exact line numbers in `headless/dist/converse-headle
 
 ## Potential Improvements for moya-client-ios
 
-Migrating to headless2 (v11) offers several opportunities to improve the iOS client integration:
+Migrating to headless2 (v12) offers several opportunities to improve the iOS client integration:
 
 ### 1. Tagged Template Literals for Stanzas (`stx`)
 
@@ -991,7 +1003,7 @@ const stanza = $iq({type: 'get', to: jid})
     .c('item', {jid: contactJid});
 ```
 
-**New approach** (v11 with `stx`):
+**New approach** (v12 with `stx`):
 ```typescript
 const { stx, Strophe } = converse.env;
 const stanza = stx`
