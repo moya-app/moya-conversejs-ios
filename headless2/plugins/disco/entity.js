@@ -155,6 +155,8 @@ class DiscoEntity extends Model {
         try {
             stanza = await api.disco.info(this.get('jid'), null, options);
         } catch (iq) {
+            //TOFIND (BLOCKING QUERIES FROM THROWING ERRORS IN CONVERSE) - iOS handles disco errors
+            return;
             if (u.isElement(iq)) {
                 const e = await parseErrorStanza(iq);
                 if (e.message !== 'item-not-found') {

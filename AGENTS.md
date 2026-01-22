@@ -159,7 +159,7 @@ The iOS client manages many XMPP features manually (presence, receipts, markers,
 
 ## Complete Modification Mapping
 
-### 1. Multi-Instance Support (CRITICAL)
+### 1. Multi-Instance Support (CRITICAL) ✅ APPLIED
 
 **Purpose**: Allow multiple simultaneous Converse instances (`window.converse0`, `window.converse1`, etc.)
 
@@ -184,7 +184,7 @@ export function converseInit(converseIndex){
 
 ---
 
-### 2. Chat Markers - DISABLED
+### 2. Chat Markers - DISABLED ✅ APPLIED
 
 **Purpose**: iOS app handles chat markers (read receipts, displayed) manually
 
@@ -212,7 +212,7 @@ export function sendMarker(to_jid, id, type, msg_type) {
 
 ---
 
-### 3. Receipt Stanza - DISABLED
+### 3. Receipt Stanza - DISABLED ✅ APPLIED
 
 **Purpose**: iOS app handles message receipts manually
 
@@ -237,7 +237,7 @@ export function sendReceiptStanza(to_jid, id) {
 
 ---
 
-### 4. Message Fetching - BYPASSED
+### 4. Message Fetching - BYPASSED ✅ APPLIED
 
 **Purpose**: Skip waiting for messages.fetched promise
 
@@ -251,13 +251,22 @@ async createMessage(e, t) {
 }
 ```
 
-**New Location**: `headless2/plugins/chat/model.js`
-- Find the `createMessage` method
-- Remove or bypass the `await this.messages.fetched` line
+**Actual Location**: `headless2/shared/model-with-messages.js` (NOT `plugins/chat/model.js`)
+```javascript
+// Lines 83-87 - createMessage method in ModelWithMessages mixin
+async createMessage(attrs, options) {
+    attrs.time = attrs.time || new Date().toISOString();
+    //TOFIND COMMENTED OUT await this.messages.fetched - iOS handles message timing manually
+    // await this.messages.fetched;
+    return this.messages.create(attrs, options);
+}
+```
+
+**Note**: In v12, the `createMessage` method is in a shared mixin (`ModelWithMessages`) that's used by both `ChatBox` and `MUC` classes, not in the individual model files.
 
 ---
 
-### 5. Chat.get Null Check
+### 5. Chat.get Null Check ⏭️ SKIPPED
 
 **Purpose**: Defensive null check on contact_jid
 
@@ -276,7 +285,7 @@ r = await zu.chats.get(
 
 ---
 
-### 6. Disco Query Errors - SILENCED
+### 6. Disco Query Errors - SILENCED ✅ APPLIED
 
 **Purpose**: Prevent disco query errors from being thrown (blocking queries)
 
@@ -311,7 +320,7 @@ async queryInfo() {
 
 ---
 
-### 7. Emoji Shortname References - DISABLED
+### 7. Emoji Shortname References - DISABLED ✅ APPLIED
 
 **Purpose**: Skip emoji processing (handled manually later)
 
@@ -342,7 +351,7 @@ export function getShortnameReferences(text) {
 
 ---
 
-### 8. MUC Presence - DISABLED
+### 8. MUC Presence - DISABLED ✅ APPLIED
 
 **Purpose**: iOS app handles MUC presence/join manually
 
@@ -370,7 +379,7 @@ async join(nick, password) {
 
 ---
 
-### 9. MUC isJoined - ALWAYS TRUE
+### 9. MUC isJoined - ALWAYS TRUE ✅ APPLIED
 
 **Purpose**: Bypass ping check (server doesn't support it)
 
@@ -397,7 +406,7 @@ async isJoined() {
 
 ---
 
-### 10. MUC Direct Invitations - DISABLED
+### 10. MUC Direct Invitations - DISABLED ✅ APPLIED
 
 **Purpose**: iOS app handles invites manually
 
@@ -427,7 +436,7 @@ export function registerDirectInvitationHandler() {
 
 ---
 
-### 11. Headlines Roster Check - ENHANCED
+### 11. Headlines Roster Check - ENHANCED ✅ APPLIED
 
 **Purpose**: Added null check for roster
 
@@ -454,7 +463,7 @@ if (from_jid.includes('@') &&
 
 ---
 
-### 12. Ping Module - COMMENTED OUT
+### 12. Ping Module - COMMENTED OUT ✅ APPLIED
 
 **Purpose**: Remove ping functionality entirely
 
@@ -475,7 +484,7 @@ if (from_jid.includes('@') &&
 
 ---
 
-### 13. Roster Subscriptions - DISABLED
+### 13. Roster Subscriptions - DISABLED ✅ APPLIED
 
 **Purpose**: iOS app handles subscription requests manually
 
@@ -502,7 +511,7 @@ handleIncomingSubscription(presence) {
 
 ---
 
-### 14. VCard Get - DISABLED
+### 14. VCard Get - DISABLED ✅ APPLIED
 
 **Purpose**: iOS app fetches vcards manually
 
@@ -529,7 +538,7 @@ async get(model, force) {
 
 ---
 
-### 15. VCard Update - DISABLED
+### 15. VCard Update - DISABLED ✅ APPLIED
 
 **Purpose**: iOS app updates vcards manually
 
@@ -557,7 +566,7 @@ async update(model, force) {
 
 ---
 
-### 16. Connection CORS Mode
+### 16. Connection CORS Mode ✅ APPLIED
 
 **Purpose**: Add no-cors mode for host-meta discovery
 
@@ -586,7 +595,7 @@ async discoverConnectionMethods(domain) {
 
 ---
 
-### 17. Storage/DB Naming
+### 17. Storage/DB Naming ✅ APPLIED
 
 **Purpose**: Custom DB naming based on websocket host
 
@@ -604,9 +613,20 @@ const e = {
 };
 ```
 
-**New Location**: `headless2/utils/storage.js`
-- Modify `createStore` or `initStorage` functions
-- Add logic to customize DB name based on websocket_url setting
+**Actual Location**: `headless2/utils/init.js` (NOT `utils/storage.js`)
+```javascript
+// Lines 126-131 - initPersistentStorage function
+//TOFIND Changed DB name to be set based on websocket host for iOS multi-instance support
+// let SocketHost = api.settings.get('websocket_url')?.replace(/^.*\:\/\//,'').replace(/\/.*$/,'') || '';
+let DBName = "converse-persistent"; // + "_" + SocketHost;
+
+const config = {
+    name: isTestEnv() ? "converse-test-persistent" : DBName,
+    storeName: store_name,
+};
+```
+
+**Note**: In v12, the persistent storage initialization is in `utils/init.js`, not `utils/storage.js`. The socket host extraction is commented out but can be enabled if per-host DB isolation is needed.
 
 ---
 
@@ -938,21 +958,24 @@ import { Model, Collection } from '@converse/skeletor';
 
 ## Files Quick Reference
 
-| Modification | File Path |
-|--------------|-----------|
-| Multi-instance wrapper | `headless2/index.js` |
-| sendMarker, sendReceiptStanza | `headless2/shared/actions.js` |
-| Chat createMessage | `headless2/plugins/chat/model.js` |
-| MUC join, isJoined, presence | `headless2/plugins/muc/muc.js` |
-| MUC invites | `headless2/plugins/muc/utils.js` |
-| VCard get/update | `headless2/plugins/vcard/api.js` |
-| Roster subscriptions | `headless2/plugins/roster/contacts.js` |
-| Disco queryInfo | `headless2/plugins/disco/entity.js` |
-| Emoji getShortnameReferences | `headless2/plugins/emoji/utils.js` |
-| Ping module | `headless2/plugins/ping/index.js` |
-| Connection CORS | `headless2/shared/connection/index.js` |
-| Storage/DB naming | `headless2/utils/storage.js` |
-| Headlines roster check | `headless2/plugins/headlines/utils.js` |
+| Modification | File Path | Line(s) |
+|--------------|-----------|---------|
+| Multi-instance wrapper (`converseInit`) | `headless2/index.js` | 65-77 |
+| sendMarker | `headless2/shared/actions.js` | 39-42 |
+| sendReceiptStanza | `headless2/shared/actions.js` | 60-63 |
+| createMessage (`messages.fetched` bypass) | `headless2/shared/model-with-messages.js` | 83-87 |
+| MUC join (presence disable) | `headless2/plugins/muc/muc.js` | 207-209 |
+| MUC isJoined (return true) | `headless2/plugins/muc/muc.js` | 2069-2071 |
+| MUC invites handler | `headless2/plugins/muc/utils.js` | 58-60 |
+| VCard get | `headless2/plugins/vcard/api.js` | 113-115 |
+| VCard update | `headless2/plugins/vcard/api.js` | 174-176 |
+| Roster subscriptions | `headless2/plugins/roster/contacts.js` | 396-398 |
+| Disco queryInfo errors | `headless2/plugins/disco/entity.js` | 157-159 |
+| Emoji getShortnameReferences | `headless2/plugins/emoji/utils.js` | 102-104 |
+| Ping module | `headless2/plugins/ping/index.js` | 19-34 |
+| Connection CORS | `headless2/shared/connection/index.js` | 86-88 |
+| Storage/DB naming | `headless2/utils/init.js` | 126-131 |
+| Headlines roster check | `headless2/plugins/headlines/utils.js` | 17-21 |
 
 ---
 
@@ -1189,6 +1212,16 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 ### Update History
 
+**January 22, 2026 (Session 2) - MODIFICATIONS APPLIED**:
+
+All 16 iOS-specific modifications have been applied to headless2 source files. See "Migration Progress" section below for details.
+
+**Key discoveries during implementation:**
+- `createMessage` with `messages.fetched` is in `shared/model-with-messages.js`, NOT `plugins/chat/model.js` (corrected in Files Quick Reference)
+- Storage/DB naming is in `utils/init.js`, NOT `utils/storage.js` (corrected in Files Quick Reference)
+- The "Chat.get Null Check" (original mod #5) was not found/needed in v12 - the code structure is different
+- Ping module import still exists in `index.js` but plugin code is commented out - may want to remove import entirely
+
 **January 22, 2026**:
 - Updated documentation for headless2 v12.0.0 (was v11.0.1)
 - Added Strophe.js version info (now 4.0.0-rc0)
@@ -1196,8 +1229,103 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 - Added stx tagged template literal documentation for stanza building
 - Updated exports information (ESM + CJS dual builds)
 
-**January 21, 2026**: 
+**January 21, 2026**:
 - Verified headless2 compatibility with skeletor v3.0.0 (no `Model.extend()` or `Collection.extend()` usage)
 - Decided to use skeletor v3.0.0 for migration
 - Documented all 5 required `.extend()` to ES6 class conversions in `omemo.service.ts`
 - Added detailed conversion examples and import change instructions
+
+---
+
+## Migration Progress
+
+### Status: Phase 1 Complete ✅
+
+All iOS-specific modifications have been applied to headless2 source files.
+
+### Applied Modifications Summary
+
+| # | Modification | File | Status |
+|---|--------------|------|--------|
+| 1 | Multi-instance wrapper (`converseInit`) | `index.js` | ✅ Applied |
+| 2 | Disable `sendMarker()` | `shared/actions.js` | ✅ Applied |
+| 3 | Disable `sendReceiptStanza()` | `shared/actions.js` | ✅ Applied |
+| 4 | Bypass `messages.fetched` in `createMessage()` | `shared/model-with-messages.js` | ✅ Applied |
+| 5 | Chat.get null check | N/A | ⏭️ Skipped (not found in v12) |
+| 6 | Silence disco query errors | `plugins/disco/entity.js` | ✅ Applied |
+| 7 | Return `[]` from `getShortnameReferences()` | `plugins/emoji/utils.js` | ✅ Applied |
+| 8 | Disable MUC auto-join presence | `plugins/muc/muc.js` | ✅ Applied |
+| 9 | `isJoined()` returns `true` | `plugins/muc/muc.js` | ✅ Applied |
+| 10 | Disable MUC invite handler | `plugins/muc/utils.js` | ✅ Applied |
+| 11 | Headlines roster null check | `plugins/headlines/utils.js` | ✅ Applied |
+| 12 | Comment out ping plugin | `plugins/ping/index.js` | ✅ Applied |
+| 13 | Disable subscription handling | `plugins/roster/contacts.js` | ✅ Applied |
+| 14 | Disable `vcard.get()` | `plugins/vcard/api.js` | ✅ Applied |
+| 15 | Disable `vcard.update()` | `plugins/vcard/api.js` | ✅ Applied |
+| 16 | CORS mode `'no-cors'` | `shared/connection/index.js` | ✅ Applied |
+| 17 | Custom DB naming | `utils/init.js` | ✅ Applied |
+
+### Next Steps
+
+1. **Rebuild headless2** - Run build to generate new dist files
+   ```bash
+   cd headless2 && npm run build
+   ```
+
+2. **Update skeletor** - Replace `skeletor/` with v3.0.0
+   - Download from npm or GitHub
+   - Update imports in moya-client-ios if needed
+
+3. **Test in moya-client-ios**
+   - Update package.json to point to headless2
+   - Run through testing checklist below
+
+4. **Update moya-client-ios omemo.service.ts** (if using skeletor v3.0.0)
+   - Convert 5 `.extend()` patterns to ES6 classes
+
+### Issues Found During Implementation
+
+#### 1. File Location Corrections
+
+The original documentation had some incorrect file paths:
+
+| Modification | Originally Documented | Actual Location |
+|--------------|----------------------|-----------------|
+| `createMessage` bypass | `plugins/chat/model.js` | `shared/model-with-messages.js` |
+| Storage/DB naming | `utils/storage.js` | `utils/init.js` |
+
+#### 2. Chat.get Null Check Not Found
+
+The original v7 modification #5 (null check on `contact_jid` in `api.chats.get()`) was not found in the v12 codebase. The code structure has changed significantly. This may need investigation if issues arise during testing.
+
+#### 3. Ping Module Import Still Present
+
+The ping plugin code in `plugins/ping/index.js` has been commented out, but the import statement in `index.js` still exists:
+```javascript
+import './plugins/ping/index.js'; // XEP-0199 XMPP Ping
+```
+
+This import will still execute the file (which now only adds the namespace). For a cleaner solution, consider:
+- Option A: Comment out the import in `index.js`
+- Option B: Leave as-is (minimal impact since plugin registration is commented out)
+
+#### 4. MUC Join Early Return Position
+
+The `return;` statement in `join()` method was placed after the nickname validation but before `api.send()`. This means:
+- ✅ Session state is updated (`ROOMSTATUS.CONNECTING`)
+- ✅ Disco info is refreshed
+- ✅ Nickname is persisted
+- ❌ Join presence is NOT sent (as intended)
+
+If issues arise, the return position may need adjustment.
+
+### Verification Commands
+
+After rebuilding, verify modifications with:
+
+```bash
+# Check all TOFIND markers are present
+grep -r "TOFIND" headless2/ --include="*.js" | grep -v node_modules | grep -v dist
+
+# Expected output: 16 files with TOFIND comments
+```

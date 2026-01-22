@@ -56,6 +56,8 @@ export function occupantsComparator(occupant1, occupant2) {
 }
 
 export function registerDirectInvitationHandler() {
+    //TOFIND RETURN SO ADDHANDLER FOR INVITES DOESNT KICK IN - iOS handles MUC invites manually
+    return;
     api.connection.get().addHandler(
         /** @param {Element} message */
         (message) => {

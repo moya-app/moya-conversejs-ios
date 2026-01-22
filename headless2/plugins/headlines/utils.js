@@ -14,7 +14,9 @@ export async function onHeadlineMessage (stanza) {
         const from_jid = stanza.getAttribute('from');
 
         await api.waitUntil('rosterInitialized')
+        //TOFIND Added '_converse.state.roster &&' null check for roster
         if (from_jid.includes('@') &&
+                _converse.state.roster &&
                 !_converse.state.roster.get(from_jid) &&
                 !api.settings.get("allow_non_roster_messaging")) {
             return;

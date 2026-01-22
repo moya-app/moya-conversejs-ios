@@ -84,7 +84,8 @@ export class Connection extends Strophe.Connection {
     async discoverConnectionMethods (domain) {
         // Use XEP-0156 to check whether this host advertises websocket or BOSH connection methods.
         const options = {
-            mode: /** @type {RequestMode} */('cors'),
+            //TOFIND Changed to no-cors mode for iOS host-meta discovery
+            mode: /** @type {RequestMode} */('no-cors'),
             headers: {
                 Accept: 'application/xrd+xml, text/xml'
             }

@@ -62,6 +62,21 @@ Object.assign(_converse.constants, constants);
 import * as errors from './shared/errors.js';
 export { api, converse, _converse, i18n, log, u, constants, parsers, errors };
 
+//TOFIND Multi-instance support wrapper for iOS
+/**
+ * Initialize a converse instance and assign it to a window property.
+ * This allows multiple simultaneous converse instances (converse0, converse1, etc.)
+ * for multi-account support in the iOS client.
+ * @param {number} converseIndex - The index for this converse instance
+ * @returns {typeof converse} The converse object assigned to the window
+ */
+export function converseInit(converseIndex) {
+    const instanceName = `converse${converseIndex}`;
+    window[instanceName] = window[instanceName] || {};
+    Object.assign(window[instanceName], converse);
+    return window[instanceName];
+}
+
 window['converse'] = converse;
 
 export default converse;

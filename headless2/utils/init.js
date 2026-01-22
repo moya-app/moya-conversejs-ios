@@ -123,8 +123,12 @@ export function initPersistentStorage(_converse, store_name, key="persistent") {
         return;
     }
 
+    //TOFIND Changed DB name to be set based on websocket host for iOS multi-instance support
+    // let SocketHost = api.settings.get('websocket_url')?.replace(/^.*\:\/\//,'').replace(/\/.*$/,'') || '';
+    let DBName = "converse-persistent"; // + "_" + SocketHost;
+
     const config = {
-        name: isTestEnv() ? "converse-test-persistent" : "converse-persistent",
+        name: isTestEnv() ? "converse-test-persistent" : DBName,
         storeName: store_name,
     };
     if (api.settings.get("persistent_store") === "localStorage") {

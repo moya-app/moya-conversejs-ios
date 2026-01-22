@@ -111,6 +111,8 @@ export default {
          * });
          */
         async get(model, force) {
+            //TOFIND Added return. Preventing converse fetching vcards - iOS fetches vcards manually
+            return;
             api.waitUntil("VCardsInitialized");
 
             if (typeof model === "string") return fetchVCard(model);
@@ -172,6 +174,8 @@ export default {
          * });
          */
         async update (model, force) {
+            //TOFIND Added return. Preventing converse updating vcards - iOS handles vcards manually
+            return;
             api.waitUntil('VCardsInitialized');
             const data = await this.get(model, force);
             if (data === null) {

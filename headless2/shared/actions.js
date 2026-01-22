@@ -37,6 +37,8 @@ export function rejectMessage(stanza, text) {
  * @return void
  */
 export function sendMarker(to_jid, id, type, msg_type) {
+    //TOFIND (Got rid of converse marker sending - iOS handles markers manually)
+    return;
     if (!MARKER_TYPES.includes(type)) {
         log.error(`Invalid marker type: ${type}`);
         return;
@@ -58,6 +60,8 @@ export function sendMarker(to_jid, id, type, msg_type) {
  * @return void
  */
 export function sendReceiptStanza(to_jid, id) {
+    //TOFIND REMOVE DEFAULT RECEIPT CONVERSE - iOS handles receipts manually
+    return;
     const receipt_stanza = stx`
         <message from="${api.connection.get().jid}"
                 id="${u.getUniqueId()}"

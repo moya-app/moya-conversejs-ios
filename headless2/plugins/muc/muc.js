@@ -205,6 +205,8 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
             }
             return;
         }
+        //TOFIND blocked from sending converse presence - iOS handles MUC presence/join manually
+        return;
         api.send(await this.constructJoinPresence(password, is_new));
         if (is_new) await this.refreshDiscoInfo();
     }
@@ -2067,6 +2069,8 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
      * @returns {Promise<boolean>}
      */
     async isJoined() {
+        //TOFIND Returning true (Ping doesnt work on current server) - iOS manages MUC state
+        return true;
         if (!this.isEntered()) {
             log.info(`isJoined: not pinging MUC ${this.get('jid')} since we're not entered`);
             return false;
