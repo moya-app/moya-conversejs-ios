@@ -66,8 +66,8 @@ class RosterContact extends ModelWithVCard(ColorAwareModel(Model)) {
         return this.presence?.getStatus() || 'offline';
     }
 
-    openChat () {
-        api.chats.open(this.get('jid'), {}, true);
+    async openChat () {
+        return await api.chats.open(this.get('jid'), {}, true);
     }
 
     /**
@@ -125,6 +125,7 @@ class RosterContact extends ModelWithVCard(ColorAwareModel(Model)) {
      */
     unauthorize (message) {
         rejectPresenceSubscription(this.get('jid'), message);
+        this.save({ requesting: false });
         return this;
     }
 

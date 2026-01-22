@@ -50,6 +50,8 @@ import MUCSession from './session';
 
 const { u, stx } = converse.env;
 
+const DISCO_INFO_TIMEOUT_ON_JOIN = 30000;
+
 /**
  * Represents a groupchat conversation.
  */
@@ -70,13 +72,14 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
     defaults() {
         /** @type {import('./types').DefaultMUCAttributes} */
         return {
-            'bookmarked': false,
-            'chat_state': undefined,
-            'has_activity': false, // XEP-437
-            'hidden': isUniView() && !api.settings.get('singleton'),
-            'hidden_occupants': !!api.settings.get('hide_muc_participants'),
-            'message_type': 'groupchat',
-            'name': '',
+            bookmarked: false,
+            chat_state: undefined,
+            closed: false,
+            has_activity: false, // XEP-437
+            hidden: isUniView() && !api.settings.get('singleton'),
+            hidden_occupants: !!api.settings.get('hide_muc_participants'),
+            message_type: 'groupchat',
+            name: '',
             // For group chats, we distinguish between generally unread
             // messages and those ones that specifically mention the
             // user.
@@ -85,20 +88,25 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
             // ChatBox to indicate unread messages which
             // mention the user and `num_unread_general` to indicate
             // generally unread messages (which *includes* mentions!).
-            'num_unread_general': 0,
-            'num_unread': 0,
-            'roomconfig': {},
-            'time_opened': this.get('time_opened') || new Date().getTime(),
-            'time_sent': new Date(0).toISOString(),
-            'type': CHATROOMS_TYPE,
+            num_unread_general: 0,
+            num_unread: 0,
+            roomconfig: {},
+            time_opened: this.get('time_opened') || new Date().getTime(),
+            time_sent: new Date(0).toISOString(),
+            type: CHATROOMS_TYPE,
         };
     }
 
     async initialize() {
         super.initialize();
+        this.on('change:closed', () => {
+            if (!this.get('closed')) {
+                this.initialize();
+            }
+        });
+        if (this.get('closed')) return;
 
         this.initialized = getOpenPromise();
-
         this.debouncedRejoin = debounce(this.rejoin, 250);
 
         this.initOccupants();
@@ -122,6 +130,7 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
         if (!restored) {
             await this.join();
         }
+
         /**
          * Triggered once a {@link MUC} has been created and initialized.
          * @event _converse#chatRoomInitialized
@@ -185,7 +194,9 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
         // Set this early, so we don't rejoin in onHiddenChange
         this.session.save('connection_status', ROOMSTATUS.CONNECTING);
 
-        const is_new = (await this.refreshDiscoInfo()) instanceof ItemNotFoundError;
+        const result = await this.refreshDiscoInfo({ timeout: DISCO_INFO_TIMEOUT_ON_JOIN });
+        const is_new = result instanceof ItemNotFoundError;
+
         nick = await this.getAndPersistNickname(nick);
         if (!nick) {
             safeSave(this.session, { 'connection_status': ROOMSTATUS.NICKNAME_REQUIRED });
@@ -213,7 +224,8 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
      * @param {boolean} is_new
      */
     async constructJoinPresence(password, is_new) {
-        const maxstanzas = is_new || this.features.get('mam_enabled') ? 0 : api.settings.get('muc_history_max_stanzas');
+        const exclude_maxstanzas = is_new || this.features.get('mam_enabled');
+        const maxstanzas = exclude_maxstanzas ? 0 : api.settings.get('muc_history_max_stanzas');
         password = password || this.get('password');
 
         const { profile } = _converse.state;
@@ -225,7 +237,7 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
                       from="${api.connection.get().jid}"
                       to="${this.getRoomJIDAndNick()}">
                 <x xmlns="${Strophe.NS.MUC}">
-                    <history maxstanzas="${maxstanzas}"/>
+                    ${maxstanzas ? stx`<history maxstanzas="${maxstanzas}"/>` : ''}
                     ${password ? stx`<password>${password}</password>` : ''}
                 </x>
                 ${PRES_SHOW_VALUES.includes(show) ? stx`<show>${show}</show>` : ''}
@@ -1247,10 +1259,11 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
      * Refresh the disco identity, features and fields for this {@link MUC}.
      * *features* are stored on the features {@link Model} attribute on this {@link MUC}.
      * *fields* are stored on the config {@link Model} attribute on this {@link MUC}.
+     * @param {import('@converse/headless/plugins/disco/types').DiscoInfoOptions} [options]
      * @returns {Promise}
      */
-    async refreshDiscoInfo() {
-        const result = await api.disco.refresh(this.get('jid'));
+    async refreshDiscoInfo(options) {
+        const result = await api.disco.refresh(this.get('jid'), options);
         if (result instanceof StanzaError) {
             return result;
         }
@@ -1731,7 +1744,8 @@ class MUC extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))
             <iq to="${this.get('jid')}" type="get" xmlns="jabber:client">
                 <query xmlns="${Strophe.NS.DISCO_INFO}" node="x-roomuser-item"/>
             </iq>`;
-        const result = await api.sendIQ(stanza, null, false);
+
+        const result = await api.sendIQ(stanza, DISCO_INFO_TIMEOUT_ON_JOIN, false);
         if (u.isErrorObject(result)) {
             throw result;
         }
