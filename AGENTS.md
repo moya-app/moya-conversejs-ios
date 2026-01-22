@@ -1020,7 +1020,7 @@ const stanza = stx`
 
 ### 2. New Blocklist Plugin (XEP-0191)
 
-v11 includes a built-in blocklist plugin that could replace manual blocking implementation:
+v12 includes a built-in blocklist plugin that could replace manual blocking implementation:
 
 ```typescript
 // Block a user
@@ -1065,7 +1065,7 @@ headless2/types/
 _converse.connection.disconnect(reason);
 ```
 
-**New** (v11):
+**New** (v12):
 ```typescript
 // Cleaner API namespace
 api.connection.disconnect();
@@ -1082,7 +1082,7 @@ api.connection.destroy();  // full cleanup
 
 ### 5. Better Error Handling with Typed Errors
 
-v11 introduces specific error classes:
+v12 introduces specific error classes:
 
 ```typescript
 import { TimeoutError, StanzaError } from '@converse/headless';
@@ -1102,7 +1102,7 @@ Available error types: `TimeoutError`, `StanzaError`, `NotImplementedError`, etc
 
 ### 6. Hooks System for Data Interception
 
-v11 has a powerful hooks system for intercepting and modifying data:
+v12 has a powerful hooks system for intercepting and modifying data:
 
 ```typescript
 // Intercept and modify message before sending
@@ -1127,7 +1127,7 @@ api.listen.on('parseMessage', (stanza, attrs) => {
 | Version | Bundle Size |
 |---------|-------------|
 | headless v7 | ~1.1 MB (minified) |
-| headless2 v11 | ~646 KB (minified) |
+| headless2 v12 | ~650 KB (minified) |
 
 **~40% smaller bundle** = faster app startup on iOS.
 
@@ -1135,7 +1135,7 @@ api.listen.on('parseMessage', (stanza, attrs) => {
 
 ### 8. Synchronous Events Support
 
-v11 allows synchronous event handling:
+v12 allows synchronous event handling:
 
 ```typescript
 // Wait for all handlers to complete before continuing
@@ -1148,7 +1148,7 @@ await api.trigger('customEvent', data, { synchronous: true });
 
 ### 9. Native ES Modules
 
-v11 uses standard ES modules which enables:
+v12 uses standard ES modules which enables:
 - Tree-shaking (remove unused code)
 - Better code splitting
 - Modern bundler compatibility
@@ -1182,12 +1182,19 @@ v11 uses standard ES modules which enables:
 
 This migration guide was created on January 20, 2026, based on analysis of:
 - `headless/dist/converse-headless.min.js` (modified v7.0.6)
-- `headless2/` source files (stock v11.0.1)
+- `headless2/` source files (stock v12.0.0)
 - `moya-client-ios/` TypeScript/Angular source files
 
 The original TOFIND modifications were made to support the Moya iOS client's specific XMPP integration requirements.
 
 ### Update History
+
+**January 22, 2026**:
+- Updated documentation for headless2 v12.0.0 (was v11.0.1)
+- Added Strophe.js version info (now 4.0.0-rc0)
+- Documented new built-in OMEMO plugin exports (Device, Devices, DeviceList, DeviceLists)
+- Added stx tagged template literal documentation for stanza building
+- Updated exports information (ESM + CJS dual builds)
 
 **January 21, 2026**: 
 - Verified headless2 compatibility with skeletor v3.0.0 (no `Model.extend()` or `Collection.extend()` usage)
