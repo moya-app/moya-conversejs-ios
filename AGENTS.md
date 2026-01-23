@@ -1228,6 +1228,12 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 ### Update History
 
+**January 23, 2026 - PHASE 2 COMPLETE**:
+- Build completed and verified
+- All 16 TOFIND markers preserved in dist files
+- Build output: ESM + CJS formats, minified and unminified versions
+- Created MIGRATION.md with moya-client-ios integration instructions
+
 **January 22, 2026 (Session 2) - MODIFICATIONS & BUILD**:
 
 **Phase 1 Complete**: All 16 iOS-specific modifications applied to headless2 source files.
@@ -1264,10 +1270,11 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 ## Migration Progress
 
-### Status: Phase 2 In Progress 🔄
+### Status: Phase 2 Complete ✅
 
 - ✅ Phase 1: All iOS-specific modifications applied to headless2 source files
-- 🔄 Phase 2: Building dist files with esbuild
+- ✅ Phase 2: Build dist files with esbuild (completed January 23, 2026)
+- ⏳ Phase 3: Test in moya-client-ios (see MIGRATION.md for instructions)
 
 ### Applied Modifications Summary
 
@@ -1293,22 +1300,20 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 ### Next Steps
 
-1. **Rebuild headless2** - Run build to generate new dist files
-   ```bash
-   cd headless2 && npm run build
-   ```
+See **MIGRATION.md** for detailed instructions on Phase 3.
 
-2. **skeletor2 ready** - `skeletor2/` directory contains v3.0.0 ✅
-   - No action needed here, ready for use
+1. ✅ **Rebuild headless2** - Completed January 23, 2026
+   - Build output verified with all 16 TOFIND markers preserved
 
-3. **Test in moya-client-ios**
-   - Update package.json to point to headless2 and skeletor2
-   - Run through testing checklist below
+2. ✅ **skeletor2 ready** - `skeletor2/` directory contains v3.0.0
 
-4. **Update moya-client-ios omemo.service.ts** (required for skeletor v3.0.0)
-   - Convert 5 `.extend()` patterns to ES6 classes (see examples below)
+3. ⏳ **Test in moya-client-ios** (Phase 3)
+   - Follow instructions in MIGRATION.md
+   - Update package.json path mappings
+   - Convert omemo.service.ts `.extend()` patterns to ES6 classes
+   - Run through testing checklist
 
-5. **After successful testing**
+4. ⏳ **After successful testing** (Phase 4)
    - Remove old directories (`headless/`, `skeletor/`)
    - Rename: `headless2/` → `headless/`, `skeletor2/` → `skeletor/`
 
