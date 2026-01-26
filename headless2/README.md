@@ -15,3 +15,16 @@ The main distribution of Converse relies on the headless build.
 
 The file [src/headless/index.js](https://github.com/jcbrand/converse.js/blob/master/src/headless/index.js)
 is used to determine which plugins are included in the build.
+
+## iOS multi-instance wrapper
+
+This fork exposes a helper for multi-instance usage:
+
+```ts
+import { converseInit } from '@converse/headless2';
+
+const instance = converseInit(0);
+instance.initialize({ /* ... */ });
+```
+
+`converseInit` assigns the instance to `window["converse${index}"]` (e.g. `window.converse0`) and returns it.

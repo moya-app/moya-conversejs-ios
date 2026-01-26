@@ -19,6 +19,7 @@ import * as stanza from './stanza.js';
 import * as storage from './storage.js';
 import * as text from './text.js';
 import * as url from './url.js';
+import { ConversePrivateGlobal } from '../shared/_converse.js';
 
 
 /**

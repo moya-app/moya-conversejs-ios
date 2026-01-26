@@ -2,6 +2,11 @@ export { EmojiPicker } from "./plugins/emoji/index.js";
 export { MAMPlaceholderMessage } from "./plugins/mam/index.js";
 export { Profile } from "./plugins/status/index.js";
 export default converse;
+/**
+ * Initialize a converse instance and assign it to a window property.
+ * Enables multi-instance usage (converse0, converse1, etc.).
+ */
+export function converseInit(converseIndex: number): typeof converse;
 import BaseMessage from './shared/message.js';
 import ModelWithMessages from './shared/model-with-messages.js';
 import { api } from './shared/index.js';
