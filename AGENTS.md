@@ -22,7 +22,7 @@ moya-conversejs-ios/
 │   ├── types/          # TypeScript type definitions
 │   └── index.js        # ES module entry point
 ├── skeletor/           # @converse/skeletor v0.0.5 - Backbone-like MVC (OLD)
-├── skeletor2/          # @converse/skeletor v3.0.0 - ES6 classes (NEW)
+├── skeletor2/          # @converse/skeletor v0.0.9 - Backbone-like MVC (NEW)
 ├── openpromise/        # @converse/openpromise - Promise utility
 └── AGENTS.md           # This file
 ```
@@ -34,7 +34,7 @@ During migration, both old and new versions are kept side-by-side for validation
 | Current | Version | New | Version | Status |
 |---------|---------|-----|---------|--------|
 | `headless/` | v7.0.6 | `headless2/` | v12.0.0 | Modifications applied |
-| `skeletor/` | v0.0.5 | `skeletor2/` | v3.0.0 | Ready for use |
+| `skeletor/` | v0.0.5 | `skeletor2/` | v0.0.9 | Ready for use |
 
 **After successful testing with moya-client-ios:**
 1. Remove `headless/` and `skeletor/` (old versions)
@@ -716,9 +716,9 @@ The skeletor library (`@converse/skeletor`) provides Backbone-like Model and Col
 | Directory | Version | Used By | Status |
 |-----------|---------|---------|--------|
 | `skeletor/` | **0.0.5** | headless (v7) | OLD - keep for validation |
-| `skeletor2/` | **3.0.0** | headless2 (v12) | NEW - ready for use |
+| `skeletor2/` | **0.0.9** | headless2 (v12) | NEW - ready for use |
 
-**Note:** headless2 (v12) officially requires `^0.0.9`, but we've verified it's compatible with v3.0.0 since it doesn't use `.extend()` patterns.
+**Note:** headless2 (v12) officially requires `^0.0.9`, and `skeletor2/` now tracks v0.0.9 for full compatibility.
 
 ### How moya-client-ios Uses Skeletor
 
@@ -743,204 +743,18 @@ _converse.DeviceLists = Collection.extend({...});
 - Added TypeScript type definitions
 - Better localforage integration
 
-**v0.0.9 → v3.0.0 (BREAKING):**
-- Rewritten in TypeScript
-- `Model` and `Collection` are now ES6 classes (not constructor functions)
-- Removed `.extend()` method - must use `class ... extends` syntax
-- Removed `Events` constructor, now `EventsEmitter` mixin
+### Recommended Action: Use Skeletor v0.0.9
 
-### Recommended Action: Use Skeletor v3.0.0
-
-**Decision (January 21, 2026)**: Use **skeletor v3.0.0** for the migration.
+**Decision (January 26, 2026)**: Use **skeletor v0.0.9** for the migration.
 
 **Rationale**:
-1. **headless2 is compatible** - Verified that headless2 does NOT use `Model.extend()` or `Collection.extend()` anywhere. All `.extend()` calls in headless2 are for `api.settings.extend()` (different API) or `dayjs.extend()` (date library).
-2. **Only 5 changes needed in moya-client-ios** - All in `omemo.service.ts`
-3. **Better long-term benefits** - Full TypeScript, ES6 classes, better tree-shaking
+1. **Matches headless2 requirements** - v12 expects `@converse/skeletor` `^0.0.9`.
+2. **No client refactors needed** - `.extend()` APIs remain supported.
+3. **Lowest-risk option** - aligns with upstream minor version expectations.
 
-### Skeletor v3.0.0 Compatibility Verification
+### Required Changes in moya-client-ios
 
-```bash
-# Search confirmed NO Model.extend() or Collection.extend() usage in headless2 (v12.0.0):
-grep -r "Model\.extend\|Collection\.extend" headless2/
-# Result: No files found
-
-# All .extend() calls in headless2 are:
-# - api.settings.extend() - settings API, not skeletor
-# - dayjs.extend() - date library
-
-# headless2 v12.0.0 uses ES6 class syntax throughout:
-# - class ChatBox extends ModelWithVCard(ModelWithMessages(...))
-# - class MUC extends ModelWithVCard(ModelWithMessages(...))
-# - class RosterContacts extends Collection
-# - class DiscoEntity extends Model
-```
-
-### Required Changes in moya-client-ios for Skeletor v3.0.0
-
-**File**: `moya-client-ios/src/app/submodules/chat/services/xmpp/converse-plugins/omemo.service.ts`
-
-**5 conversions needed** (lines 1649, 1940, 2002, 2010, 2190):
-
-#### 1. OMEMOStore (Line 1649)
-
-```typescript
-// OLD (v0.0.5 - .extend() pattern)
-_converse.OMEMOStore = Model.extend({
-    Direction: {
-        SENDING: 1,
-        RECEIVING: 2,
-    },
-    getIdentityKeyPair() {
-        const keypair = this.get('identity_keypair');
-        return Promise.resolve({
-            privKey: u.base64ToArrayBuffer(keypair.privKey),
-            pubKey: u.base64ToArrayBuffer(keypair.pubKey),
-        });
-    },
-    // ... ~30 more methods
-});
-
-// NEW (v3.0.0 - ES6 class syntax)
-class OMEMOStore extends Model {
-    static Direction = {
-        SENDING: 1,
-        RECEIVING: 2,
-    };
-    
-    getIdentityKeyPair() {
-        const keypair = this.get('identity_keypair');
-        return Promise.resolve({
-            privKey: u.base64ToArrayBuffer(keypair.privKey),
-            pubKey: u.base64ToArrayBuffer(keypair.pubKey),
-        });
-    }
-    // ... methods become class methods
-}
-_converse.OMEMOStore = OMEMOStore;
-```
-
-#### 2. Device (Line 1940)
-
-```typescript
-// OLD
-_converse.Device = Model.extend({
-    defaults: {
-        trusted: UNDECIDED,
-        active: true,
-    },
-    getRandomPreKey() { /* ... */ },
-    async fetchBundleFromServer() { /* ... */ },
-    getBundle() { /* ... */ },
-});
-
-// NEW
-class Device extends Model {
-    defaults() {
-        return {
-            trusted: UNDECIDED,
-            active: true,
-        };
-    }
-    
-    getRandomPreKey() { /* ... */ }
-    async fetchBundleFromServer() { /* ... */ }
-    getBundle() { /* ... */ }
-}
-_converse.Device = Device;
-```
-
-#### 3. Devices Collection (Line 2002)
-
-```typescript
-// OLD
-_converse.Devices = Collection.extend({
-    model: _converse.Device,
-});
-
-// NEW
-class Devices extends Collection {
-    get model() {
-        return _converse.Device;
-    }
-}
-_converse.Devices = Devices;
-```
-
-#### 4. DeviceList (Line 2010)
-
-```typescript
-// OLD
-_converse.DeviceList = Model.extend({
-    idAttribute: 'jid',
-    initialize() {
-        this.devices = new _converse.Devices();
-        // ...
-    },
-    // ... more methods
-});
-
-// NEW
-class DeviceList extends Model {
-    get idAttribute() {
-        return 'jid';
-    }
-    
-    initialize() {
-        this.devices = new _converse.Devices();
-        // ...
-    }
-    // ... methods become class methods
-}
-_converse.DeviceList = DeviceList;
-```
-
-#### 5. DeviceLists Collection (Line 2190)
-
-```typescript
-// OLD
-_converse.DeviceLists = Collection.extend({
-    model: _converse.DeviceList,
-    getDeviceList(jid) {
-        return this.get(jid) || this.create({ jid: jid });
-    },
-});
-
-// NEW
-class DeviceLists extends Collection {
-    get model() {
-        return _converse.DeviceList;
-    }
-    
-    getDeviceList(jid) {
-        return this.get(jid) || this.create({ jid: jid });
-    }
-}
-_converse.DeviceLists = DeviceLists;
-```
-
-### Import Change Required
-
-```typescript
-// OLD (v0.0.5)
-import { Model } from '@converse/skeletor/src/model.js';
-import { Collection } from '@converse/skeletor/src/collection';
-
-// NEW (v3.0.0) - unified entry point
-import { Model, Collection } from '@converse/skeletor';
-```
-
-### Key Conversion Rules: .extend() to ES6 Classes
-
-| Old Pattern (v0.0.5) | New Pattern (v3.0.0) |
-|---------------------|---------------------|
-| `Model.extend({...})` | `class X extends Model {...}` |
-| `defaults: {...}` | `defaults() { return {...}; }` |
-| `idAttribute: 'x'` | `get idAttribute() { return 'x'; }` |
-| `model: SomeModel` | `get model() { return SomeModel; }` |
-| `initialize() {...}` | `initialize() {...}` (same) |
-| Instance methods | Class methods (same syntax) |
-| Static properties | `static propName = value;` |
+No code changes are required for `moya-client-ios` when staying on skeletor v0.0.9. Existing `Model.extend()` and `Collection.extend()` usage remains valid.
 
 ---
 
@@ -1244,7 +1058,7 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 - Resolved missing externals (lit, hsluv)
 - Converted TOFIND comments to legal comment format (`/*! TOFIND */`) to preserve in bundled output
 - Added `legalComments: 'inline'` to build options
-- Added `skeletor2/` directory with skeletor v3.0.0
+- Added `skeletor2/` directory with skeletor v0.0.9
 
 **Key discoveries during implementation:**
 - `createMessage` with `messages.fetched` is in `shared/model-with-messages.js`, NOT `plugins/chat/model.js`
@@ -1260,11 +1074,10 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 - Added stx tagged template literal documentation for stanza building
 - Updated exports information (ESM + CJS dual builds)
 
-**January 21, 2026**:
-- Verified headless2 compatibility with skeletor v3.0.0 (no `Model.extend()` or `Collection.extend()` usage)
-- Decided to use skeletor v3.0.0 for migration
-- Documented all 5 required `.extend()` to ES6 class conversions in `omemo.service.ts`
-- Added detailed conversion examples and import change instructions
+**January 26, 2026**:
+- Switched skeletor2 back to v0.0.9 to align with headless2 v12 requirements
+- Removed class-conversion guidance (no `.extend()` refactors needed)
+
 
 ---
 
@@ -1305,12 +1118,11 @@ See **MIGRATION.md** for detailed instructions on Phase 3.
 1. ✅ **Rebuild headless2** - Completed January 23, 2026
    - Build output verified with all 16 TOFIND markers preserved
 
-2. ✅ **skeletor2 ready** - `skeletor2/` directory contains v3.0.0
+2. ✅ **skeletor2 ready** - `skeletor2/` directory contains v0.0.9
 
 3. ⏳ **Test in moya-client-ios** (Phase 3)
    - Follow instructions in MIGRATION.md
    - Update package.json path mappings
-   - Convert omemo.service.ts `.extend()` patterns to ES6 classes
    - Run through testing checklist
 
 4. ⏳ **After successful testing** (Phase 4)

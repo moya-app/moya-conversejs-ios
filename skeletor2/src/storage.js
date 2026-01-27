@@ -2,71 +2,33 @@
  * IndexedDB, localStorage and sessionStorage adapter
  */
 import * as memoryDriver from 'localforage-driver-memory';
-import cloneDeep from 'lodash-es/cloneDeep';
-import isString from 'lodash-es/isString';
+import cloneDeep from 'lodash-es/cloneDeep.js';
+import isString from 'lodash-es/isString.js';
 import localForage from 'localforage';
 import mergebounce from 'mergebounce';
-import sessionStorageWrapper from './drivers/sessionStorage';
+import sessionStorageWrapper from './drivers/sessionStorage.js';
 import { extendPrototype as extendPrototypeWithSetItems } from 'localforage-setitems';
 import { extendPrototype as extendPrototypeWithGetItems } from '@converse/localforage-getitems/dist/localforage-getitems.es6';
-import { guid } from './helpers';
-import type { Model } from './model';
-import type { Collection } from './collection';
-import type { SyncOptions, SyncOperation } from './types';
+import { guid } from './helpers.js';
 
 const IN_MEMORY = memoryDriver._driver;
 localForage.defineDriver(memoryDriver);
 extendPrototypeWithSetItems(localForage);
 extendPrototypeWithGetItems(localForage);
 
-/**
- * @public
- */
-export interface LocalForageWithExtensions {
-  setItem(key: string, value: any): Promise<any>;
-  getItem(key: string): Promise<any>;
-  removeItem(key: string): Promise<void>;
-  clear(): Promise<void>;
-  length(): Promise<number>;
-  key(keyIndex: number): Promise<string>;
-  keys(): Promise<string[]>;
-  setItems?(items: Record<string, any>): Promise<void>;
-  getItems?(keys: string[]): Promise<Record<string, any>>;
-  debouncedSetItems?: {
-    (items: Record<string, any>): Promise<void>;
-    flush?: () => void;
-  };
-}
-
-/**
- * @public
- */
-class BrowserStorage {
-  storeInitialized: Promise<void>;
-  store: LocalForageWithExtensions;
-  name: string;
-
-  static sessionStorageInitialized: Promise<void>;
-  static localForage: typeof localForage;
-
-  constructor(
-    id: string,
-    type: 'local' | 'session' | 'indexed' | 'in_memory' | LocalForageWithExtensions,
-    batchedWrites = false
-  ) {
+class Storage {
+  constructor(id, type, batchedWrites = false) {
     if (type === 'local' && !window.localStorage) {
       throw new Error('Skeletor.storage: Environment does not support localStorage.');
     } else if (type === 'session' && !window.sessionStorage) {
       throw new Error('Skeletor.storage: Environment does not support sessionStorage.');
     }
     if (isString(type)) {
-      this.storeInitialized = this.initStore(type as 'local' | 'session' | 'indexed' | 'in_memory', batchedWrites);
+      this.storeInitialized = this.initStore(type, batchedWrites);
     } else {
       this.store = type;
       if (batchedWrites) {
-        this.store.debouncedSetItems = mergebounce((items: Record<string, any>) => this.store.setItems!(items), 50, {
-          'promise': true,
-        });
+        this.store.debouncedSetItems = mergebounce((items) => this.store.setItems(items), 50, { 'promise': true });
       }
       this.storeInitialized = Promise.resolve();
     }
@@ -74,10 +36,10 @@ class BrowserStorage {
   }
 
   /**
-   * @param type - The storage type: 'local', 'session', 'indexed', or 'in_memory'
-   * @param batchedWrites - Whether to enable batched writes
+   * @param {'local'|'session'|'indexed'|'in_memory'} type
+   * @param {boolean} batchedWrites
    */
-  async initStore(type: 'local' | 'session' | 'indexed' | 'in_memory', batchedWrites: boolean): Promise<void> {
+  async initStore(type, batchedWrites) {
     if (type === 'session') {
       await localForage.setDriver(sessionStorageWrapper._driver);
     } else if (type === 'local') {
@@ -87,21 +49,17 @@ class BrowserStorage {
     } else if (type !== 'indexed') {
       throw new Error('Skeletor.storage: No storage type was specified');
     }
-    this.store = localForage as LocalForageWithExtensions;
+    this.store = localForage;
     if (batchedWrites) {
-      this.store.debouncedSetItems = mergebounce((items: Record<string, any>) => this.store.setItems!(items), 50, {
-        'promise': true,
-      });
+      this.store.debouncedSetItems = mergebounce((items) => this.store.setItems(items), 50, { 'promise': true });
     }
   }
 
-  flush(): void {
-    if (this.store.debouncedSetItems && typeof this.store.debouncedSetItems.flush === 'function') {
-      this.store.debouncedSetItems.flush();
-    }
+  flush() {
+    return this.store.debouncedSetItems?.flush();
   }
 
-  async clear(): Promise<void> {
+  async clear() {
     await this.store.removeItem(this.name).catch((e) => console.error(e));
     const re = new RegExp(`^${this.name}-`);
     const keys = await this.store.keys();
@@ -113,8 +71,8 @@ class BrowserStorage {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const that = this;
 
-    async function localSync(method: SyncOperation, model: Model, options: SyncOptions) {
-      let resp: any, errorMessage: string | undefined, promise: Promise<any>, new_attributes: any;
+    async function localSync(method, model, options) {
+      let resp, errorMessage, promise, new_attributes;
 
       // We get the collection (and if necessary the model attribute.
       // Waiting for storeInitialized will cause another iteration of
@@ -163,9 +121,8 @@ class BrowserStorage {
             resp = await that.destroy(model, collection);
             break;
         }
-      } catch (error: any) {
-        const storageSize = await that.getStorageSize();
-        if (error.code === 22 && storageSize === 0) {
+      } catch (error) {
+        if (error.code === 22 && that.getStorageSize() === 0) {
           errorMessage = 'Private browsing is unsupported';
         } else {
           errorMessage = error.message;
@@ -193,56 +150,56 @@ class BrowserStorage {
     return localSync;
   }
 
-  removeCollectionReference(model: Model, collection: Collection | undefined): Promise<any> | undefined {
+  removeCollectionReference(model, collection) {
     if (!collection) {
       return;
     }
-    const ids = collection.filter((m) => m.id !== model.id).map((m) => this.getItemName(m.id!));
+    const ids = collection.filter((m) => m.id !== model.id).map((m) => this.getItemName(m.id));
 
     return this.store.setItem(this.name, ids);
   }
 
-  addCollectionReference(model: Model, collection: Collection | undefined): Promise<any> | undefined {
+  addCollectionReference(model, collection) {
     if (!collection) {
       return;
     }
-    const ids = collection.map((m) => this.getItemName(m.id!));
-    const new_id = this.getItemName(model.id!);
+    const ids = collection.map((m) => this.getItemName(m.id));
+    const new_id = this.getItemName(model.id);
     if (!ids.includes(new_id)) {
       ids.push(new_id);
     }
     return this.store.setItem(this.name, ids);
   }
 
-  getCollectionReferenceData(model: Model): Record<string, string[]> {
+  getCollectionReferenceData(model) {
     if (!model.collection) {
       return {};
     }
-    const ids = model.collection.map((m) => this.getItemName(m.id!));
-    const new_id = this.getItemName(model.id!);
+    const ids = model.collection.map((m) => this.getItemName(m.id));
+    const new_id = this.getItemName(model.id);
     if (!ids.includes(new_id)) {
       ids.push(new_id);
     }
-    const result: Record<string, string[]> = {};
+    const result = {};
     result[this.name] = ids;
     return result;
   }
 
-  async save(model: Model): Promise<any> {
+  async save(model) {
     if (this.store.setItems) {
-      const items: Record<string, any> = {};
-      items[this.getItemName(model.id!)] = model.toJSON();
+      const items = {};
+      items[this.getItemName(model.id)] = model.toJSON();
       Object.assign(items, this.getCollectionReferenceData(model));
-      return this.store.debouncedSetItems ? this.store.debouncedSetItems(items) : this.store.setItems!(items);
+      return this.store.debouncedSetItems ? this.store.debouncedSetItems(items) : this.store.setItems(items);
     } else {
-      const key = this.getItemName(model.id!);
+      const key = this.getItemName(model.id);
       const data = await this.store.setItem(key, model.toJSON());
       await this.addCollectionReference(model, model.collection);
       return data;
     }
   }
 
-  create(model: Model, options: SyncOptions): Promise<any> {
+  create(model, options) {
     /* Add a model, giving it a (hopefully)-unique GUID, if it doesn't already
      * have an id of it's own.
      */
@@ -253,41 +210,41 @@ class BrowserStorage {
     return this.save(model);
   }
 
-  update(model: Model): Promise<any> {
+  update(model) {
     return this.save(model);
   }
 
-  find(model: Model): Promise<any> {
-    return this.store.getItem(this.getItemName(model.id!));
+  find(model) {
+    return this.store.getItem(this.getItemName(model.id));
   }
 
-  async findAll(): Promise<any[]> {
+  async findAll() {
     /* Return the array of all models currently in storage.
      */
-    const keys = (await this.store.getItem(this.name)) as string[] | null;
+    const keys = await this.store.getItem(this.name);
     if (keys?.length) {
-      const items = await this.store.getItems!(keys);
+      const items = await this.store.getItems(keys);
       return Object.values(items);
     }
     return [];
   }
 
-  async destroy(model: Model, collection: Collection | undefined): Promise<Model> {
+  async destroy(model, collection) {
     await this.flush();
-    await this.store.removeItem(this.getItemName(model.id!));
+    await this.store.removeItem(this.getItemName(model.id));
     await this.removeCollectionReference(model, collection);
     return model;
   }
 
-  async getStorageSize(): Promise<number> {
-    return await this.store.length();
+  getStorageSize() {
+    return this.store.length;
   }
 
-  getItemName(id: string | number): string {
+  getItemName(id) {
     return this.name + '-' + id;
   }
 }
 
-BrowserStorage.sessionStorageInitialized = localForage.defineDriver(sessionStorageWrapper);
-BrowserStorage.localForage = localForage;
-export default BrowserStorage;
+Storage.sessionStorageInitialized = localForage.defineDriver(sessionStorageWrapper);
+Storage.localForage = localForage;
+export default Storage;

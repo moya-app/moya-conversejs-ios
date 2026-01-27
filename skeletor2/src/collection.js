@@ -1,31 +1,32 @@
-import clone from 'lodash-es/clone';
-import countBy from 'lodash-es/countBy';
-import groupBy from 'lodash-es/groupBy';
-import isFunction from 'lodash-es/isFunction';
-import isString from 'lodash-es/isString';
-import keyBy from 'lodash-es/keyBy';
-import sortBy from 'lodash-es/sortBy';
-import {EventEmitterObject} from './eventemitter';
-import type Storage from './storage';
-import {getResolveablePromise, getSyncMethod, wrapError} from './helpers';
-import {Model} from './model';
-import {
-  CollectionOptions,
-  Comparator,
-  FetchOrCreateOptions,
-  ModelAttributes,
-  ModelOptions,
-  ObjectWithId,
-  Options,
-  SyncOperation,
-} from './types';
+import { getResolveablePromise, getSyncMethod, wrapError } from './helpers.js';
+import { Model } from './model.js';
+import clone from 'lodash-es/clone.js';
+import countBy from 'lodash-es/countBy.js';
+import groupBy from 'lodash-es/groupBy.js';
+import isFunction from 'lodash-es/isFunction.js';
+import isString from 'lodash-es/isString.js';
+import keyBy from 'lodash-es/keyBy.js';
+import sortBy from 'lodash-es/sortBy.js';
+import EventEmitter from './eventemitter.js';
+
+const slice = Array.prototype.slice;
 
 // Default options for `Collection#set`.
-const setOptions = {add: true, remove: true, merge: true};
-const addOptions = {add: true, remove: false};
+const setOptions = { add: true, remove: true, merge: true };
+const addOptions = { add: true, remove: false };
 
 /**
- * @public
+ * @typedef {Record.<string, any>} Options
+ * @typedef {Record.<string, any>} Attributes
+ *
+ * @typedef {import('./storage.js').default} Storage
+ *
+ * @typedef {Record.<string, any>} CollectionOptions
+ * @property {Model} [model]
+ * @property {Function} [comparator]
+ */
+
+/**
  * If models tend to represent a single row of data, a Collection is
  * more analogous to a table full of data ... or a small slice or page of that
  * table, or a collection of rows that belong together for a particular reason
@@ -33,96 +34,90 @@ const addOptions = {add: true, remove: false};
  * belonging to this particular author, and so on. Collections maintain
  * indexes of their models, both in order, and for lookup by `id`.
  */
-export class Collection<T extends Model = Model> extends EventEmitterObject {
-  [key: symbol]: () => CollectionIterator<T>;
-  _browserStorage?: Storage;
-  _comparator?: Comparator<T>;
-  _url: string = '';
-  models: T[];
-  protected _byId: Record<string, T>;
-  protected _model?: new (attributes?: Partial<ModelAttributes>, options?: ModelOptions) => T;
-
+class Collection extends EventEmitter(Object) {
   /**
    * Create a new **Collection**, perhaps to contain a specific type of `model`.
    * If a `comparator` is specified, the Collection will maintain
    * its models in sort order, as they're added and removed.
+   * @param {Model[]} [models]
+   * @param {CollectionOptions} [options]
    */
-  constructor(models?: T[] | ModelAttributes[] | T | ModelAttributes, options?: CollectionOptions<T>) {
+  constructor(models, options) {
     super();
-    options = options || {};
-    this.preinitialize.apply(this, arguments as any);
+    options || (options = {});
+    this.preinitialize.apply(this, arguments);
     if (options.model) this._model = options.model;
     if (options.comparator !== undefined) this.comparator = options.comparator;
     this._reset();
-    this.initialize.apply(this, arguments as any);
-    if (models) this.reset(models, Object.assign({silent: true}, options));
+    this.initialize.apply(this, arguments);
+    if (models) this.reset(models, Object.assign({ silent: true }, options));
 
     this[Symbol.iterator] = this.values;
   }
 
-  get comparator(): Comparator<T> {
-    return this._comparator;
-  }
-
-  set comparator(c: Comparator<T>) {
-    this._comparator = c;
-  }
-
-  set browserStorage(storage: Storage) {
+  /**
+   * @param {Storage} storage
+   */
+  set browserStorage(storage) {
     this._browserStorage = storage;
   }
 
-  get browserStorage(): Storage | undefined {
+  /**
+   * @returns {Storage} storage
+   */
+  get browserStorage() {
     return this._browserStorage;
   }
 
   /**
    * The default model for a collection is just a **Model**.
    * This should be overridden in most cases.
+   * @returns {typeof Model}
    */
-  get model(): new (attributes?: Partial<ModelAttributes>, options?: ModelOptions) => T | Model {
+  get model() {
     return this._model ?? Model;
   }
 
-  set model(model: new (attributes?: Partial<ModelAttributes>, options?: ModelOptions) => T) {
+  /**
+   * @param {Model} model
+   */
+  set model(model) {
     this._model = model;
   }
 
-  get length(): number {
+  get length() {
     return this.models.length;
-  }
-
-  get url(): string {
-    return this._url;
-  }
-
-  set url(url: string) {
-    this._url = url;
   }
 
   /**
    * preinitialize is an empty function by default. You can override it with a function
    * or object.  preinitialize will run before any instantiation logic is run in the Collection.
    */
-  preinitialize(..._args: any[]): void {}
+  preinitialize() {}
 
   /**
    * Initialize is an empty function by default. Override it with your own
    * initialization logic.
    */
-  initialize(..._args: any[]): void {}
+  initialize() {}
 
   /**
    * The JSON representation of a Collection is an array of the
    * models' attributes.
+   *@param {Options} options
    */
-  toJSON(): any[] {
+  toJSON(options) {
     return this.map(function (model) {
-      return model.toJSON();
+      return model.toJSON(options);
     });
   }
 
-  sync(method: SyncOperation, model: Model | Collection<any>, options?: Options): any {
+  /**
+   *@param {string} method
+   *@param {Model|Collection} model
+   *@param {Options} options
+   */
+  sync(method, model, options) {
     return getSyncMethod(this)(method, model, options);
   }
 
@@ -130,21 +125,25 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * Add a model, or list of models to the set. `models` may be
    * Models or raw JavaScript objects to be converted to Models, or any
    * combination of the two.
+   *@param {Model[]|Model|Attributes|Attributes[]} models
+   *@param {Options} options
    */
-  add(models: T[] | T | ModelAttributes | ModelAttributes[], options?: Options): T | T[] {
-    return this.set(models, Object.assign({merge: false}, options, addOptions));
+  add(models, options) {
+    return this.set(models, Object.assign({ merge: false }, options, addOptions));
   }
 
   /**
    * Remove a model, or a list of models from the set.
+   * @param {Model|Model[]} models
+   * @param {Options} options
    */
-  remove(models: T | ObjectWithId | (T | ObjectWithId)[], options?: Options): T | T[] {
+  remove(models, options) {
     options = Object.assign({}, options);
     const singular = !Array.isArray(models);
-    const modelsArray = singular ? [models] : (models as T[]).slice();
+    const modelsArray = singular ? [models] : /** @type {Model[]} */ (models).slice();
     const removed = this._removeModels(modelsArray, options);
     if (!options.silent && removed.length) {
-      options.changes = {added: [], merged: [], removed: removed};
+      options.changes = { added: [], merged: [], removed: removed };
       this.trigger('update', this, options);
     }
     return singular ? removed[0] : removed;
@@ -155,8 +154,10 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * removing models that are no longer present, and merging models that
    * already exist in the collection, as necessary. Similar to **Model#set**,
    * the core operation for updating the data contained by the collection.
+   *@param {Model[]|Model|Attributes|Attributes[]} models
+   * @param {Options} options
    */
-  set(models: T[] | T | ModelAttributes | ModelAttributes[], options?: Options): T | T[] {
+  set(models, options) {
     if (models == null) return;
 
     options = Object.assign({}, setOptions, options);
@@ -165,7 +166,7 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
     }
 
     const singular = !Array.isArray(models);
-    models = singular ? [models] : (models as T[] | ModelAttributes[]).slice();
+    models = singular ? [/** @type {Model} */ (models)] : /** @type {Model[]} */ (models).slice();
 
     let at = options.at;
     if (at != null) at = +at;
@@ -188,7 +189,7 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
 
     // Turn bare objects into model references, and prevent invalid models
     // from being added.
-    let model: T, i: number;
+    let model, i;
     for (i = 0; i < models.length; i++) {
       model = models[i];
 
@@ -198,11 +199,10 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
       if (existing) {
         if (merge && model !== existing) {
           let attrs = this._isModel(model) ? model.attributes : model;
-          if (options.parse) attrs = existing.parse(attrs, options) as Partial<ModelAttributes>;
+          if (options.parse) attrs = existing.parse(attrs, options);
           existing.set(attrs, options);
           toMerge.push(existing);
-
-          if (sortable && !sort) sort = existing.hasChanged(sortAttr as string);
+          if (sortable && !sort) sort = existing.hasChanged(sortAttr);
         }
         if (!modelMap[existing.cid]) {
           modelMap[existing.cid] = true;
@@ -247,7 +247,7 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
     }
 
     // Silently sort the collection if appropriate.
-    if (sort) this.sort({silent: true});
+    if (sort) this.sort({ silent: true });
 
     // Unless silenced, it's time to fire all appropriate add/sort/update events.
     if (!options.silent) {
@@ -268,26 +268,26 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
     }
 
     // Return the added (or merged) model (or models).
-    return singular ? models[0] : (models as T);
+    return singular ? models[0] : models;
   }
 
-  async clearStore(options: Options = {}, filter: (model: T) => boolean = () => true): Promise<void> {
+  async clearStore(options = {}, filter = (o) => o) {
     await Promise.all(
       this.models.filter(filter).map((m) => {
-        return new Promise<void>((resolve) => {
+        return new Promise((resolve) => {
           m.destroy(
             Object.assign(options, {
               'success': resolve,
-              'error': (_m: T, e: any) => {
+              'error': (m, e) => {
                 console.error(e);
                 resolve();
               },
-            })
+            }),
           );
         });
-      })
+      }),
     );
-    await this.browserStorage?.clear();
+    await this.browserStorage.clear();
     this.reset();
   }
 
@@ -296,219 +296,238 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * you can reset the entire set with a new list of models, without firing
    * any granular `add` or `remove` events. Fires `reset` when finished.
    * Useful for bulk operations and optimizations.
+   * @param {Model|Model[]} [models]
+   * @param {Options} [options]
    */
-  reset(models?: T[] | T | ModelAttributes | ModelAttributes[], options?: Options): T | T[] {
+  reset(models, options) {
     options = options ? clone(options) : {};
     for (let i = 0; i < this.models.length; i++) {
       this._removeReference(this.models[i], options);
     }
     options.previousModels = this.models;
     this._reset();
-    models = this.add(models, Object.assign({silent: true}, options));
+    models = this.add(models, Object.assign({ silent: true }, options));
     if (!options.silent) this.trigger('reset', this, options);
-    return models as T | T[];
+    return models;
   }
 
   /**
    * Add a model to the end of the collection.
+   * @param {Model} model
+   * @param {Options} [options]
    */
-  push(model: T | ModelAttributes, options?: Options): T {
-    return this.add(model, Object.assign({at: this.length}, options)) as T;
+  push(model, options) {
+    return this.add(model, Object.assign({ at: this.length }, options));
   }
 
   /**
    * Remove a model from the end of the collection.
+   * @param {Options} [options]
    */
-  pop(options?: Options): T | undefined {
+  pop(options) {
     const model = this.at(this.length - 1);
-    return this.remove(model, options) as T | undefined;
+    return this.remove(model, options);
   }
 
   /**
    * Add a model to the beginning of the collection.
+   * @param {Model} model
+   * @param {Options} [options]
    */
-  unshift(model: T | ModelAttributes, options?: Options): T {
-    return this.add(model, Object.assign({at: 0}, options)) as T;
+  unshift(model, options) {
+    return this.add(model, Object.assign({ at: 0 }, options));
   }
 
   /**
    * Remove a model from the beginning of the collection.
+   * @param {Options} [options]
    */
-  shift(options?: Options): T | undefined {
+  shift(options) {
     const model = this.at(0);
-    return this.remove(model, options) as T | undefined;
+    return this.remove(model, options);
   }
 
   /** Slice out a sub-array of models from the collection. */
-  slice(start?: number, end?: number): T[] {
-    return this.models.slice(start, end);
+  slice() {
+    return slice.apply(this.models, arguments);
   }
 
-  filter(callback: ((model: T) => boolean) | string | Partial<ModelAttributes>, thisArg?: any): T[] {
-    return this.models.filter(
-      isFunction(callback)
-        ? (callback as (model: T) => boolean)
-        : (m) => m.matches(callback as Partial<ModelAttributes>),
-      thisArg
-    );
+  /**
+   * @param {Function|Object} callback
+   * @param {any} thisArg
+   */
+  filter(callback, thisArg) {
+    return this.models.filter(isFunction(callback) ? callback : (m) => m.matches(callback), thisArg);
   }
 
-  every(pred: ((attrs: ModelAttributes) => boolean) | Options): boolean {
+  /**
+   * @param {Function} pred
+   */
+  every(pred) {
     if (isFunction(pred)) {
-      return this.models.map((m) => m.attributes).every(pred as (attrs: ModelAttributes) => boolean);
+      return this.models.map((m) => m.attributes).every(pred);
     } else {
       return this.models.every((m) => m.matches(pred));
     }
   }
 
-  difference(values: T[]): T[] {
+  /**
+   * @param {Model[]} values
+   */
+  difference(values) {
     return this.models.filter((m) => !values.includes(m));
   }
 
-  max(): number {
-    return Math.max.apply(Math, this.models as any);
+  max() {
+    return Math.max.apply(Math, this.models);
   }
 
-  min(): number {
-    return Math.min.apply(Math, this.models as any);
+  min() {
+    return Math.min.apply(Math, this.models);
   }
 
-  drop(n: number = 1): T[] {
+  drop(n = 1) {
     return this.models.slice(n);
   }
 
-  some(pred: ((attrs: ModelAttributes) => boolean) | Options): boolean {
+  /**
+   * @param {Function|Object} pred
+   */
+  some(pred) {
     if (isFunction(pred)) {
-      return this.models.map((m) => m.attributes).some(pred as (attrs: ModelAttributes) => boolean);
+      return this.models.map((m) => m.attributes).some(pred);
     } else {
       return this.models.some((m) => m.matches(pred));
     }
   }
 
-  sortBy(iteratee: string | ((model: T) => any)): T[] {
+  sortBy(iteratee) {
     return sortBy(
       this.models,
-      isFunction(iteratee)
-        ? iteratee
-        : (m: T) => (isString(iteratee) ? m.get(iteratee as string) : m.matches(iteratee as Partial<ModelAttributes>))
+      isFunction(iteratee) ? iteratee : (m) => (isString(iteratee) ? m.get(iteratee) : m.matches(iteratee)),
     );
   }
 
-  isEmpty(): boolean {
+  isEmpty() {
     return !this.models.length;
   }
 
-  keyBy(iteratee: string | ((model: T) => string)): Record<string, T> {
+  keyBy(iteratee) {
     return keyBy(this.models, iteratee);
   }
 
-  each(callback: (model: T, index: number, array: T[]) => void, thisArg?: any): void {
+  each(callback, thisArg) {
     return this.forEach(callback, thisArg);
   }
 
-  forEach(callback: (model: T, index: number, array: T[]) => void, thisArg?: any): void {
+  forEach(callback, thisArg) {
     return this.models.forEach(callback, thisArg);
   }
 
-  includes(item: T): boolean {
+  includes(item) {
     return this.models.includes(item);
   }
 
-  size(): number {
+  size() {
     return this.models.length;
   }
 
-  countBy(f: string | ((model: T) => string) | Partial<ModelAttributes>): Record<string, number> {
+  countBy(f) {
     return countBy(this.models, isFunction(f) ? f : (m) => (isString(f) ? m.get(f) : m.matches(f)));
   }
 
-  groupBy(pred: string | ((model: T) => string | number)): Record<string, T[]> {
+  groupBy(pred) {
     return groupBy(this.models, isFunction(pred) ? pred : (m) => (isString(pred) ? m.get(pred) : m.matches(pred)));
   }
 
-  indexOf(model: T, fromIndex?: number): number {
-    return this.models.indexOf(model, fromIndex);
+  /**
+   * @param {number} fromIndex
+   */
+  indexOf(fromIndex) {
+    return this.models.indexOf(fromIndex);
   }
 
-  findLastIndex(pred: ((model: T) => boolean) | string | Partial<ModelAttributes>, fromIndex?: number): number {
+  /**
+   * @param {Function|string|RegExp} pred
+   * @param {number} fromIndex
+   */
+  findLastIndex(pred, fromIndex) {
     return this.models.findLastIndex(
-      isFunction(pred)
-        ? (pred as (model: T) => boolean)
-        : (m) => (isString(pred) ? m.get(pred as string) : m.matches(pred as Partial<ModelAttributes>)),
-      fromIndex
+      isFunction(pred) ? pred : (m) => (isString(pred) ? m.get(pred) : m.matches(pred)),
+      fromIndex,
     );
   }
 
-  lastIndexOf(model: T, fromIndex?: number): number {
-    return this.models.lastIndexOf(model, fromIndex);
+  /**
+   * @param {number} fromIndex
+   */
+  lastIndexOf(fromIndex) {
+    return this.models.lastIndexOf(fromIndex);
   }
 
-  findIndex(pred: ((model: T) => boolean) | string | Partial<ModelAttributes>): number {
-    return this.models.findIndex(
-      isFunction(pred)
-        ? (pred as (model: T) => boolean)
-        : (m) => (isString(pred) ? m.get(pred as string) : m.matches(pred as Partial<ModelAttributes>))
-    );
+  /**
+   * @param {Function|string|RegExp} pred
+   */
+  findIndex(pred) {
+    return this.models.findIndex(isFunction(pred) ? pred : (m) => (isString(pred) ? m.get(pred) : m.matches(pred)));
   }
 
-  last(): T | undefined {
+  last() {
     const length = this.models == null ? 0 : this.models.length;
     return length ? this.models[length - 1] : undefined;
   }
 
-  head(): T | undefined {
+  head() {
     return this.models[0];
   }
 
-  first(): T | undefined {
+  first() {
     return this.head();
   }
 
-  map<U>(cb: string | ((model: T) => U) | Partial<ModelAttributes>, thisArg?: any): U[] {
-    return this.models.map(
-      isFunction(cb)
-        ? (cb as (model: T) => U)
-        : (m) => (isString(cb) ? m.get(cb as string) : m.matches(cb as Partial<ModelAttributes>)),
-      thisArg
-    );
+  map(cb, thisArg) {
+    return this.models.map(isFunction(cb) ? cb : (m) => (isString(cb) ? m.get(cb) : m.matches(cb)), thisArg);
   }
 
-  reduce<U = T>(callback: (accumulator: U, model: T, index: number, array: T[]) => U, initialValue?: U): U | T {
+  reduce(callback, initialValue) {
     return this.models.reduce(callback, initialValue || this.models[0]);
   }
 
-  reduceRight<U = T>(callback: (accumulator: U, model: T, index: number, array: T[]) => U, initialValue?: U): U | T {
+  reduceRight(callback, initialValue) {
     return this.models.reduceRight(callback, initialValue || this.models[0]);
   }
 
-  toArray(): T[] {
+  toArray() {
     return Array.from(this.models);
   }
 
   /**
    * Get a model from the set by id, cid, model object with id or cid
    * properties, or an attributes object that is transformed through modelId.
+   * @param {string|number|Object|Model} obj
    */
-  get(obj?: string | number | ModelAttributes | T | null): T | undefined {
+  get(obj) {
     if (obj == null) return undefined;
     return (
-      this._byId[obj as string] ||
-      this._byId[this.modelId(this._isModel(obj) ? (obj as T).attributes : (obj as ModelAttributes)) as string] ||
-      ((obj as T).cid && this._byId[(obj as T).cid])
+      this._byId[obj] ||
+      this._byId[this.modelId(this._isModel(obj) ? obj.attributes : obj)] ||
+      (obj.cid && this._byId[obj.cid])
     );
   }
 
   /**
    * Returns `true` if the model is in the collection.
+   * @param {string|number|Object|Model} obj
    */
-  has(obj: string | number | ModelAttributes | T | null): boolean {
+  has(obj) {
     return this.get(obj) != null;
   }
 
   /**
    * Get the model at the given index.
+   * @param {number} index
    */
-  at(index: number): T | undefined {
+  at(index) {
     if (index < 0) index += this.length;
     return this.models[index];
   }
@@ -516,23 +535,28 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
   /**
    * Return models with matching attributes. Useful for simple cases of
    * `filter`.
+   * @param {Attributes} attrs
+   * @param {boolean} [first]
    */
-  where(attrs: ModelAttributes | Partial<ModelAttributes>, first?: boolean): T[] | T | undefined {
+  where(attrs, first) {
     return this[first ? 'find' : 'filter'](attrs);
   }
 
   /**
    * Return the first model with matching attributes. Useful for simple cases
    * of `find`.
+   * @param {Attributes} attrs
    */
-  findWhere(attrs: ModelAttributes): T | undefined {
-    return this.where(attrs, true) as T | undefined;
+  findWhere(attrs) {
+    return this.where(attrs, true);
   }
 
-  find(predicate: ((model: T) => boolean) | Partial<ModelAttributes> | string, fromIndex?: number): T | undefined {
-    const pred = isFunction(predicate)
-      ? (predicate as (model: T) => boolean)
-      : (m: T) => m.matches(predicate as Partial<ModelAttributes>);
+  /**
+   * @param {Attributes} predicate
+   * @param {number} [fromIndex]
+   */
+  find(predicate, fromIndex) {
+    const pred = isFunction(predicate) ? predicate : (m) => m.matches(predicate);
     return this.models.find(pred, fromIndex);
   }
 
@@ -540,20 +564,21 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * Force the collection to re-sort itself. You don't need to call this under
    * normal circumstances, as the set will maintain sort order as each item
    * is added.
+   * @param {Options} [options]
    */
-  sort(options?: Options): this {
+  sort(options) {
     let comparator = this.comparator;
     if (!comparator) throw new Error('Cannot sort a set without a comparator');
-    options = options || {};
+    options || (options = {});
 
-    const length = isFunction(comparator) ? comparator.length : 0;
-    if (isFunction(comparator)) comparator = (comparator as (a: T, b: T) => number).bind(this);
+    const length = comparator.length;
+    if (isFunction(comparator)) comparator = comparator.bind(this);
 
     // Run sort based on type of `comparator`.
     if (length === 1 || isString(comparator)) {
-      this.models = this.sortBy(comparator as string | ((model: T) => any));
+      this.models = this.sortBy(comparator);
     } else {
-      this.models.sort(comparator as (a: T, b: T) => number);
+      this.models.sort(comparator);
     }
     if (!options.silent) this.trigger('sort', this, options);
     return this;
@@ -561,8 +586,9 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
 
   /**
    * Pluck an attribute from each model in the collection.
+   * @param {string} attr
    */
-  pluck(attr: string): any[] {
+  pluck(attr) {
     return this.map(attr + '');
   }
 
@@ -570,14 +596,15 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * Fetch the default set of models for this collection, resetting the
    * collection when they arrive. If `reset: true` is passed, the response
    * data will be passed through the `reset` method instead of `set`.
+   * @param {Options} options
    */
-  fetch(options?: Options): Promise<any> | any {
-    options = Object.assign({parse: true}, options);
+  fetch(options) {
+    options = Object.assign({ parse: true }, options);
     const success = options.success;
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const collection = this;
     const promise = options.promise && getResolveablePromise();
-    options.success = function (resp: any) {
+    options.success = function (resp) {
       const method = options.reset ? 'reset' : 'set';
       collection[method](resp, options);
       if (success) success.call(options.context, collection, resp, options);
@@ -592,23 +619,23 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * Create a new instance of a model in this collection. Add the model to the
    * collection immediately, unless `wait: true` is passed, in which case we
    * wait for the server to agree.
+   * @param {Model|Attributes} model
+   * @param {Options} [options]
    */
-  create(model: T | ModelAttributes, options?: FetchOrCreateOptions): Promise<T> | T {
+  create(model, options) {
     options = options ? clone(options) : {};
     const wait = options.wait;
     const return_promise = options.promise;
     const promise = return_promise && getResolveablePromise();
 
-    const preparedModel = this._prepareModel(model, options);
-    if (!preparedModel) return null;
-
-    if (!wait) this.add(preparedModel, options);
-
+    model = this._prepareModel(model, options);
+    if (!model) return false;
+    if (!wait) this.add(model, options);
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const collection = this;
     const success = options.success;
     const error = options.error;
-    options.success = function (m: T, resp: any, callbackOpts: Options) {
+    options.success = function (m, resp, callbackOpts) {
       if (wait) {
         collection.add(m, callbackOpts);
       }
@@ -619,52 +646,49 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
         promise.resolve(m);
       }
     };
-    options.error = function (model: T, e: any, options: Options) {
+    options.error = function (model, e, options) {
       error && error.call(options.context, model, e, options);
       return_promise && promise.reject(e);
     };
 
-    preparedModel.save(null, Object.assign(options, {'promise': false}));
+    model.save(null, Object.assign(options, { 'promise': false }));
     if (return_promise) {
       return promise;
     } else {
-      return preparedModel;
+      return model;
     }
   }
 
   /**
    * **parse** converts a response into a list of models to be added to the
    * collection. The default implementation is just to pass it through.
+   * @param {Object} resp
+   * @param {Options} [options]
    */
-  parse(resp: any, _options?: Options): any {
+  parse(resp, options) {
     return resp;
   }
 
   /**
    * Define how to uniquely identify models in the collection.
+   * @param {Attributes} attrs
    */
-  modelId(attrs: ModelAttributes): string | number | undefined {
+  modelId(attrs) {
     return attrs[this.model.prototype?.idAttribute || 'id'];
   }
 
   /** Get an iterator of all models in this collection. */
-  values(): CollectionIterator<T> {
+  values() {
     return new CollectionIterator(this, ITERATOR_VALUES);
   }
 
-  /**
-   * @public
-   * Enable for...of iteration over the collection.
-   */
-  [Symbol.iterator] = this.values;
-
   /** Get an iterator of all model IDs in this collection. */
-  keys(): CollectionIterator<T> {
+  keys() {
     return new CollectionIterator(this, ITERATOR_KEYS);
   }
 
   /** Get an iterator of all [ID, model] tuples in this collection. */
-  entries(): CollectionIterator<T> {
+  entries() {
     return new CollectionIterator(this, ITERATOR_KEYSVALUES);
   }
 
@@ -672,28 +696,35 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * Private method to reset all internal state. Called when the collection
    * is first initialized or reset.
    */
-  _reset(): void {
+  _reset() {
     this.models = [];
     this._byId = {};
   }
 
-  createModel(attrs: ModelAttributes, options?: Options): T {
+  /**
+   * @param {Attributes} attrs
+   * @param {Options} [options]
+   */
+  createModel(attrs, options) {
     const Klass = this.model;
-    return new Klass(attrs, options) as T;
+    return new Klass(attrs, options);
   }
 
   /**
    * Prepare a hash of attributes (or other model) to be added to this
    * collection.
+   * @param {Attributes|Model} attrs
+   * @param {Options} [options]
+   * @return {Model}
    */
-  _prepareModel(attrs: ModelAttributes | T, options?: Options): T | null {
+  _prepareModel(attrs, options) {
     if (this._isModel(attrs)) {
-      if (!(attrs as T).collection) (attrs as T).collection = this;
-      return attrs as T;
+      if (!attrs.collection) attrs.collection = this;
+      return /** @type {Model} */ (attrs);
     }
     options = options ? clone(options) : {};
     options.collection = this;
-    const model = this.createModel(attrs as ModelAttributes, options);
+    const model = this.createModel(attrs, options);
     if (!model.validationError) return model;
     this.trigger('invalid', this, model.validationError, options);
     return null;
@@ -701,9 +732,11 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
 
   /**
    * Internal method called by both remove and set.
+   * @param {Model[]} models
+   * @param {Options} [options]
    */
-  _removeModels(models: (T | ObjectWithId)[], options?: Options): T[] {
-    const removed: T[] = [];
+  _removeModels(models, options) {
+    const removed = [];
     for (let i = 0; i < models.length; i++) {
       const model = this.get(models[i]);
       if (!model) continue;
@@ -717,8 +750,7 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
       const id = this.modelId(model.attributes);
       if (id != null) delete this._byId[id];
 
-      if (!options?.silent) {
-        options = options || {};
+      if (!options.silent) {
         options.index = index;
         model.trigger('remove', model, this, options);
       }
@@ -732,28 +764,34 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
   /**
    * Method for checking whether an object should be considered a model for
    * the purposes of adding to the collection.
+   * @param {any} model
    */
-  _isModel(model: any): model is T {
+  _isModel(model) {
     return model instanceof Model;
   }
 
   /**
    * Internal method to create a model's ties to a collection.
+   * @param {Model} model
+   * @param {Options} [options]
    */
-  _addReference(model: T, _options?: Options): void {
+  _addReference(model, options) {
     this._byId[model.cid] = model;
     const id = this.modelId(model.attributes);
-    if (id != null) this._byId[id as string] = model;
+    if (id != null) this._byId[id] = model;
     model.on('all', this._onModelEvent, this);
   }
 
   /**
    * Internal method to sever a model's ties to a collection.
+   * @private
+   * @param {Model} model
+   * @param {Options} [options]
    */
-  _removeReference(model: T, _options?: Options): void {
+  _removeReference(model, options) {
     delete this._byId[model.cid];
     const id = this.modelId(model.attributes);
-    if (id != null) delete this._byId[id as string];
+    if (id != null) delete this._byId[id];
     if (this === model.collection) delete model.collection;
     model.off('all', this._onModelEvent, this);
   }
@@ -763,8 +801,13 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
    * Sets need to update their indexes when models change ids. All other
    * events simply proxy through. "add" and "remove" events that originate
    * in other collections are ignored.
+   * @private
+   * @param {any} event
+   * @param {Model} model
+   * @param {Collection} collection
+   * @param {Options} [options]
    */
-  _onModelEvent(event: string, model: T, collection: Collection<T>, options?: Options): void {
+  _onModelEvent(event, model, collection, options) {
     if (model) {
       if ((event === 'add' || event === 'remove') && collection !== this) return;
       if (event === 'destroy') this.remove(model, options);
@@ -772,12 +815,12 @@ export class Collection<T extends Model = Model> extends EventEmitterObject {
         const prevId = this.modelId(model.previousAttributes());
         const id = this.modelId(model.attributes);
         if (prevId !== id) {
-          if (prevId != null) delete this._byId[prevId as string];
-          if (id != null) this._byId[id as string] = model;
+          if (prevId != null) delete this._byId[prevId];
+          if (id != null) this._byId[id] = model;
         }
       }
     }
-    this.trigger.apply(this, arguments as any);
+    this.trigger.apply(this, arguments);
   }
 }
 
@@ -788,39 +831,30 @@ const ITERATOR_VALUES = 1;
 const ITERATOR_KEYS = 2;
 const ITERATOR_KEYSVALUES = 3;
 
-/**
- * @public
- */
-export class CollectionIterator<T extends Model> {
-  private _collection: Collection<T> | undefined;
-  private _kind: number;
-  private _index: number;
-
+class CollectionIterator {
   /**
    * A CollectionIterator implements JavaScript's Iterator protocol, allowing the
    * use of `for of` loops in modern browsers and interoperation between
    * Collection and other JavaScript functions and third-party libraries
    * which can operate on Iterables.
+   * @param {Collection} collection
+   * @param {Number} kind
    */
-  constructor(collection: Collection<T>, kind: number) {
+  constructor(collection, kind) {
     this._collection = collection;
     this._kind = kind;
     this._index = 0;
   }
 
-  next(): IteratorResult<any> {
+  next() {
     if (this._collection) {
       // Only continue iterating if the iterated collection is long enough.
       if (this._index < this._collection.length) {
         const model = this._collection.at(this._index);
         this._index++;
 
-        if (!model) {
-          return {value: undefined, done: true};
-        }
-
         // Construct a value depending on what kind of values should be iterated.
-        let value: T | string | number | [string | number, T];
+        let value;
         if (this._kind === ITERATOR_VALUES) {
           value = model;
         } else {
@@ -832,7 +866,7 @@ export class CollectionIterator<T extends Model> {
             value = [id, model];
           }
         }
-        return {value, done: false};
+        return { value: value, done: false };
       }
 
       // Once exhausted, remove the reference to the collection so future
@@ -840,10 +874,12 @@ export class CollectionIterator<T extends Model> {
       this._collection = undefined;
     }
 
-    return {value: undefined, done: true};
+    return { value: undefined, done: true };
   }
 
-  [Symbol.iterator](): IterableIterator<any> {
+  [Symbol.iterator]() {
     return this;
   }
 }
+
+export { Collection };

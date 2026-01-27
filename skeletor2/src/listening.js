@@ -1,26 +1,19 @@
-import { eventsApi, onApi, offApi } from './utils/events';
-import type {
-  EventCallback,
-  IEventEmitter,
-  EventCallbackMap,
-  EventsApiOptions,
-  ListeningType,
-} from './types';
+import { eventsApi, onApi, offApi } from './utils/events.js';
 
 /**
  * A listening class that tracks and cleans up memory bindings
  * when all callbacks have been offed.
  */
-class Listening implements ListeningType {
-  id: string;
-  listener: IEventEmitter;
-  obj: any;
-  interop: boolean;
-  count: number;
-  _events?: EventCallbackMap;
+class Listening {
 
-  constructor(listener: IEventEmitter, obj: any) {
-    this.id = listener._listenId!;
+  /** @typedef {import('./eventemitter.js').default} EventEmitter */
+
+  /**
+   * @param {any} listener
+   * @param {any} obj
+   */
+  constructor(listener, obj) {
+    this.id = listener._listenId;
     this.listener = listener;
     this.obj = obj;
     this.interop = true;
@@ -28,14 +21,18 @@ class Listening implements ListeningType {
     this._events = undefined;
   }
 
-  start(name: string | EventCallbackMap, callback: EventCallback, context: any, _listening: ListeningType): this {
-    const options: EventsApiOptions = {
+  /**
+   * @param {string} name
+   * @param {Function} callback
+   * @param {any} context
+   * @param {Listening} _listening
+   */
+  start(name, callback, context, _listening) {
+    this._events = eventsApi(onApi, this._events || {}, name, callback, {
       context: this.obj,
       ctx: context,
       listening: _listening,
-    };
-
-    this._events = eventsApi(onApi, this._events || {}, name, callback, options) as EventCallbackMap;
+    });
 
     if (_listening) {
       const listeners = this.obj._listeners || (this.obj._listeners = {});
@@ -54,14 +51,16 @@ class Listening implements ListeningType {
    * Uses an optimized counter if the listenee uses Backbone.Events.
    * Otherwise, falls back to manual tracking to support events
    * library interop.
+   * @param {string} name
+   * @param {Function} callback
    */
-  stop(name: string | EventCallbackMap, callback: EventCallback): void {
-    let cleanup: boolean;
+  stop(name, callback) {
+    let cleanup;
     if (this.interop) {
       this._events = eventsApi(offApi, this._events, name, callback, {
         context: undefined,
         listeners: undefined,
-      }) as EventCallbackMap;
+      });
       cleanup = !this._events;
     } else {
       this.count--;
@@ -73,13 +72,9 @@ class Listening implements ListeningType {
   /**
    * Cleans up memory bindings between the listener and the listenee.
    */
-  cleanup(): void {
-    if (this.listener._listeningTo) {
-      delete this.listener._listeningTo[this.obj._listenId!];
-    }
-    if (!this.interop && this.obj._listeners) {
-      delete this.obj._listeners[this.id];
-    }
+  cleanup() {
+    delete this.listener._listeningTo[this.obj._listenId];
+    if (!this.interop) delete this.obj._listeners[this.id];
   }
 }
 

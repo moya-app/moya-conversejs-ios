@@ -1,0 +1,14 @@
+{
+  "env": {
+    "browser": true
+  },
+  "globals": {
+    "QUnit": false,
+    "Skeletor": true,
+    "_": true
+  },
+  "rules": {
+    "no-throw-literal": 0,
+    "no-undefined": 0
+  }
+}
