@@ -10,29 +10,30 @@ This repository contains a **custom pre-built distribution of the Converse.js he
 
 ```
 moya-conversejs-ios/
-├── headless/           # v7.0.6 - Current production (MODIFIED with //TOFIND markers)
-├── headless2/          # v12.0.0 - Target migration version (STOCK)
+├── headless/           # v12.0.0 - Active production
 │   ├── plugins/        # Modular plugin architecture (22 plugins)
 │   ├── shared/         # Core API, connection, settings
 │   ├── utils/          # Utility functions
 │   ├── dist/           # Built distribution (ESM + CJS)
 │   └── types/          # TypeScript type definitions
-├── skeletor/           # @converse/skeletor v0.0.5 - Backbone-like MVC
+├── headless-old/       # v7.0.6 - Archived (MODIFIED with //TOFIND markers)
+├── skeletor/           # @converse/skeletor v0.0.9 - Backbone-like MVC
+├── skeletor-old/       # @converse/skeletor v0.0.5 - Archived
 ├── openpromise/        # @converse/openpromise v0.0.1
 └── AGENTS.md           # Comprehensive migration guide (READ THIS FIRST)
 ```
 
 ## Commands
 
-### Testing (headless2)
+### Testing (headless)
 ```bash
-cd headless2 && npm test
+cd headless && npm test
 ```
 Runs Jasmine tests via Karma in Chrome.
 
-### Type Generation (headless2)
+### Type Generation (headless)
 ```bash
-cd headless2 && npm run types
+cd headless && npm run types
 ```
 Generates TypeScript definitions to `types/` directory.
 
@@ -103,7 +104,7 @@ The iOS client manages XMPP features manually rather than letting Converse handl
 - **Built-in OMEMO**: Device, Devices, DeviceList, DeviceLists now exported
 
 ### Skeletor Dependency
-Current `skeletor/` is v0.0.5. headless2 requires ^0.0.9. Migration to v3.0.0 is recommended but requires converting `.extend()` patterns to ES6 classes in `moya-client-ios/omemo.service.ts` (5 conversions needed).
+Current `skeletor/` is v0.0.9 and matches headless requirements (^0.0.9). `skeletor-old/` is v0.0.5 and archived; no `.extend()` refactors are required.
 
 ## Testing Checklist (Post-Migration)
 - [ ] Multiple converse instances can be created
@@ -123,4 +124,4 @@ Current `skeletor/` is v0.0.5. headless2 requires ^0.0.9. Migration to v3.0.0 is
 - **Always read `AGENTS.md` first** when working on migration tasks - it contains exact line numbers, code examples, and detailed implementation guidance for all 17 modifications
 - The iOS client is in a separate repo (`moya-client-ios`)
 - Pre-built distribution means changes should modify source files and rebuild, not edit minified code
-- headless2 uses ES modules; headless v7 uses CommonJS-ish bundled output
+- headless uses ES modules; headless-old v7 uses CommonJS-ish bundled output

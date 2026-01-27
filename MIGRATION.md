@@ -1,11 +1,11 @@
 # MIGRATION.md - moya-client-ios Integration Guide
 
-This document provides step-by-step instructions for integrating the updated headless2 (v12.0.0) and skeletor2 (v3.0.0) into moya-client-ios.
+This document provides step-by-step instructions for integrating the updated headless (v12.0.0) and skeletor (v0.0.9) into moya-client-ios.
 
 ## Prerequisites
 
-- headless2 build completed with all 16 modifications (Phase 2 complete)
-- skeletor2 directory ready with v3.0.0
+- headless build completed with all 16 modifications (Phase 2 complete)
+- skeletor directory ready with v0.0.9
 
 ---
 
@@ -20,18 +20,15 @@ The current mapping (lines 32-34):
 ]
 ```
 
-### Option A: Test with headless2/skeletor2 names (recommended for initial testing)
+### Option A: Renames completed
 
-No change needed to tsconfig.json. Instead, temporarily rename directories in moya-conversejs-ios:
-```bash
-# In moya-conversejs-ios repo
-mv headless headless-old
-mv headless2 headless
-mv skeletor skeletor-old
-mv skeletor2 skeletor
-```
+The directories have already been renamed:
+- `headless/` (v12.0.0, active)
+- `skeletor/` (v0.0.9, active)
+- `headless-old/` (v7.0.6, archived)
+- `skeletor-old/` (v0.0.5, archived)
 
-Then reinstall in moya-client-ios:
+Reinstall in moya-client-ios if needed:
 ```bash
 npm install
 ```
@@ -40,10 +37,10 @@ npm install
 
 Update tsconfig.json to point to the new directories:
 ```json
-"@converse/headless": ["./node_modules/converse/headless2"],
-"@converse/headless/*": ["./node_modules/converse/headless2/*"],
-"@converse/skeletor": ["./node_modules/converse/skeletor2"],
-"@converse/skeletor/*": ["./node_modules/converse/skeletor2/*"]
+"@converse/headless": ["./node_modules/converse/headless"],
+"@converse/headless/*": ["./node_modules/converse/headless/*"],
+"@converse/skeletor": ["./node_modules/converse/skeletor"],
+"@converse/skeletor/*": ["./node_modules/converse/skeletor/*"]
 ```
 
 ---
@@ -450,19 +447,11 @@ After making the changes, verify:
 
 ## Step 7: After Successful Testing
 
-In the `moya-conversejs-ios` repository, clean up:
+Renames are complete in `moya-conversejs-ios`:
+- Active: `headless/`, `skeletor/`
+- Archived: `headless-old/`, `skeletor-old/`
 
-```bash
-# Remove old directories
-rm -rf headless-old/   # or headless/ if you used Option B
-rm -rf skeletor-old/   # or skeletor/ if you used Option B
-
-# If using Option B, rename:
-mv headless2/ headless/
-mv skeletor2/ skeletor/
-```
-
-Commit the changes.
+Commit the changes if you have additional updates.
 
 ---
 
@@ -491,7 +480,7 @@ Commit the changes.
 **Error:** `Cannot find module '@converse/skeletor'`
 - Ensure tsconfig.json paths are correct
 - Run `npm install` to refresh node_modules
-- Check that skeletor2 has a proper package.json with main entry
+- Check that skeletor has a proper package.json with main entry
 
 **Error:** `Model.extend is not a function`
 - You have skeletor v3.0.0 but haven't converted `.extend()` to ES6 classes
@@ -526,7 +515,7 @@ Commit the changes.
 
 ---
 
-## What's Disabled in headless2
+## What's Disabled in headless
 
 For reference, these features are disabled via early `return;` statements:
 

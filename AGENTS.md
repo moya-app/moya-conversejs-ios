@@ -1,6 +1,6 @@
 # AGENTS.md - Converse.js iOS Headless Migration Guide
 
-This document provides context for AI agents working on migrating from the `headless` (v7.0.6) to `headless2` (v12.0.0) version of Converse.js in this iOS integration project.
+This document provides context for AI agents working on migrating from `headless-old` (v7.0.6) to `headless` (v12.0.0) in this iOS integration project.
 
 ## Project Overview
 
@@ -10,37 +10,31 @@ This repository contains a **custom pre-built distribution of the Converse.js he
 
 ```
 moya-conversejs-ios/
-├── headless/           # v7.0.6 - Current production (MODIFIED, OLD)
-│   ├── dist/
-│   │   └── converse-headless.min.js  # Contains TOFIND markers
-│   └── ...
-├── headless2/          # v12.0.0 - Target migration version (MODIFIED, NEW)
+├── headless/           # v12.0.0 - Active production
 │   ├── plugins/        # Modular plugin architecture
 │   ├── shared/         # Core API, connection, settings
 │   ├── utils/          # Utility functions
-│   ├── dist/           # Built distribution (needs rebuild)
+│   ├── dist/           # Built distribution
 │   ├── types/          # TypeScript type definitions
 │   └── index.js        # ES module entry point
-├── skeletor/           # @converse/skeletor v0.0.5 - Backbone-like MVC (OLD)
-├── skeletor2/          # @converse/skeletor v0.0.9 - Backbone-like MVC (NEW)
+├── headless-old/       # v7.0.6 - Archived (original with TOFIND markers)
+│   ├── dist/
+│   │   └── converse-headless.min.js  # Contains TOFIND markers
+│   └── ...
+├── skeletor/           # @converse/skeletor v0.0.9 - Active
+├── skeletor-old/       # @converse/skeletor v0.0.5 - Archived
 ├── openpromise/        # @converse/openpromise - Promise utility
 └── AGENTS.md           # This file
 ```
 
 ### Versioning Strategy
 
-During migration, both old and new versions are kept side-by-side for validation:
+Migration is complete and the renamed directories are in place:
 
-| Current | Version | New | Version | Status |
-|---------|---------|-----|---------|--------|
-| `headless/` | v7.0.6 | `headless2/` | v12.0.0 | Modifications applied |
-| `skeletor/` | v0.0.5 | `skeletor2/` | v0.0.9 | Ready for use |
-
-**After successful testing with moya-client-ios:**
-1. Remove `headless/` and `skeletor/` (old versions)
-2. Rename `headless2/` → `headless/`
-3. Rename `skeletor2/` → `skeletor/`
-4. Update any path references in moya-client-ios if needed
+| Active | Version | Archived | Version | Status |
+|--------|---------|----------|---------|--------|
+| `headless/` | v12.0.0 | `headless-old/` | v7.0.6 | Active + archived |
+| `skeletor/` | v0.0.9 | `skeletor-old/` | v0.0.5 | Active + archived |
 
 ## How the iOS Client Uses This Library
 
@@ -160,7 +154,7 @@ const { $iq, $build, $msg, $pres, Strophe, sizzle, utils } = converse.env;
 
 ## Critical Context: Custom Modifications
 
-The current `headless/dist/converse-headless.min.js` has been **modified directly in the minified build** with 20+ changes. These modifications are marked with:
+The current `headless-old/dist/converse-headless.min.js` has been **modified directly in the minified build** with 20+ changes. These modifications are marked with:
 - `//TOFIND` - Custom code changes for iOS integration
 - `//TOCHANGE` - Items needing review
 
@@ -190,13 +184,13 @@ export function converseInit(converseIndex){
 }
 ```
 
-**New Implementation** (headless2):
-- File: Create a new wrapper file OR modify `headless2/index.js`
+**New Implementation** (headless):
+- File: Create a new wrapper file OR modify `headless/index.js`
 - The default export is `converse`, need to wrap it
 
 **Files to modify**:
-- `headless2/index.js` - Add wrapper function
-- `headless2/shared/api/public.js` - Window assignment logic
+- `headless/index.js` - Add wrapper function
+- `headless/shared/api/public.js` - Window assignment logic
 
 ---
 
@@ -213,7 +207,7 @@ sendMarker(e, t, n, r) {
 }
 ```
 
-**New Location**: `headless2/shared/actions.js`
+**New Location**: `headless/shared/actions.js`
 ```javascript
 // Lines 39-53
 export function sendMarker(to_jid, id, type, msg_type) {
@@ -241,7 +235,7 @@ sendReceiptStanza(e, t) {
 }
 ```
 
-**New Location**: `headless2/shared/actions.js`
+**New Location**: `headless/shared/actions.js`
 ```javascript
 // Lines 60-71
 export function sendReceiptStanza(to_jid, id) {
@@ -267,7 +261,7 @@ async createMessage(e, t) {
 }
 ```
 
-**Actual Location**: `headless2/shared/model-with-messages.js` (NOT `plugins/chat/model.js`)
+**Actual Location**: `headless/shared/model-with-messages.js` (NOT `plugins/chat/model.js`)
 ```javascript
 // Lines 83-87 - createMessage method in ModelWithMessages mixin
 async createMessage(attrs, options) {
@@ -295,7 +289,7 @@ r = await zu.chats.get(
 );
 ```
 
-**New Location**: `headless2/plugins/chat/utils.js` or `api.js`
+**New Location**: `headless/plugins/chat/utils.js` or `api.js`
 - Find where `api.chats.get` is called with parsed message attributes
 - Add null check for the contact_jid parameter
 
@@ -319,7 +313,7 @@ async queryInfo() {
 }
 ```
 
-**New Location**: `headless2/plugins/disco/entity.js`
+**New Location**: `headless/plugins/disco/entity.js`
 ```javascript
 // Lines 147-172 - queryInfo method
 async queryInfo() {
@@ -351,7 +345,7 @@ function bc(e) {
 }
 ```
 
-**New Location**: `headless2/plugins/emoji/utils.js`
+**New Location**: `headless/plugins/emoji/utils.js`
 ```javascript
 // Lines 102-120 - getShortnameReferences function
 export function getShortnameReferences(text) {
@@ -382,7 +376,7 @@ const n = Hc({
 })...
 ```
 
-**New Location**: `headless2/plugins/muc/muc.js`
+**New Location**: `headless/plugins/muc/muc.js`
 ```javascript
 // Lines 179-199 - join method
 async join(nick, password) {
@@ -409,7 +403,7 @@ async isJoined() {
 }
 ```
 
-**New Location**: `headless2/plugins/muc/muc.js`
+**New Location**: `headless/plugins/muc/muc.js`
 ```javascript
 // Lines 2055-2064 - isJoined method
 async isJoined() {
@@ -439,7 +433,7 @@ const e = function () {
 };
 ```
 
-**New Location**: `headless2/plugins/muc/utils.js`
+**New Location**: `headless/plugins/muc/utils.js`
 ```javascript
 // Lines 58-68 - registerDirectInvitationHandler function
 export function registerDirectInvitationHandler() {
@@ -466,7 +460,7 @@ if (
 )
 ```
 
-**New Location**: `headless2/plugins/headlines/utils.js`
+**New Location**: `headless/plugins/headlines/utils.js`
 ```javascript
 // Lines 16-21 - onHeadlineMessage function
 if (from_jid.includes('@') &&
@@ -494,9 +488,9 @@ if (from_jid.includes('@') &&
 //       ...
 ```
 
-**New Location**: `headless2/plugins/ping/index.js`
+**New Location**: `headless/plugins/ping/index.js`
 - Option A: Comment out the entire plugin registration
-- Option B: Remove `import './plugins/ping/index.js';` from `headless2/index.js`
+- Option B: Remove `import './plugins/ping/index.js';` from `headless/index.js`
 
 ---
 
@@ -513,7 +507,7 @@ handleIncomingSubscription(t) {
 }
 ```
 
-**New Location**: `headless2/plugins/roster/contacts.js`
+**New Location**: `headless/plugins/roster/contacts.js`
 ```javascript
 // Lines 396-422 - handleIncomingSubscription method
 handleIncomingSubscription(presence) {
@@ -541,7 +535,7 @@ get(e, n) {
 }
 ```
 
-**New Location**: `headless2/plugins/vcard/api.js`
+**New Location**: `headless/plugins/vcard/api.js`
 ```javascript
 // Lines 113-155 - vcard.get method
 async get(model, force) {
@@ -568,7 +562,7 @@ async update(e, t) {
 }
 ```
 
-**New Location**: `headless2/plugins/vcard/api.js`
+**New Location**: `headless/plugins/vcard/api.js`
 ```javascript
 // Lines 174-191 - vcard.update method
 async update(model, force) {
@@ -597,7 +591,7 @@ const t = {
 };
 ```
 
-**New Location**: `headless2/shared/connection/index.js`
+**New Location**: `headless/shared/connection/index.js`
 ```javascript
 // Lines 84-106 - discoverConnectionMethods method
 async discoverConnectionMethods(domain) {
@@ -629,7 +623,7 @@ const e = {
 };
 ```
 
-**Actual Location**: `headless2/utils/init.js` (NOT `utils/storage.js`)
+**Actual Location**: `headless/utils/init.js` (NOT `utils/storage.js`)
 ```javascript
 // Lines 126-131 - initPersistentStorage function
 //TOFIND Changed DB name to be set based on websocket host for iOS multi-instance support
@@ -659,7 +653,7 @@ const config = {
 
 ### Build Process
 
-headless2 uses webpack for bundling. The build command is typically:
+headless uses webpack for bundling. The build command is typically:
 ```bash
 npm run build
 # or
@@ -673,7 +667,7 @@ After modifying source files, rebuild to generate new `dist/converse-headless.mi
 For the multi-instance support, create a wrapper like:
 
 ```javascript
-// headless2/wrapper.js
+// headless/wrapper.js
 import converse from './index.js';
 
 export function converseInit(converseIndex) {
@@ -715,10 +709,10 @@ The skeletor library (`@converse/skeletor`) provides Backbone-like Model and Col
 
 | Directory | Version | Used By | Status |
 |-----------|---------|---------|--------|
-| `skeletor/` | **0.0.5** | headless (v7) | OLD - keep for validation |
-| `skeletor2/` | **0.0.9** | headless2 (v12) | NEW - ready for use |
+| `skeletor/` | **0.0.9** | headless (v12) | Active |
+| `skeletor-old/` | **0.0.5** | headless-old (v7) | Archived |
 
-**Note:** headless2 (v12) officially requires `^0.0.9`, and `skeletor2/` now tracks v0.0.9 for full compatibility.
+**Note:** headless (v12) officially requires `^0.0.9`, and `skeletor/` tracks v0.0.9 for full compatibility.
 
 ### How moya-client-ios Uses Skeletor
 
@@ -748,7 +742,7 @@ _converse.DeviceLists = Collection.extend({...});
 **Decision (January 26, 2026)**: Use **skeletor v0.0.9** for the migration.
 
 **Rationale**:
-1. **Matches headless2 requirements** - v12 expects `@converse/skeletor` `^0.0.9`.
+1. **Matches headless requirements** - v12 expects `@converse/skeletor` `^0.0.9`.
 2. **No client refactors needed** - `.extend()` APIs remain supported.
 3. **Lowest-risk option** - aligns with upstream minor version expectations.
 
@@ -758,9 +752,83 @@ No code changes are required for `moya-client-ios` when staying on skeletor v0.0
 
 ---
 
+## Node Modules Strategy
+
+This repository uses a **deliberate dependency bundling strategy** to work as an npm package installed directly from GitHub.
+
+### What Gets Committed
+
+| Directory | `node_modules/` | `package-lock.json` | Rationale |
+|-----------|-----------------|---------------------|-----------|
+| `headless/` | ❌ Not committed | ✅ Committed | Dependencies resolved by npm at install time |
+| `skeletor/` | ✅ Only `lit-html/` | ❌ Not committed | `lit-html` bundled; other deps resolved by npm |
+| `headless-old/` | ❌ Not committed | ✅ Committed | Archived - same pattern as headless |
+| `skeletor-old/` | ✅ Only `lit-html/` | ❌ Not committed | Archived - same pattern as skeletor |
+
+### Why Only `lit-html` is Committed in Skeletor
+
+The `skeletor/package.json` declares these dependencies:
+- `lit-html` (^3.2.1)
+- `lodash-es` (^4.17.21)
+- `mergebounce` (0.1.3)
+- `localforage` (^1.10.0)
+- `localforage-driver-memory` (^1.0.5)
+- `localforage-setitems` (^1.4.0)
+- `@converse/localforage-getitems` (1.4.3)
+
+**Only `lit-html` is committed** because:
+1. When `moya-client-ios` runs `npm install github:binuadmin/moya-conversejs-ios`, npm reads `skeletor/package.json`
+2. npm resolves and installs all declared dependencies (`lodash-es`, `mergebounce`, `localforage`, etc.) from the npm registry
+3. `lit-html` is bundled in the repo as a convenience/override
+
+This matches the original v0.0.5 pattern where only `lit-html` was committed.
+
+### Dependency Resolution Flow
+
+When `moya-client-ios` installs this package:
+
+```
+npm install github:binuadmin/moya-conversejs-ios
+    │
+    ├── Reads headless/package.json
+    │   └── Installs: @converse/skeletor, strophe.js, lodash-es, etc.
+    │
+    ├── Reads skeletor/package.json  
+    │   └── Installs: localforage, lodash-es, mergebounce, etc.
+    │   └── Uses bundled: lit-html (from skeletor/node_modules/)
+    │
+    └── All dependencies hoisted to moya-client-ios/node_modules/
+```
+
+### Important: localforage is Required
+
+The `headless` library uses `skeletor`'s `Storage` class, which depends on `localforage` for:
+- IndexedDB persistence (chat history, OMEMO keys, etc.)
+- Session storage
+- In-memory storage (testing)
+
+**localforage packages are NOT committed** but will be installed automatically by npm when `moya-client-ios` runs `npm install`.
+
+### Adding/Updating Dependencies
+
+If you need to update `lit-html` in skeletor:
+
+```bash
+cd skeletor
+rm -rf node_modules
+npm install --production lit-html@^3.2.1
+# Only lit-html should be in node_modules now
+rm -f package-lock.json
+rm -f node_modules/.package-lock.json
+```
+
+Do NOT run a full `npm install` in skeletor - it will install all dependencies including devDependencies.
+
+---
+
 ## Version Differences: v7 vs v12
 
-| Aspect | headless (v7.0.6) | headless2 (v12.0.0) |
+| Aspect | headless-old (v7.0.6) | headless (v12.0.0) |
 |--------|-------------------|---------------------|
 | Structure | Flat files | Modular (plugins/, shared/, utils/) |
 | TypeScript | No | Yes (full type definitions in types/) |
@@ -790,28 +858,28 @@ No code changes are required for `moya-client-ios` when staying on skeletor v0.0
 
 | Modification | File Path | Line(s) |
 |--------------|-----------|---------|
-| Multi-instance wrapper (`converseInit`) | `headless2/index.js` | 65-77 |
-| sendMarker | `headless2/shared/actions.js` | 39-42 |
-| sendReceiptStanza | `headless2/shared/actions.js` | 60-63 |
-| createMessage (`messages.fetched` bypass) | `headless2/shared/model-with-messages.js` | 83-87 |
-| MUC join (presence disable) | `headless2/plugins/muc/muc.js` | 207-209 |
-| MUC isJoined (return true) | `headless2/plugins/muc/muc.js` | 2069-2071 |
-| MUC invites handler | `headless2/plugins/muc/utils.js` | 58-60 |
-| VCard get | `headless2/plugins/vcard/api.js` | 113-115 |
-| VCard update | `headless2/plugins/vcard/api.js` | 174-176 |
-| Roster subscriptions | `headless2/plugins/roster/contacts.js` | 396-398 |
-| Disco queryInfo errors | `headless2/plugins/disco/entity.js` | 157-159 |
-| Emoji getShortnameReferences | `headless2/plugins/emoji/utils.js` | 102-104 |
-| Ping module | `headless2/plugins/ping/index.js` | 19-34 |
-| Connection CORS | `headless2/shared/connection/index.js` | 86-88 |
-| Storage/DB naming | `headless2/utils/init.js` | 126-131 |
-| Headlines roster check | `headless2/plugins/headlines/utils.js` | 17-21 |
+| Multi-instance wrapper (`converseInit`) | `headless/index.js` | 65-77 |
+| sendMarker | `headless/shared/actions.js` | 39-42 |
+| sendReceiptStanza | `headless/shared/actions.js` | 60-63 |
+| createMessage (`messages.fetched` bypass) | `headless/shared/model-with-messages.js` | 83-87 |
+| MUC join (presence disable) | `headless/plugins/muc/muc.js` | 207-209 |
+| MUC isJoined (return true) | `headless/plugins/muc/muc.js` | 2069-2071 |
+| MUC invites handler | `headless/plugins/muc/utils.js` | 58-60 |
+| VCard get | `headless/plugins/vcard/api.js` | 113-115 |
+| VCard update | `headless/plugins/vcard/api.js` | 174-176 |
+| Roster subscriptions | `headless/plugins/roster/contacts.js` | 396-398 |
+| Disco queryInfo errors | `headless/plugins/disco/entity.js` | 157-159 |
+| Emoji getShortnameReferences | `headless/plugins/emoji/utils.js` | 102-104 |
+| Ping module | `headless/plugins/ping/index.js` | 19-34 |
+| Connection CORS | `headless/shared/connection/index.js` | 86-88 |
+| Storage/DB naming | `headless/utils/init.js` | 126-131 |
+| Headlines roster check | `headless/plugins/headlines/utils.js` | 17-21 |
 
 ---
 
-## Original TOFIND Locations in headless v7
+## Original TOFIND Locations in headless-old v7
 
-For reference, here are the exact line numbers in `headless/dist/converse-headless.min.js`:
+For reference, here are the exact line numbers in `headless-old/dist/converse-headless.min.js`:
 
 | Line | Marker | Description |
 |------|--------|-------------|
@@ -843,7 +911,7 @@ For reference, here are the exact line numbers in `headless/dist/converse-headle
 
 ## Potential Improvements for moya-client-ios
 
-Migrating to headless2 (v12) offers several opportunities to improve the iOS client integration:
+Now on headless (v12), there are opportunities to improve the iOS client integration:
 
 ### 1. Tagged Template Literals for Stanzas (`stx`)
 
@@ -892,10 +960,10 @@ const blocklist = await api.blocklist.get();
 
 ### 3. TypeScript Type Definitions
 
-headless2 includes `.d.ts` type definition files for all major components:
+headless includes `.d.ts` type definition files for all major components:
 
 ```
-headless2/types/
+headless/types/
 ├── shared/
 │   ├── api/types.d.ts
 │   ├── types.d.ts
@@ -979,8 +1047,8 @@ api.listen.on('parseMessage', (stanza, attrs) => {
 
 | Version | Bundle Size |
 |---------|-------------|
-| headless v7 | ~1.1 MB (minified) |
-| headless2 v12 | ~650 KB (minified) |
+| headless-old v7 | ~1.1 MB (minified) |
+| headless v12 | ~650 KB (minified) |
 
 **~40% smaller bundle** = faster app startup on iOS.
 
@@ -1015,8 +1083,8 @@ v12 uses standard ES modules which enables:
    // Old
    import { converseInit } from '@converse/headless';
    
-   // New (after wrapper is created)
-   import { converseInit } from '@converse/headless2';
+   // New (active)
+   import { converseInit } from '@converse/headless';
    ```
 
 2. **Phase 2**: Replace `$build`/`$msg`/`$iq` with `stx` template literals
@@ -1034,8 +1102,8 @@ v12 uses standard ES modules which enables:
 ## Contact & History
 
 This migration guide was created on January 20, 2026, based on analysis of:
-- `headless/dist/converse-headless.min.js` (modified v7.0.6)
-- `headless2/` source files (stock v12.0.0)
+- `headless-old/dist/converse-headless.min.js` (modified v7.0.6)
+- `headless/` source files (v12.0.0)
 - `moya-client-ios/` TypeScript/Angular source files
 
 The original TOFIND modifications were made to support the Moya iOS client's specific XMPP integration requirements.
@@ -1050,7 +1118,7 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 **January 22, 2026 (Session 2) - MODIFICATIONS & BUILD**:
 
-**Phase 1 Complete**: All 16 iOS-specific modifications applied to headless2 source files.
+**Phase 1 Complete**: All 16 iOS-specific modifications applied to headless source files.
 
 **Phase 2 In Progress**: Build setup and dist generation.
 - Created `build.js` using esbuild (no build script existed in original package)
@@ -1058,7 +1126,7 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 - Resolved missing externals (lit, hsluv)
 - Converted TOFIND comments to legal comment format (`/*! TOFIND */`) to preserve in bundled output
 - Added `legalComments: 'inline'` to build options
-- Added `skeletor2/` directory with skeletor v0.0.9
+- Added `skeletor/` directory with skeletor v0.0.9
 
 **Key discoveries during implementation:**
 - `createMessage` with `messages.fetched` is in `shared/model-with-messages.js`, NOT `plugins/chat/model.js`
@@ -1068,14 +1136,14 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 - esbuild strips all non-legal comments by default - had to convert `//TOFIND` to `/*! TOFIND */`
 
 **January 22, 2026**:
-- Updated documentation for headless2 v12.0.0 (was v11.0.1)
+- Updated documentation for headless v12.0.0 (was v11.0.1)
 - Added Strophe.js version info (now 4.0.0-rc0)
 - Documented new built-in OMEMO plugin exports (Device, Devices, DeviceList, DeviceLists)
 - Added stx tagged template literal documentation for stanza building
 - Updated exports information (ESM + CJS dual builds)
 
 **January 26, 2026**:
-- Switched skeletor2 back to v0.0.9 to align with headless2 v12 requirements
+- Switched skeletor back to v0.0.9 to align with headless v12 requirements
 - Removed class-conversion guidance (no `.extend()` refactors needed)
 
 
@@ -1083,9 +1151,9 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 ## Migration Progress
 
-### Status: Phase 2 Complete ✅
+### Status: Phase 3 In Progress ⏳
 
-- ✅ Phase 1: All iOS-specific modifications applied to headless2 source files
+- ✅ Phase 1: All iOS-specific modifications applied to headless source files
 - ✅ Phase 2: Build dist files with esbuild (completed January 23, 2026)
 - ⏳ Phase 3: Test in moya-client-ios (see MIGRATION.md for instructions)
 
@@ -1115,19 +1183,19 @@ The original TOFIND modifications were made to support the Moya iOS client's spe
 
 See **MIGRATION.md** for detailed instructions on Phase 3.
 
-1. ✅ **Rebuild headless2** - Completed January 23, 2026
+1. ✅ **Rebuild headless** - Completed January 23, 2026
    - Build output verified with all 16 TOFIND markers preserved
 
-2. ✅ **skeletor2 ready** - `skeletor2/` directory contains v0.0.9
+2. ✅ **skeletor ready** - `skeletor/` directory contains v0.0.9
 
 3. ⏳ **Test in moya-client-ios** (Phase 3)
    - Follow instructions in MIGRATION.md
    - Update package.json path mappings
    - Run through testing checklist
 
-4. ⏳ **After successful testing** (Phase 4)
-   - Remove old directories (`headless/`, `skeletor/`)
-   - Rename: `headless2/` → `headless/`, `skeletor2/` → `skeletor/`
+4. ✅ **Renames completed**
+   - Active: `headless/`, `skeletor/`
+   - Archived: `headless-old/`, `skeletor-old/`
 
 ### Issues Found During Implementation
 
@@ -1169,15 +1237,15 @@ If issues arise, the return position may need adjustment.
 
 #### Build Script Created
 
-headless2 originally had no build script (dist was pre-built from main converse.js repo). A custom build script was created using esbuild:
+headless originally had no build script (dist was pre-built from main converse.js repo). A custom build script was created using esbuild:
 
-**File**: `headless2/build.js`
+**File**: `headless/build.js`
 **Command**: `npm run build`
 
 #### Dependencies Added
 
 ```json
-// headless2/package.json devDependencies
+// headless/package.json devDependencies
 "esbuild": "^0.27.2"
 ```
 
@@ -1213,7 +1281,7 @@ headless2 originally had no build script (dist was pre-built from main converse.
 
 #### Build Output
 
-The build creates 4 files in `headless2/dist/`:
+The build creates 4 files in `headless/dist/`:
 - `converse-headless.esm.js` - ESM format (with TOFIND comments)
 - `converse-headless.min.esm.js` - ESM minified (comments stripped)
 - `converse-headless.js` - CJS format (with TOFIND comments)
@@ -1225,12 +1293,12 @@ After rebuilding, verify modifications with:
 
 ```bash
 # Check all TOFIND markers are present in source files
-grep -r "TOFIND" headless2/ --include="*.js" | grep -v node_modules | grep -v dist
+grep -r "TOFIND" headless/ --include="*.js" | grep -v node_modules | grep -v dist
 
 # Expected output: 16 files with TOFIND comments
 
 # Check TOFIND markers in built ESM file
-grep -c "TOFIND" headless2/dist/converse-headless.esm.js
+grep -c "TOFIND" headless/dist/converse-headless.esm.js
 
 # Expected output: 16 (one per modification)
 ```

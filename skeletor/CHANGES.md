@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.0.0 (Unreleased)
+
+- Adds TypeScript type declarations (generated from typed JSDoc comments)
+
+### Breaking changes:
+
+- Removed the `clone()` method on `Model`.
+- Removed the old `View` type
+- Removed the old `Events` constructor function and instead added the `EventsEmitter` mixin class.
+- Removed the `Router` and `History` classes.
+- All other types (`Model`, `Collection`, `ElementView`) are now ES6 classes.
+
+## 1.0.0 (Unreleased)
+
+- Fix a race condition when setting a localForage driver
+- Refactor the sync method to properly call the `fetch` API
+
+## 0.0.8 (2023-02-14)
+
+- Use the released version of `@converse/localforage-getitems`
+- Update 3rd party dependencies
+
+## 0.0.7 (2022-04-08)
+
+- Move code that needs to be bundled to `dependencies` from `devDependencies`
+- Update localForage-getItems to fix a build issue on Windows
+
+## 0.0.6 (2022-04-08)
+
+- Use the `getAll` IndexedDB function, which should result in a significant speedup
+- Update various 3rd party dependencies.
+
 ## 0.0.5 (2021-07-08)
 
 - #13 Import the default export of localforage
