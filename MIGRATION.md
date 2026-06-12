@@ -508,7 +508,13 @@ This section is the durable, forward-looking record of every iOS-side change the
 | Headless `build.js` externals slimmed, dist self-contained | `headless/build.js`, rebuilt dist | iOS only installs `converse` + `@converse/skeletor`; everything else bundled into the dist | ✅ Landed in headless `73bf25e9` |
 | Vestigial subdirs removed | `skeletor/`, `openpromise/` at repo root | No consumer under the new pattern | ✅ Landed in headless `73bf25e9` |
 
-**Net mandatory work — all done. The v7→v13.0.1 swap is functionally complete; remaining work (§4.6 reactions/replies/blocking/bookmarks collision audit, §4.7 removed-event audit, §4.8 stray-setting audit) is opportunistic cleanup, not blocking.**
+**Net mandatory work — all done. The v7→v13.0.1 swap is functionally complete:**
+
+- § 4.6 — reactions / replies / blocking / bookmarks collision audit: closed. Reactions are owned by the iOS layer (`xmpp/stanza/reactions.*` plus the chat-side services and the SQL `emoji-reactions` migration) and would have collided with v13's `converse-reactions` CORE_PLUGIN that hooks `parseMessage` / `parseMUCMessage` + 5 other lifecycle events. Resolved by adding `blacklisted_plugins: ['converse-reactions']` to iOS `converse.initialize()`. Bookmarks plugin is gated on `allow_bookmarks` which iOS already sets to `false`. Blocking plugin runs harmlessly (no iOS consumers and the plugin is disco-gated). Replies live inside `converse-chat` (CORE), no separate plugin and no iOS surface to collide with. Important: `whitelisted_plugins` does NOT exclude CORE_PLUGINS, so the existing iOS whitelist did not block any of these — the blacklist is the right mechanism (and works without the duplicate-name pluggable.js throw that forced TOFIND #17 for OMEMO, since iOS doesn't register a competing `converse-reactions` plugin).
+- § 4.7 — removed-event audit: closed. Grep across all eight v8 + v11 removed events (`windowStateChanged`, `chatBoxFocused`, `chatBoxBlurred`, `bookmarkViewsInitialized`, `chatBoxInsertedIntoDOM`, `contactStatusMessageChanged`, `messageSend`, `rosterGroupsFetched`) returned zero hits in production iOS source.
+- § 4.8 — direct `_converse.<setting>` reads audit: closed. Grep across the common Converse setting names returned zero hits. All setting reads already flow through `ConverseAdapter.getSetting(...)` or `api.settings.get(...)`.
+
+See `moya-client-ios/docs/CONVERSE_V13_UPGRADE.md` for the per-section landing record.
 
 ### 6.2 Recommended modernization (do alongside the swap)
 
