@@ -495,17 +495,20 @@ This section is the durable, forward-looking record of every iOS-side change the
 
 ### 6.1 Mandatory changes (the swap will not work without these)
 
-| Area | Files touched | Reason | Effort |
+| Area | Files touched | Reason | Status |
 |------|---|---|---|
-| ConverseAdapter — connection seams | `xmpp/converse-boundary/converse.adapter.ts` (6 lines) | v11 removed `_converse.connection` | ~30 min |
-| ConverseAdapter — types | `xmpp/converse-boundary/converse.types.ts` | Mirror v13 shape (add `state` substructure, `api.connection.get()` return type, `constants` namespace) | ~1 hr |
-| Adapter spec harness | `xmpp/converse-boundary/testing/fake-converse-runtime.ts` | Add `state.devicelists`, `state.omemo_store`, `constants.CHATROOMS_TYPE`, `api.connection.get()` shape | ~1 hr |
-| OMEMO bootstrap closure | `omemo.service.ts` (~5 lines reads, 1 line `createStore`) | v12+ moved state to `_converse.state.*` and util functions off `_converse` | ~2 hr including spec updates |
-| OMEMO models — ES6 class rewrite | `omemo/models/omemo-device.model.ts`, `omemo/models/omemo-store.model.ts` | Skeletor 3.x removed `.extend()` | ~4–6 hr including spec rewrites |
-| Skeletor import rename | Wherever `Storage` is imported from `@converse/skeletor` | Renamed to `BrowserStorage` in skeletor 3.0.0 | ~10 min (grep + edit) |
-| Converse instance package.json pin | `moya-client-ios/package.json:76` | Pin to `#tay/testing` or wait for merge to main | ~5 min |
+| ConverseAdapter — connection seams | `xmpp/converse-boundary/converse.adapter.ts` (6 lines) | v11 removed `_converse.connection` | ✅ Landed in `moya-client-ios` `40a45d88` |
+| ConverseAdapter — types | `xmpp/converse-boundary/converse.types.ts` | Mirror v13 shape (`state` substructure, `api.connection.get()` return type) | ✅ Landed across `40a45d88` + `980d8f40` |
+| Adapter spec harness | `xmpp/converse-boundary/testing/fake-converse-runtime.ts` | Mirror v13 shape (`api.connection.get()` returns the connection mock) | ✅ Landed in `40a45d88` |
+| OMEMO bootstrap closure | `omemo.service.ts` (state.* reads, adapter-routed clearSession + bundle.generate) | v12+ moved state to `_converse.state.*` and util functions off `_converse` | ✅ Landed in `980d8f40` |
+| OMEMO models — ES6 class rewrite | `omemo/models/omemo-device.model.ts`, `omemo/models/omemo-store.model.ts` (plus their spec stubs) | Skeletor 3.x removed `.extend()` | ✅ Landed (this slice) |
+| Skeletor `Storage` → `BrowserStorage` rename | Wherever `Storage` is imported from `@converse/skeletor` | Renamed in skeletor 3.0.0 | ✅ No call sites found (grep clean) |
+| Converse instance `package.json` pin | `moya-client-ios/package.json:76` | Pin to `#tay/testing` until merged to `main` | ✅ Landed in `79479605` |
+| Skeletor as iOS direct npm dep, pinned `3.0.1` | `moya-client-ios/package.json` + `headless/package.json` | Class identity (single `Model`/`Collection` across iOS code and headless internals) + 3.0.0 ships unusable | ✅ Landed across `980d8f40` and headless `73bf25e9` |
+| Headless `build.js` externals slimmed, dist self-contained | `headless/build.js`, rebuilt dist | iOS only installs `converse` + `@converse/skeletor`; everything else bundled into the dist | ✅ Landed in headless `73bf25e9` |
+| Vestigial subdirs removed | `skeletor/`, `openpromise/` at repo root | No consumer under the new pattern | ✅ Landed in headless `73bf25e9` |
 
-**Net mandatory work estimate:** 1–1.5 engineering days, dominated by the OMEMO model rewrite.
+**Net mandatory work — all done. The v7→v13.0.1 swap is functionally complete; remaining work (§4.6 reactions/replies/blocking/bookmarks collision audit, §4.7 removed-event audit, §4.8 stray-setting audit) is opportunistic cleanup, not blocking.**
 
 ### 6.2 Recommended modernization (do alongside the swap)
 
