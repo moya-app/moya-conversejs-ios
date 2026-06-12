@@ -2,9 +2,11 @@
 
 This document covers the swap-in path for replacing the v7-era Converse runtime in `moya-client-ios` with a v13.0.1-based build in this repo.
 
-For background on the iOS source modifications, see `AGENTS.md`. For top-level orientation, see `CLAUDE.md`.
+For background on the iOS source modifications, see `AGENTS.md`. For top-level orientation, see `CLAUDE.md`. For the running iOS-side change log, see `moya-client-ios/docs/CONVERSE_V13_UPGRADE.md`.
 
 **Target version: `@converse/headless@13.0.1`** (released 2026-05-27, npm `latest`).
+
+**Pinned skeletor version: `3.0.1` exact (no caret)** in both repos. Skeletor `3.0.0` is a broken release (`package.json` `module` field points to `src/index.ts`, no `dist/skeletor.esm.js` present — webpack reports "module has no exports"). `3.0.1` ships the proper built ESM + CJS files. Pinning exact prevents drift; bumps are coordinated across both `package.json` files (this repo's `headless/package.json` and `moya-client-ios/package.json`).
 
 A previous swap attempt targeted v12.0.0. That work is partially landed on `tay/testing` but is being **retargeted to v13.0.1** so we pick up:
 
@@ -122,6 +124,67 @@ Authoritative source: upstream [CHANGES.md](https://github.com/conversejs/conver
 - `omemo/models/omemo-store.model.ts:68` — `OMEMOStore` uses `Model.extend()` → rewrite.
 - Any import of `Storage` from `@converse/skeletor` → rename to `BrowserStorage`.
 - Any `model.clone()` usage → drop or replace with manual `new Model(model.attributes)`.
+
+---
+
+## 2.5. Architectural decisions made during the swap
+
+These shape the cross-repo work and are worth understanding before touching either codebase.
+
+### 2.5.1 Skeletor lives on the iOS side as a direct npm dependency
+
+iOS `package.json` declares `"@converse/skeletor": "3.0.1"`. The headless build (`build.js`) marks `@converse/skeletor` and `@converse/skeletor/*` as **external** — they stay unresolved in the dist and webpack resolves them at iOS bundle time against `node_modules/@converse/skeletor/`.
+
+**Why iOS owns skeletor (not the bundle):**
+- iOS source extends skeletor classes directly: `class OMEMOStore extends Model { ... }` (§4.5). For `instanceof Model` checks and prototype chains to work across iOS code AND headless internals, both sides must reference the **same** `Model` constructor — same JavaScript identity, not just same source.
+- With skeletor external in the dist, webpack resolves both iOS's `import { Model } from '@converse/skeletor'` and headless's internal `@converse/skeletor` imports to the same `node_modules/@converse/skeletor/dist/skeletor.esm.js`. One class object, one identity.
+- If skeletor were bundled into the dist, the dist would carry its own closure-local `Model`, and iOS would resolve `Model` from elsewhere (npm copy or bundled subdir) — two distinct constructors with the same source but different identity. `instanceof` returns `false`. Subtle, hard to debug.
+- v7-era skeletor (`0.0.9`) used Backbone-style `Model.extend({...})` which returned brand-new constructors per call — class identity was loose by design. v3.x pure ES6 classes are strict, so the bundling pattern that worked in v7 breaks here.
+
+This matches upstream's own pattern — v13 `@converse/headless@13.0.1` declares `@converse/skeletor` as a regular `dependencies` entry (not bundled into their dist).
+
+### 2.5.2 Every other runtime peer dep stays inlined in the dist
+
+iOS does NOT install `@converse/log`, `@converse/openpromise`, `strophe.js`, `pluggable.js`, `sizzle`, `dompurify`, `lit`, `hsluv`, `filesize`, `sprintf-js`, `dayjs`, `lodash-es`, `localforage-webextensionstorage-driver`. These are bundled INTO `dist/converse-headless.esm.js` so iOS picks them up transitively through the single `converse` GitHub install.
+
+**Why:** iOS code never imports any of them directly. Only the headless runtime touches them. Bundling keeps the iOS `package.json` minimal (matches the v7-era pattern of "one bundle, everything inside") and preserves the original purpose of `moya-conversejs-ios` — to reduce iOS-side dep management.
+
+**Trade-off:** dist is ~1.0 MB ESM (vs ~585 KB when everything was external against an empty host). Net iOS payload is roughly equivalent because the alternative would put those deps in iOS `node_modules` anyway. The minified ESM dist is ~434 KB, which is iOS's actual runtime cost.
+
+### 2.5.3 build.js externals are slim — only skeletor + Node-only peers
+
+`headless/build.js` external array:
+```js
+external: [
+  '@converse/skeletor',
+  '@converse/skeletor/*',
+  // Node-only peer deps of strophe.js's Node ESM build (jsdom, ws). The browser
+  // ESM path doesn't touch these; iOS browser runtime never executes the Node
+  // entry, so leaving them external means esbuild doesn't try to resolve them
+  // and the unresolved imports are harmless in the browser build.
+  'jsdom',
+  'ws',
+]
+```
+
+Everything else is inlined. The `jsdom`/`ws` externals exist only because strophe.js 4.x has a Node-side ESM file (`strophe.node.esm.js`) that imports them statically; bundling tools follow the static import even though it's never executed in the browser. Marking them external sidesteps the resolution.
+
+### 2.5.4 No `skeletor/` or `openpromise/` subdirectories in this repo
+
+After the bundle pattern (§2.5.1, §2.5.2) is in place, the vendored `moya-conversejs-ios/skeletor/` and `moya-conversejs-ios/openpromise/` subdirectories have no consumer:
+- iOS code reaches skeletor via npm (`node_modules/@converse/skeletor/`).
+- Headless's own build pulls its skeletor and openpromise copies via `moya-conversejs-ios/headless/node_modules/` (its own npm install).
+- The repo-root subdirectories are referenced by nothing.
+
+They are deleted as part of the v13 retarget. Pre-existing v7-era `headless-old/` and `skeletor-old/` archives are kept for reference until v13 is verified in production for ≥1 week.
+
+### 2.5.5 iOS tsconfig path mapping changes
+
+The legacy `@converse/*` → `./node_modules/converse/*` catch-all was REMOVED from `moya-client-ios/tsconfig.json`. It mapped every `@converse/X` import (including `@converse/skeletor`) to the bundled subdir, shadowing npm-installed packages.
+
+Replaced with only explicit `@converse/headless` and `@converse/headless/*` mappings (still pointing to the bundle). All other `@converse/*` imports — currently just `@converse/skeletor` — fall through to standard npm resolution.
+
+`tsconfig.json` also gained `skipLibCheck: true` and bumped `lib` from `es2019` to `es2023` (skeletor 3.x uses `Array.prototype.findLastIndex`).
 
 ---
 
