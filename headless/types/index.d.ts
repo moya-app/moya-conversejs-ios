@@ -25,4 +25,6 @@ export { Device, Devices, DeviceList, DeviceLists } from "./plugins/omemo/index.
 export { MUCMessage, MUCMessages, MUC, MUCOccupant, MUCOccupants } from "./plugins/muc/index.js";
 export { RosterContact, RosterContacts, RosterFilter, Presence, Presences } from "./plugins/roster/index.js";
 export { VCard, VCards } from "./plugins/vcard/index.js";
+/*! TOFIND */ // Type for iOS multi-instance support wrapper (matches converseInit export in index.js)
+export function converseInit(converseIndex: number): typeof converse;
 //# sourceMappingURL=index.d.ts.map
