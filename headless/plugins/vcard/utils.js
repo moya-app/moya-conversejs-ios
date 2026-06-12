@@ -5,7 +5,7 @@
  * @typedef {import('../../plugins/vcard/vcard').default} VCard
  * @typedef {import('../../shared/model-with-contact.js').default} ModelWithContact
  * @typedef {import('../muc/occupant.js').default} MUCOccupant
- * @typedef {import('@converse/skeletor/src/types/helpers.js').Model} Model
+ * @typedef {import('@converse/skeletor').Model} Model
  */
 import _converse from '../../shared/_converse.js';
 import api from '../../shared/api/index.js';
@@ -14,9 +14,9 @@ import log from '@converse/log';
 import { shouldClearCache } from '../../utils/session.js';
 import { isElement } from '../../utils/html.js';
 import { parseErrorStanza } from '../../shared/parsers.js';
-import {parseVCardResultStanza} from './parsers.js';
+import { parseVCardResultStanza } from './parsers.js';
 
-const { Strophe, $iq, sizzle, stx } = converse.env;
+const { Stanza, Strophe, sizzle, stx } = converse.env;
 
 Strophe.addNamespace('VCARD_UPDATE', 'vcard-temp:x:update');
 
@@ -26,12 +26,15 @@ Strophe.addNamespace('VCARD_UPDATE', 'vcard-temp:x:update');
  * @param {Element} [vcard_el]
  */
 export function createStanza(type, jid, vcard_el) {
-    const iq = $iq(jid ? { 'type': type, 'to': jid } : { 'type': type });
-    if (!vcard_el) {
-        iq.c('vCard', { 'xmlns': Strophe.NS.VCARD });
-    } else {
-        iq.cnode(vcard_el);
-    }
+    const iq = stx`
+        <iq type="${type}"
+            ${jid ? Stanza.unsafeXML(`to="${jid}"`) : ''}
+            xmlns="jabber:client">
+            ${vcard_el ? '' : stx`<vCard xmlns="${Strophe.NS.VCARD}"></vCard>`}
+        </iq>`;
+
+    if (vcard_el) iq.cnode(vcard_el);
+
     return iq;
 }
 
@@ -197,7 +200,7 @@ export function unregisterPresenceHandler() {
 }
 
 export function registerPresenceHandler() {
-    // unregisterPresenceHandler();
+    unregisterPresenceHandler();
     const connection = api.connection.get();
     presence_ref = connection.addHandler(
         /** @param {Element} pres */
@@ -211,7 +214,7 @@ export function registerPresenceHandler() {
         },
         null,
         'presence',
-        null
+        null,
     );
 }
 

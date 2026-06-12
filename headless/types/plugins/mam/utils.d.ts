@@ -12,7 +12,7 @@ export function onMAMError(e: Element | Error, iq: Element): Promise<void>;
  * currently not supported in converse.js.
  *
  * Per JID preferences will be set in chat boxes, so it'll
- * probbaly be handled elsewhere in any case.
+ * probably be handled elsewhere in any case.
  *
  * @param {Element} iq
  * @param {Model} feature
@@ -56,5 +56,5 @@ export function createScrollupPlaceholder(model: ChatBox | MUC): void;
 export function fetchNewestMessages(model: ChatBox | MUC): Promise<void>;
 export type MUC = import("../muc/muc").default;
 export type ChatBox = import("../chat/model").default;
-export type Model = import("@converse/skeletor/src/types/helpers.js").Model;
+export type Model = import("@converse/skeletor").Model;
 //# sourceMappingURL=utils.d.ts.map

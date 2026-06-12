@@ -40,7 +40,13 @@ function stripEmptyTextNodes(el) {
  * @returns {Boolean}
  */
 export function isEqualNode(actual, expected) {
-    if (!isElement(actual)) throw new Error('Element being compared must be an Element!');
+    if (!isElement(actual)) {
+        if (actual instanceof Strophe.Builder) {
+            actual = actual.tree();
+        } else {
+            throw new Error('Element being compared must be an Element!');
+        }
+    }
 
     expected = stripEmptyTextNodes(expected);
     actual = stripEmptyTextNodes(actual);
@@ -135,4 +141,16 @@ export function decodeHTMLEntities(str) {
         element.textContent = '';
     }
     return str;
+}
+
+/**
+ * Helper method that replace HTML-escaped symbols with equivalent characters
+ * (e.g. transform occurrences of '&amp;' to '&')
+ * @param {string} string - a String containing the HTML-escaped symbols.
+ * @return {string}
+ */
+export function unescapeHTML (string) {
+    var div = document.createElement('div');
+    div.innerHTML = string;
+    return div.innerText;
 }

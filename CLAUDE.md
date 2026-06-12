@@ -1,127 +1,106 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
 ## Project Overview
 
-This repository contains a **custom pre-built distribution of the Converse.js headless library** specifically packaged for iOS integration via WebView/JavaScript runtime. It is installed as an npm module from GitHub in the main iOS client (`moya-client-ios`).
+This repo packages a **custom Converse.js headless build** plus its sibling libraries (`@converse/skeletor`, `@converse/openpromise`) into a single npm-installable bundle consumed by the `moya-client-ios` Ionic/Capacitor app via:
 
-### Directory Structure
+```jsonc
+// moya-client-ios/package.json
+"converse": "github:binuadmin/moya-conversejs-ios"
+```
+
+The iOS app imports `converseInit` from `@converse/headless` and creates one or more isolated Converse instances (`window.converse0`, `window.converse1`, …) for multi-account support.
+
+## Directory Layout
 
 ```
 moya-conversejs-ios/
-├── headless/           # v12.0.0 - Active production
-│   ├── plugins/        # Modular plugin architecture (22 plugins)
-│   ├── shared/         # Core API, connection, settings
-│   ├── utils/          # Utility functions
-│   ├── dist/           # Built distribution (ESM + CJS)
-│   └── types/          # TypeScript type definitions
-├── headless-old/       # v7.0.6 - Archived (MODIFIED with //TOFIND markers)
-├── skeletor/           # @converse/skeletor v0.0.9 - Backbone-like MVC
-├── skeletor-old/       # @converse/skeletor v0.0.5 - Archived
+├── headless/           # @converse/headless — TARGET v13.0.1 (in-flight retarget from v12.0.0)
+│   ├── plugins/        # MUC, chat, OMEMO, roster, vcard, disco, ping, emoji, blocklist, bookmarks, reactions
+│   ├── shared/         # API surface, connection, model-with-messages, actions
+│   ├── utils/          # init, storage, session
+│   ├── dist/           # esbuild output: ESM + CJS, .min and unminified
+│   └── build.js        # Custom esbuild script (preserves TOFIND legal comments)
+├── headless-old/       # @converse/headless v7.0.6 — ARCHIVED reference
+├── skeletor/           # @converse/skeletor — TARGET v3.0.x (currently v0.0.9, must upgrade alongside v13)
+├── skeletor-old/       # @converse/skeletor v0.0.5 — ARCHIVED
 ├── openpromise/        # @converse/openpromise v0.0.1
-└── AGENTS.md           # Comprehensive migration guide (READ THIS FIRST)
+└── AGENTS.md           # Deep migration / customisation reference — READ FIRST
 ```
+
+**Target versions:** `@converse/headless@13.0.1` (npm latest, released 2026-05-27) + `@converse/skeletor@^3.0.0` (peer dep). Tarball staged at `/Users/taylorvanderwesthuizen/Downloads/converse-headless-13.0.1.tgz`.
+
+**Current branch:** `tay/testing` carries an in-flight v12.0.0 build with 16 iOS modifications applied. The retarget to v13.0.1 is documented in `MIGRATION.md`. `main` on `binuadmin/moya-conversejs-ios` still points at the v7-era commit; iOS installs from the default GitHub URL resolve to v7 until either `main` is updated or the iOS `package.json` pins `#tay/testing`.
 
 ## Commands
 
-### Testing (headless)
 ```bash
-cd headless && npm test
-```
-Runs Jasmine tests via Karma in Chrome.
-
-### Type Generation (headless)
-```bash
-cd headless && npm run types
-```
-Generates TypeScript definitions to `types/` directory.
-
-## How the iOS Client Uses This Library
-
-### Installation & Imports
-```json
-// moya-client-ios package.json
-"converse": "github:binuadmin/moya-conversejs-ios"
-
-// tsconfig.json path mapping
-"@converse/*": ["./node_modules/converse/*"]
+cd headless && npm run build     # esbuild → dist/converse-headless.{esm,}.{,min.}js
+cd headless && npm test          # Karma/Jasmine in Chrome
+cd headless && npm run types     # Emit TS declarations into types/
 ```
 
-```typescript
-// Import pattern
-import { converseInit } from '@converse/headless';
-```
+The build script verifies that all TOFIND legal comments survive into `dist/converse-headless.esm.js`. esbuild strips ordinary comments, so all custom mods use `/*! TOFIND */ // …` form to be preserved. Expected marker count: **16** under v12 build, **17** under v13 build (new mod #17a drops v13's OMEMO plugin auto-registration to avoid pluggable.js duplicate-name throw).
 
-### Initialization Flow
-1. Create window object: `window[`converse${index}`] = {}`
-2. Call `converseInit(index)` - populates the window object
-3. Create ConverseInstance with iOS-specific handling
-4. Register custom Angular plugins
-5. Call `converse.initialize()` with config
+## iOS-Specific Customisations
 
-### Strophe Environment Access
-```typescript
-const { $iq, $build, $msg, $pres, Strophe, sizzle, utils } = converse.env;
-```
+The v12 headless build carries 16 modifications, all flagged with `/*! TOFIND */`. The v13 retarget adds a 17th (drop OMEMO plugin auto-registration). They exist because the iOS client manages presence, receipts, markers, vcards, subscriptions, MUC join, and emoji handling **manually** — Converse must be a passive XMPP engine, not an opinionated chat client.
 
-### Key Events Listened For
-`initialized`, `connected`, `reconnected`, `disconnected`, `chatBoxesFetched`, `OMEMOInitialized`, `parseChatMessage`, `handleMUCMessage`, `enteredNewMUC`, `messageOut`
+See `AGENTS.md` for the full mod list with file/line citations and rationale. The short version:
 
-## Architecture
+- Disable auto: chat markers, message receipts, MUC join presence, MUC invite handler, vcard get/update, roster subscription handling
+- Bypass: `await this.messages.fetched` (iOS controls message lifecycle), MUC `isJoined()` ping check (server rejects ping)
+- Silence: disco query errors (don't crash on missing services)
+- Return `[]` from emoji shortname processing (iOS handles emojis later)
+- Remove: ping plugin registration (server doesn't support XEP-0199)
+- Add: `_converse.state.roster` null check in headlines flow
+- Multi-instance: `converseInit(index)` wrapper exposing `window.converse${index}`
+- Connection: `mode: 'no-cors'` on host-meta fetch
+- Storage: deterministic IndexedDB name for multi-instance isolation
 
-### Multi-Instance Support
-The iOS client requires multiple simultaneous Converse instances (`window.converse0`, `window.converse1`, etc.) for multi-account support. Implemented via wrapper function `converseInit(converseIndex)`.
+## iOS App Integration Boundary
 
-### Why Custom Modifications Exist
-The iOS client manages XMPP features manually rather than letting Converse handle them automatically:
-1. **Multiple converse instances** - Support for multiple accounts/connections
-2. **Native iOS control** - iOS handles UI/UX decisions, Converse is just the XMPP engine
-3. **Server compatibility** - Workarounds for server limitations (ping, etc.)
+The iOS-side codebase (`moya-client-ios`) has restructured significantly since the original migration plan:
 
-### Modification Summary (17 changes marked with //TOFIND)
-| Category | What's Disabled | v12 File Location |
-|----------|----------------|-------------------|
-| Chat markers | Auto-sending read receipts | `shared/actions.js` |
-| Receipt stanza | Auto-sending message receipts | `shared/actions.js` |
-| Message fetching | `await this.messages.fetched` | `plugins/chat/model.js` |
-| MUC presence | Auto-join presence | `plugins/muc/muc.js` |
-| MUC isJoined | Ping check (returns true) | `plugins/muc/muc.js` |
-| MUC invites | Auto invite handler | `plugins/muc/utils.js` |
-| VCard get/update | Auto-fetching vcards | `plugins/vcard/api.js` |
-| Roster subscriptions | Auto subscription handling | `plugins/roster/contacts.js` |
-| Disco queries | Error throwing | `plugins/disco/entity.js` |
-| Emoji shortnames | Processing (returns []) | `plugins/emoji/utils.js` |
-| Ping module | Entire module | `plugins/ping/index.js` |
-| Headlines roster | Added null check | `plugins/headlines/utils.js` |
-| Connection CORS | Added `mode: "no-cors"` | `shared/connection/index.js` |
-| Storage/DB naming | Custom DB name | `utils/storage.js` |
+- `src/app/xmpp/` is a new top-level layer holding XMPP-protocol services (stanza builders, presence, discovery, pubsub, push) that have no chat-feature coupling.
+- `src/app/xmpp/converse-boundary/` is **the single chokepoint** between the app and Converse runtime internals. `ConverseAdapter` (a static class) wraps every `_converse.*`, `converse.env.*`, `instance.connection.*`, and `api.*` access the app needs.
+- OMEMO is split across `submodules/chat/services/xmpp/converse-plugins/omemo/{types,models,helpers,services,overrides}/`. Models (`OMEMOStore`, `Device`, `Devices`, `DeviceList`, `DeviceLists`) currently use `Model.extend()` / `Collection.extend()` — skeletor v0.0.9 keeps that API. **The v13 target requires skeletor v3.x, which removed `.extend()`; the OMEMO models must be rewritten as ES6 classes alongside the swap.**
 
-### Key API Changes in v12
-- **State access**: `_converse.roster` → `_converse.state.roster`
-- **Connection**: `_converse.connection` → `api.connection.get()`
-- **Stanza building**: New `stx` tagged template literal (replaces `$build`/`$msg`/`$iq`)
-- **Built-in OMEMO**: Device, Devices, DeviceList, DeviceLists now exported
+**Implication for v7 → v13.0.1:** the swap is concentrated in (1) a fresh v13.0.1 headless drop with iOS TOFIND mods re-applied, (2) skeletor 0.0.9 → 3.0.1 upgrade plus OMEMO model ES6-class rewrite, (3) adapter rewrite for v11-era moves (`_converse.connection` → `api.connection.get()`), (4) OMEMO bootstrap closure rewrite for `state.*` relocations.
 
-### Skeletor Dependency
-Current `skeletor/` is v0.0.9 and matches headless requirements (^0.0.9). `skeletor-old/` is v0.0.5 and archived; no `.extend()` refactors are required.
+See `MIGRATION.md` for the full swap-in path, breaking-changes tracker (v7 → v13.0.1), and iOS change inventory.
 
-## Testing Checklist (Post-Migration)
-- [ ] Multiple converse instances can be created
-- [ ] Markers are NOT auto-sent
-- [ ] Receipts are NOT auto-sent
-- [ ] MUC presence is NOT auto-sent on join
-- [ ] VCards are NOT auto-fetched
-- [ ] Subscription requests are NOT auto-handled
-- [ ] MUC invites are NOT auto-handled
-- [ ] Ping module is disabled/removed
-- [ ] Disco query errors don't crash the app
-- [ ] Emoji processing doesn't block message handling
-- [ ] Headlines work with missing roster
+## v7 → v13.0.1 API Changes Affecting the Adapter
 
-## Important Notes
+Verified against the v12 source in `headless/` and the v13.0.1 tarball:
 
-- **Always read `AGENTS.md` first** when working on migration tasks - it contains exact line numbers, code examples, and detailed implementation guidance for all 17 modifications
-- The iOS client is in a separate repo (`moya-client-ios`)
-- Pre-built distribution means changes should modify source files and rebuild, not edit minified code
-- headless uses ES modules; headless-old v7 uses CommonJS-ish bundled output
+- `_converse.connection` → `_converse.api.connection.get()` (v11)
+- `_converse.devicelists` → `_converse.state.devicelists` (v12)
+- `_converse.omemo_store` → `_converse.state.omemo_store` (v12)
+- `_converse.shouldClearCache()` → `shouldClearCache(_converse)` util import from `utils/session.js` (v12)
+- `_converse.createStore(id)` → `createStore(id, 'persistent')` util import from `utils/storage.js` (v12)
+- `_converse.CHATROOMS_TYPE` / `PRIVATE_CHAT_TYPE` → `_converse.constants.CHATROOMS_TYPE` etc. (v12)
+- `_converse.<setting>` direct reads → `api.settings.get(key)` (v9)
+- `$build` / `$msg` / `$iq` builders remain available on `converse.env`, plus `stx` tagged template literal (v10)
+- Promise-returning APIs: `api.chats.get/create`, `api.rooms.get/create`
+- `api.modal.create` takes a custom-element name, not a class (v11)
+- Removed events: `windowStateChanged`, `chatBoxFocused`, `chatBoxBlurred` (v11); `bookmarkViewsInitialized`, `chatBoxInsertedIntoDOM`, `contactStatusMessageChanged`, `messageSend`, `rosterGroupsFetched` (v8)
+- `api.settings.update` removed → use `api.settings.extend` (v11)
+- `converse-carbons` plugin removed; carbons always enabled (v10)
+- `Strophe.shims` removed; use globals directly (v12)
+- XEP-0191 Blocking Command native (v11) — potential replacement for iOS block path
+- XEP-0402 native bookmarks (v11) — potential replacement for iOS bookmark stanzas
+- XEP-0444 Message Reactions native (v13.0.0) — iOS reactions port plan can be retired
+- XEP-0461 Message Replies native (v13.0.0) — iOS replies port plan can be retired
+- Skeletor 3.x: `Model.extend()` / `Collection.extend()` removed; `Storage` → `BrowserStorage`; `Model.clone()` removed
+
+Several iOS modifications could be **dropped in favour of v13 settings or hooks** (see AGENTS.md "v12 Idiomatic Alternatives" — applies to v13 too — for the per-mod analysis). Worth folding into the swap if the engineering cost is low.
+
+## Notes
+
+- Pre-built distribution: source modifications live in `headless/*.js`; rebuild with `npm run build` before committing dist.
+- `headless/dist/` is checked in because the iOS app installs from GitHub without a build step.
+- Don't edit `headless-old/` or `skeletor-old/` — they are reference snapshots only.
+- All custom modifications must use `/*! TOFIND */` legal-comment form to survive esbuild.

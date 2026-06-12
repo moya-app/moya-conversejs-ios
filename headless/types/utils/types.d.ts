@@ -1,3 +1,7 @@
+import { BrowserStorage, IEventEmitter } from '@converse/skeletor';
+export type CommonUtils = Record<string, Function>;
+type PluginUtilsKeys = 'muc' | 'mam' | 'omemo' | 'roster' | 'reactions' | 'bookmarks' | 'emojis';
+export type PluginUtils = Record<PluginUtilsKeys, CommonUtils>;
 export type Credentials = {
     jid: string;
     password: string;
@@ -23,4 +27,8 @@ export type MediaURLMetadata = MediaURLIndexes & {
     is_video?: boolean;
 };
 export type StorageType = 'persistent' | 'session';
+export type StorageModel = IEventEmitter & {
+    browserStorage: BrowserStorage;
+};
+export {};
 //# sourceMappingURL=types.d.ts.map

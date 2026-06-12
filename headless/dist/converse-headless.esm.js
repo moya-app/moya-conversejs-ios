@@ -6,9 +6,6 @@ var __export = (target, all) => {
 };
 
 // index.js
-import dayjs9 from "dayjs";
-import advancedFormat from "dayjs/plugin/advancedFormat";
-import localizedFormat from "dayjs/plugin/localizedFormat";
 import log51 from "@converse/log";
 
 // shared/parsers.js
@@ -25,6 +22,7 @@ __export(parsers_exports, {
   getOutOfBandAttributes: () => getOutOfBandAttributes,
   getReceiptId: () => getReceiptId,
   getReferences: () => getReferences,
+  getReplyAttributes: () => getReplyAttributes,
   getRetractionAttributes: () => getRetractionAttributes,
   getSpoilerAttributes: () => getSpoilerAttributes,
   getStanzaIDs: () => getStanzaIDs,
@@ -39,6 +37,156 @@ __export(parsers_exports, {
   throwErrorIfInvalidForward: () => throwErrorIfInvalidForward
 });
 import sizzle4 from "sizzle";
+import { Strophe as Strophe15 } from "strophe.js";
+import log15 from "@converse/log";
+
+// utils/html.js
+var html_exports = {};
+__export(html_exports, {
+  decodeHTMLEntities: () => decodeHTMLEntities,
+  isElement: () => isElement,
+  isEqualNode: () => isEqualNode,
+  isTagEqual: () => isTagEqual,
+  queryChildren: () => queryChildren,
+  siblingIndex: () => siblingIndex,
+  stringToElement: () => stringToElement,
+  unescapeHTML: () => unescapeHTML
+});
+import DOMPurify from "dompurify";
+import { Strophe, Builder, Stanza } from "strophe.js";
+function isElement(el) {
+  return el instanceof Element || el instanceof HTMLDocument;
+}
+__name(isElement, "isElement");
+var EMPTY_TEXT_REGEX = /\s*\n\s*/;
+function stripEmptyTextNodes(el) {
+  if (el instanceof Builder || el instanceof Stanza) {
+    el = el.tree();
+  }
+  let n;
+  const text_nodes = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, (node) => {
+    if (node.parentElement.nodeName.toLowerCase() === "body") {
+      return NodeFilter.FILTER_REJECT;
+    }
+    return NodeFilter.FILTER_ACCEPT;
+  });
+  while (n = walker.nextNode())
+    text_nodes.push(n);
+  text_nodes.forEach((n2) => EMPTY_TEXT_REGEX.test(
+    /** @type {Text} */
+    n2.data
+  ) && n2.parentElement.removeChild(n2));
+  return el;
+}
+__name(stripEmptyTextNodes, "stripEmptyTextNodes");
+function isEqualNode(actual, expected) {
+  if (!isElement(actual)) {
+    if (actual instanceof Strophe.Builder) {
+      actual = actual.tree();
+    } else {
+      throw new Error("Element being compared must be an Element!");
+    }
+  }
+  expected = stripEmptyTextNodes(expected);
+  actual = stripEmptyTextNodes(actual);
+  let isEqual2 = actual.isEqualNode(expected);
+  if (!isEqual2) {
+    const { xmlHtmlNode } = Strophe;
+    const actual_string = Strophe.serialize(actual);
+    const expected_string = Strophe.serialize(expected);
+    isEqual2 = actual_string === expected_string || xmlHtmlNode(actual_string).isEqualNode(xmlHtmlNode(expected_string));
+  }
+  return isEqual2;
+}
+__name(isEqualNode, "isEqualNode");
+function isTagEqual(stanza, name) {
+  if (stanza instanceof Strophe.Builder) {
+    return isTagEqual(stanza.tree(), name);
+  } else if (!(stanza instanceof Element)) {
+    throw Error("isTagEqual called with value which isn't an element or Strophe.Builder instance");
+  } else {
+    return Strophe.isTagEqual(stanza, name);
+  }
+}
+__name(isTagEqual, "isTagEqual");
+function stringToElement(s) {
+  var div = document.createElement("div");
+  div.innerHTML = s;
+  return div.firstElementChild;
+}
+__name(stringToElement, "stringToElement");
+function queryChildren(el, selector) {
+  return Array.from(el.childNodes).filter((el2) => el2 instanceof Element && el2.matches(selector));
+}
+__name(queryChildren, "queryChildren");
+function siblingIndex(el) {
+  for (var i2 = 0; el = el.previousElementSibling; i2++)
+    ;
+  return i2;
+}
+__name(siblingIndex, "siblingIndex");
+var element = document.createElement("div");
+function decodeHTMLEntities(str) {
+  if (str && typeof str === "string") {
+    element.innerHTML = DOMPurify.sanitize(str);
+    str = element.textContent;
+    element.textContent = "";
+  }
+  return str;
+}
+__name(decodeHTMLEntities, "decodeHTMLEntities");
+function unescapeHTML(string) {
+  var div = document.createElement("div");
+  div.innerHTML = string;
+  return div.innerText;
+}
+__name(unescapeHTML, "unescapeHTML");
+
+// utils/stanza.js
+var stanza_exports = {};
+__export(stanza_exports, {
+  getAttributes: () => getAttributes,
+  isErrorStanza: () => isErrorStanza,
+  isForbiddenError: () => isForbiddenError,
+  isServiceUnavailableError: () => isServiceUnavailableError,
+  toStanza: () => toStanza
+});
+import sizzle from "sizzle";
+import { Strophe as Strophe2 } from "strophe.js";
+import { toStanza } from "strophe.js";
+function isErrorStanza(stanza) {
+  if (!isElement(stanza)) {
+    return false;
+  }
+  return stanza.getAttribute("type") === "error";
+}
+__name(isErrorStanza, "isErrorStanza");
+function isForbiddenError(stanza) {
+  if (!isElement(stanza)) {
+    return false;
+  }
+  return sizzle(`error[type="auth"] forbidden[xmlns="${Strophe2.NS.STANZAS}"]`, stanza).length > 0;
+}
+__name(isForbiddenError, "isForbiddenError");
+function isServiceUnavailableError(stanza) {
+  if (!isElement(stanza)) {
+    return false;
+  }
+  return sizzle(`error[type="cancel"] service-unavailable[xmlns="${Strophe2.NS.STANZAS}"]`, stanza).length > 0;
+}
+__name(isServiceUnavailableError, "isServiceUnavailableError");
+function getAttributes(stanza) {
+  return stanza.getAttributeNames().reduce((acc, name) => {
+    acc[name] = Strophe2.xmlunescape(stanza.getAttribute(name));
+    return acc;
+  }, {});
+}
+__name(getAttributes, "getAttributes");
+
+// shared/actions.js
+import log14 from "@converse/log";
+import { Strophe as Strophe14 } from "strophe.js";
 
 // shared/_converse.js
 import log2 from "@converse/log";
@@ -179,6 +327,7 @@ var DEFAULT_SETTINGS = {
 // utils/object.js
 var object_exports = {};
 __export(object_exports, {
+  isEmpty: () => isEmpty,
   isError: () => isError,
   isErrorObject: () => isErrorObject,
   isFunction: () => isFunction,
@@ -188,8 +337,10 @@ __export(object_exports, {
 });
 function merge(dst, src) {
   for (const k in src) {
-    if (!Object.prototype.hasOwnProperty.call(src, k)) continue;
-    if (k === "__proto__" || k === "constructor") continue;
+    if (!Object.prototype.hasOwnProperty.call(src, k))
+      continue;
+    if (k === "__proto__" || k === "constructor")
+      continue;
     if (dst[k] instanceof Object) {
       merge(dst[k], src[k]);
     } else {
@@ -218,6 +369,10 @@ function isPersistableModel(model) {
   return model.browserStorage || model.collection?.browserStorage;
 }
 __name(isPersistableModel, "isPersistableModel");
+function isEmpty(obj) {
+  return obj === null || obj === void 0 || typeof obj !== "object" || Object.keys(obj).length === 0;
+}
+__name(isEmpty, "isEmpty");
 
 // shared/settings/utils.js
 var app_settings;
@@ -265,7 +420,8 @@ function unregisterListener(name, func) {
 }
 __name(unregisterListener, "unregisterListener");
 function updateAppSettings(key, val) {
-  if (key == null) return this;
+  if (key == null)
+    return this;
   let attrs;
   if (key instanceof Object) {
     attrs = key;
@@ -469,9 +625,9 @@ __export(constants_exports, {
   XFORM_TYPE_MAP: () => XFORM_TYPE_MAP,
   XFORM_VALIDATE_TYPE_MAP: () => XFORM_VALIDATE_TYPE_MAP
 });
-import { Strophe } from "strophe.js";
+import { Strophe as Strophe3 } from "strophe.js";
 var BOSH_WAIT = 59;
-var VERSION_NAME = "v12.0.0";
+var VERSION_NAME = "v13.0.1";
 var PRES_SHOW_VALUES = ["chat", "dnd", "away", "xa"];
 var PRES_TYPE_VALUES = [
   "available",
@@ -530,55 +686,56 @@ var CHATROOMS_TYPE = "chatroom";
 var HEADLINES_TYPE = "headline";
 var CONTROLBOX_TYPE = "controlbox";
 var CONNECTION_STATUS = {};
-CONNECTION_STATUS[Strophe.Status.ATTACHED] = "ATTACHED";
-CONNECTION_STATUS[Strophe.Status.AUTHENTICATING] = "AUTHENTICATING";
-CONNECTION_STATUS[Strophe.Status.AUTHFAIL] = "AUTHFAIL";
-CONNECTION_STATUS[Strophe.Status.CONNECTED] = "CONNECTED";
-CONNECTION_STATUS[Strophe.Status.CONNECTING] = "CONNECTING";
-CONNECTION_STATUS[Strophe.Status.CONNFAIL] = "CONNFAIL";
-CONNECTION_STATUS[Strophe.Status.DISCONNECTED] = "DISCONNECTED";
-CONNECTION_STATUS[Strophe.Status.DISCONNECTING] = "DISCONNECTING";
-CONNECTION_STATUS[Strophe.Status.ERROR] = "ERROR";
-CONNECTION_STATUS[Strophe.Status.RECONNECTING] = "RECONNECTING";
-CONNECTION_STATUS[Strophe.Status.REDIRECT] = "REDIRECT";
-Strophe.addNamespace("ACTIVITY", "http://jabber.org/protocol/activity");
-Strophe.addNamespace("CARBONS", "urn:xmpp:carbons:2");
-Strophe.addNamespace("CHATSTATES", "http://jabber.org/protocol/chatstates");
-Strophe.addNamespace("CSI", "urn:xmpp:csi:0");
-Strophe.addNamespace("DELAY", "urn:xmpp:delay");
-Strophe.addNamespace("EME", "urn:xmpp:eme:0");
-Strophe.addNamespace("FALLBACK", "urn:xmpp:fallback:0");
-Strophe.addNamespace("FASTEN", "urn:xmpp:fasten:0");
-Strophe.addNamespace("FORWARD", "urn:xmpp:forward:0");
-Strophe.addNamespace("HINTS", "urn:xmpp:hints");
-Strophe.addNamespace("HTTPUPLOAD", "urn:xmpp:http:upload:0");
-Strophe.addNamespace("MAM", "urn:xmpp:mam:2");
-Strophe.addNamespace("MARKERS", "urn:xmpp:chat-markers:0");
-Strophe.addNamespace("MENTIONS", "urn:xmpp:mmn:0");
-Strophe.addNamespace("MESSAGE_CORRECT", "urn:xmpp:message-correct:0");
-Strophe.addNamespace("MODERATE", "urn:xmpp:message-moderate:1");
-Strophe.addNamespace("MODERATE0", "urn:xmpp:message-moderate:0");
-Strophe.addNamespace("NICK", "http://jabber.org/protocol/nick");
-Strophe.addNamespace("OCCUPANTID", "urn:xmpp:occupant-id:0");
-Strophe.addNamespace("OMEMO", "eu.siacs.conversations.axolotl");
-Strophe.addNamespace("OUTOFBAND", "jabber:x:oob");
-Strophe.addNamespace("PUBSUB", "http://jabber.org/protocol/pubsub");
-Strophe.addNamespace("RAI", "urn:xmpp:rai:0");
-Strophe.addNamespace("RECEIPTS", "urn:xmpp:receipts");
-Strophe.addNamespace("REFERENCE", "urn:xmpp:reference:0");
-Strophe.addNamespace("REGISTER", "jabber:iq:register");
-Strophe.addNamespace("RETRACT", "urn:xmpp:message-retract:1");
-Strophe.addNamespace("RETRACT0", "urn:xmpp:message-retract:0");
-Strophe.addNamespace("ROSTERX", "http://jabber.org/protocol/rosterx");
-Strophe.addNamespace("RSM", "http://jabber.org/protocol/rsm");
-Strophe.addNamespace("SID", "urn:xmpp:sid:0");
-Strophe.addNamespace("SPOILER", "urn:xmpp:spoiler:0");
-Strophe.addNamespace("STANZAS", "urn:ietf:params:xml:ns:xmpp-stanzas");
-Strophe.addNamespace("STYLING", "urn:xmpp:styling:0");
-Strophe.addNamespace("VCARD", "vcard-temp");
-Strophe.addNamespace("VCARDUPDATE", "vcard-temp:x:update");
-Strophe.addNamespace("XFORM", "jabber:x:data");
-Strophe.addNamespace("XHTML", "http://www.w3.org/1999/xhtml");
+CONNECTION_STATUS[Strophe3.Status.ATTACHED] = "ATTACHED";
+CONNECTION_STATUS[Strophe3.Status.AUTHENTICATING] = "AUTHENTICATING";
+CONNECTION_STATUS[Strophe3.Status.AUTHFAIL] = "AUTHFAIL";
+CONNECTION_STATUS[Strophe3.Status.CONNECTED] = "CONNECTED";
+CONNECTION_STATUS[Strophe3.Status.CONNECTING] = "CONNECTING";
+CONNECTION_STATUS[Strophe3.Status.CONNFAIL] = "CONNFAIL";
+CONNECTION_STATUS[Strophe3.Status.DISCONNECTED] = "DISCONNECTED";
+CONNECTION_STATUS[Strophe3.Status.DISCONNECTING] = "DISCONNECTING";
+CONNECTION_STATUS[Strophe3.Status.ERROR] = "ERROR";
+CONNECTION_STATUS[Strophe3.Status.RECONNECTING] = "RECONNECTING";
+CONNECTION_STATUS[Strophe3.Status.REDIRECT] = "REDIRECT";
+Strophe3.addNamespace("ACTIVITY", "http://jabber.org/protocol/activity");
+Strophe3.addNamespace("CARBONS", "urn:xmpp:carbons:2");
+Strophe3.addNamespace("CHATSTATES", "http://jabber.org/protocol/chatstates");
+Strophe3.addNamespace("CSI", "urn:xmpp:csi:0");
+Strophe3.addNamespace("DELAY", "urn:xmpp:delay");
+Strophe3.addNamespace("EME", "urn:xmpp:eme:0");
+Strophe3.addNamespace("FALLBACK", "urn:xmpp:fallback:0");
+Strophe3.addNamespace("FASTEN", "urn:xmpp:fasten:0");
+Strophe3.addNamespace("FORWARD", "urn:xmpp:forward:0");
+Strophe3.addNamespace("HINTS", "urn:xmpp:hints");
+Strophe3.addNamespace("HTTPUPLOAD", "urn:xmpp:http:upload:0");
+Strophe3.addNamespace("MAM", "urn:xmpp:mam:2");
+Strophe3.addNamespace("MARKERS", "urn:xmpp:chat-markers:0");
+Strophe3.addNamespace("MENTIONS", "urn:xmpp:mmn:0");
+Strophe3.addNamespace("MESSAGE_CORRECT", "urn:xmpp:message-correct:0");
+Strophe3.addNamespace("MODERATE", "urn:xmpp:message-moderate:1");
+Strophe3.addNamespace("MODERATE0", "urn:xmpp:message-moderate:0");
+Strophe3.addNamespace("NICK", "http://jabber.org/protocol/nick");
+Strophe3.addNamespace("OCCUPANTID", "urn:xmpp:occupant-id:0");
+Strophe3.addNamespace("OMEMO", "eu.siacs.conversations.axolotl");
+Strophe3.addNamespace("OUTOFBAND", "jabber:x:oob");
+Strophe3.addNamespace("PUBSUB", "http://jabber.org/protocol/pubsub");
+Strophe3.addNamespace("RAI", "urn:xmpp:rai:0");
+Strophe3.addNamespace("RECEIPTS", "urn:xmpp:receipts");
+Strophe3.addNamespace("REFERENCE", "urn:xmpp:reference:0");
+Strophe3.addNamespace("REGISTER", "jabber:iq:register");
+Strophe3.addNamespace("REPLY", "urn:xmpp:reply:0");
+Strophe3.addNamespace("RETRACT", "urn:xmpp:message-retract:1");
+Strophe3.addNamespace("RETRACT0", "urn:xmpp:message-retract:0");
+Strophe3.addNamespace("ROSTERX", "http://jabber.org/protocol/rosterx");
+Strophe3.addNamespace("RSM", "http://jabber.org/protocol/rsm");
+Strophe3.addNamespace("SID", "urn:xmpp:sid:0");
+Strophe3.addNamespace("SPOILER", "urn:xmpp:spoiler:0");
+Strophe3.addNamespace("STANZAS", "urn:ietf:params:xml:ns:xmpp-stanzas");
+Strophe3.addNamespace("STYLING", "urn:xmpp:styling:0");
+Strophe3.addNamespace("VCARD", "vcard-temp");
+Strophe3.addNamespace("VCARDUPDATE", "vcard-temp:x:update");
+Strophe3.addNamespace("XFORM", "jabber:x:data");
+Strophe3.addNamespace("XHTML", "http://www.w3.org/1999/xhtml");
 var CORE_PLUGINS = [
   "converse-adhoc",
   "converse-bookmarks",
@@ -594,6 +751,7 @@ var CORE_PLUGINS = [
   "converse-muc",
   "converse-ping",
   "converse-pubsub",
+  "converse-reactions",
   "converse-roster",
   "converse-smacks",
   "converse-status",
@@ -618,6 +776,7 @@ var KEYCODES = {
   META: "Meta"
 };
 var XFORM_TYPE_MAP = {
+  "text-multi": "textarea",
   "text-private": "password",
   "text-single": "text",
   "fixed": "label",
@@ -663,14 +822,14 @@ var ConversePrivateGlobal = class extends EventEmitter2(Object) {
   constructor() {
     super();
     const proxy = new Proxy(this, {
-      get: /* @__PURE__ */ __name((target, key) => {
+      get: (target, key) => {
         if (!isTestEnv() && typeof key === "string") {
           if (Object.keys(DEPRECATED_ATTRS).includes(key)) {
             log2.warn(`Accessing ${key} on _converse is DEPRECATED`);
           }
         }
         return Reflect.get(target, key);
-      }, "get")
+      }
     });
     proxy.initialize();
     return proxy;
@@ -680,7 +839,7 @@ var ConversePrivateGlobal = class extends EventEmitter2(Object) {
     this.strict_plugin_dependencies = false;
     this.pluggable = null;
     this.templates = {};
-    this.storage = /** @type {Record<string, Storage.LocalForage>} */
+    this.storage = /** @type {Record<string, BrowserStorage.LocalForage>} */
     {};
     this.promises = {
       initialized: getOpenPromise2()
@@ -706,8 +865,9 @@ var ConversePrivateGlobal = class extends EventEmitter2(Object) {
     this.initSession();
   }
   initSession() {
-    this.session?.destroy();
-    this.session = new Model();
+    this.state.session?.destroy();
+    this.state.session = new Model();
+    this.session = this.state.session;
     Object.assign(
       this,
       {
@@ -755,7 +915,6 @@ var events_default = {
   /**
    * Lets you trigger events, which can be listened to via
    * {@link _converse.api.listen.on} or {@link _converse.api.listen.once}
-   * (see [_converse.api.listen](http://localhost:8000/docs/html/api/-_converse.api.listen.html)).
    *
    * Some events also double as promises and can be waited on via {@link _converse.api.waitUntil}.
    *
@@ -792,7 +951,7 @@ var events_default = {
   /**
    * Triggers a hook which can be intercepted by registered listeners via
    * {@link _converse.api.listen.on} or {@link _converse.api.listen.once}.
-   * (see [_converse.api.listen](http://localhost:8000/docs/html/api/-_converse.api.listen.html)).
+   *
    * A hook is a special kind of event which allows you to intercept a data
    * structure in order to modify it, before passing it back.
    * @async
@@ -800,12 +959,13 @@ var events_default = {
    * @param {...any} context - The context to which the hook applies
    *  (could be for example, a {@link _converse.ChatBox}).
    * @param {...any} data - The data structure to be intercepted and modified by the hook listeners.
+   * @param {...any} extra_args - Additional passthrough arguments for hook listeners.
    * @returns {Promise<any>} - A promise that resolves with the modified data structure.
    */
-  hook(name, context, data) {
+  hook(name, context, data, ...extra_args) {
     const events = converse_default._events[name] || [];
     if (events.length) {
-      return events.reduce((o, e) => o.then((d) => e.callback(context, d)), Promise.resolve(data));
+      return events.reduce((o, e) => o.then((d) => e.callback(context, d, ...extra_args)), Promise.resolve(data));
     } else {
       return data;
     }
@@ -889,8 +1049,8 @@ var events_default = {
 // shared/connection/index.js
 import debounce2 from "lodash-es/debounce";
 import log5 from "@converse/log";
-import sizzle from "sizzle";
-import { Strophe as Strophe5 } from "strophe.js";
+import sizzle2 from "sizzle";
+import { Strophe as Strophe7 } from "strophe.js";
 import { getOpenPromise as getOpenPromise3 } from "@converse/openpromise";
 
 // utils/init.js
@@ -908,13 +1068,13 @@ __export(init_exports, {
   savedLoginInfo: () => savedLoginInfo,
   setUserJID: () => setUserJID
 });
-import Storage2 from "@converse/skeletor/src/storage.js";
+import { BrowserStorage as BrowserStorage2 } from "@converse/skeletor";
 import debounce from "lodash-es/debounce";
 import localDriver from "localforage-webextensionstorage-driver/local";
 import log4 from "@converse/log";
 import syncDriver from "localforage-webextensionstorage-driver/sync";
 import { Model as Model2 } from "@converse/skeletor";
-import { Strophe as Strophe4 } from "strophe.js";
+import { Strophe as Strophe6 } from "strophe.js";
 
 // utils/storage.js
 var storage_exports = {};
@@ -923,7 +1083,7 @@ __export(storage_exports, {
   getDefaultStorageType: () => getDefaultStorageType,
   initStorage: () => initStorage
 });
-import Storage from "@converse/skeletor/src/storage.js";
+import { BrowserStorage } from "@converse/skeletor";
 var settings2 = settings_api;
 function getDefaultStorageType() {
   if (converse_default.state.config.get("trusted")) {
@@ -944,7 +1104,7 @@ function createStore(id, type) {
   if (typeof s === "undefined") {
     throw new TypeError(`createStore: Could not find store for ${id}`);
   }
-  return new Storage(id, s, storeUsesIndexedDB(type));
+  return new BrowserStorage(id, s, storeUsesIndexedDB(type));
 }
 __name(createStore, "createStore");
 function initStorage(model, id, type) {
@@ -962,22 +1122,22 @@ __name(initStorage, "initStorage");
 
 // shared/connection/utils.js
 import log3 from "@converse/log";
-import { Strophe as Strophe2 } from "strophe.js";
+import { Strophe as Strophe4 } from "strophe.js";
 function generateResource() {
   return `/converse.js-${Math.floor(Math.random() * 139749528).toString()}`;
 }
 __name(generateResource, "generateResource");
 function setStropheLogLevel() {
   const level = settings_api.get("loglevel");
-  Strophe2.setLogLevel(Strophe2.LogLevel[level.toUpperCase()]);
+  Strophe4.setLogLevel(Strophe4.LogLevel[level.toUpperCase()]);
   const lmap = {};
-  lmap[Strophe2.LogLevel.DEBUG] = "debug";
-  lmap[Strophe2.LogLevel.INFO] = "info";
-  lmap[Strophe2.LogLevel.WARN] = "warn";
-  lmap[Strophe2.LogLevel.ERROR] = "error";
-  lmap[Strophe2.LogLevel.FATAL] = "fatal";
-  Strophe2.log = (l, msg) => log3.log(msg, lmap[l]);
-  Strophe2.error = (msg) => log3.error(msg);
+  lmap[Strophe4.LogLevel.DEBUG] = "debug";
+  lmap[Strophe4.LogLevel.INFO] = "info";
+  lmap[Strophe4.LogLevel.WARN] = "warn";
+  lmap[Strophe4.LogLevel.ERROR] = "error";
+  lmap[Strophe4.LogLevel.FATAL] = "fatal";
+  Strophe4.log = (l, msg) => log3.log(msg, lmap[l]);
+  Strophe4.error = (msg) => log3.error(msg);
 }
 __name(setStropheLogLevel, "setStropheLogLevel");
 function getConnectionServiceURL() {
@@ -998,9 +1158,10 @@ __export(jid_exports, {
   isSameBareJID: () => isSameBareJID,
   isSameDomain: () => isSameDomain,
   isValidJID: () => isValidJID,
-  isValidMUCJID: () => isValidMUCJID
+  isValidMUCJID: () => isValidMUCJID,
+  maybeAppendDomain: () => maybeAppendDomain
 });
-import { Strophe as Strophe3 } from "strophe.js";
+import { Strophe as Strophe5 } from "strophe.js";
 function isValidJID(jid) {
   if (!(typeof jid === "string")) {
     return false;
@@ -1020,27 +1181,50 @@ function isSameBareJID(jid1, jid2) {
   if (typeof jid1 !== "string" || typeof jid2 !== "string") {
     return false;
   }
-  return Strophe3.getBareJidFromJid(jid1).toLowerCase() === Strophe3.getBareJidFromJid(jid2).toLowerCase();
+  return Strophe5.getBareJidFromJid(jid1).toLowerCase() === Strophe5.getBareJidFromJid(jid2).toLowerCase();
 }
 __name(isSameBareJID, "isSameBareJID");
 function isSameDomain(jid1, jid2) {
   if (typeof jid1 !== "string" || typeof jid2 !== "string") {
     return false;
   }
-  return Strophe3.getDomainFromJid(jid1).toLowerCase() === Strophe3.getDomainFromJid(jid2).toLowerCase();
+  return Strophe5.getDomainFromJid(jid1).toLowerCase() === Strophe5.getDomainFromJid(jid2).toLowerCase();
 }
 __name(isSameDomain, "isSameDomain");
 function getJIDFromURI(jid) {
-  return jid.startsWith("xmpp:") && jid.endsWith("?join") ? jid.replace(/^xmpp:/, "").replace(/\?join$/, "") : jid;
+  let result = jid;
+  if (result.startsWith("xmpp:")) {
+    result = result.substring(5);
+  }
+  const idx = result.indexOf("?");
+  if (idx >= 0) {
+    result = result.substring(0, idx);
+  }
+  return result;
 }
 __name(getJIDFromURI, "getJIDFromURI");
 function isOwnJID(jid, include_resource = false) {
   if (include_resource) {
     return jid === converse_default.session.get("full_jid");
   }
-  return Strophe3.getBareJidFromJid(jid) === converse_default.session.get("bare_jid");
+  return Strophe5.getBareJidFromJid(jid) === converse_default.session.get("bare_jid");
 }
 __name(isOwnJID, "isOwnJID");
+function maybeAppendDomain(jid) {
+  const locked_domain = settings_api.get("locked_domain");
+  const default_domain = settings_api.get("default_domain");
+  if (locked_domain) {
+    const last_part = "@" + locked_domain;
+    if (jid.endsWith(last_part)) {
+      jid = jid.substring(0, jid.length - last_part.length);
+    }
+    jid = Strophe5.escapeNode(jid) + last_part;
+  } else if (default_domain && !isValidJID(jid)) {
+    jid = Strophe5.escapeNode(jid) + "@" + default_domain;
+  }
+  return jid;
+}
+__name(maybeAppendDomain, "maybeAppendDomain");
 
 // utils/init.js
 function initPlugins(_converse2) {
@@ -1066,8 +1250,8 @@ async function initClientConfig(_converse2) {
 }
 __name(initClientConfig, "initClientConfig");
 async function initSessionStorage(_converse2) {
-  await Storage2.sessionStorageInitialized;
-  _converse2.storage["session"] = Storage2.localForage.createInstance({
+  await BrowserStorage2.sessionStorageInitialized;
+  _converse2.storage["session"] = BrowserStorage2.localForage.createInstance({
     name: isTestEnv() ? "converse-test-session" : "converse-session",
     description: "sessionStorage instance",
     driver: ["sessionStorageWrapper"]
@@ -1080,12 +1264,12 @@ function initPersistentStorage(_converse2, store_name, key = "persistent") {
     _converse2.storage[key] = _converse2.storage["session"];
     return;
   } else if (api3.settings.get("persistent_store") === "BrowserExtLocal") {
-    Storage2.localForage.defineDriver(localDriver).then(() => Storage2.localForage.setDriver("webExtensionLocalStorage"));
-    _converse2.storage[key] = Storage2.localForage;
+    BrowserStorage2.localForage.defineDriver(localDriver).then(() => BrowserStorage2.localForage.setDriver("webExtensionLocalStorage"));
+    _converse2.storage[key] = BrowserStorage2.localForage;
     return;
   } else if (api3.settings.get("persistent_store") === "BrowserExtSync") {
-    Storage2.localForage.defineDriver(syncDriver).then(() => Storage2.localForage.setDriver("webExtensionSyncStorage"));
-    _converse2.storage[key] = Storage2.localForage;
+    BrowserStorage2.localForage.defineDriver(syncDriver).then(() => BrowserStorage2.localForage.setDriver("webExtensionSyncStorage"));
+    _converse2.storage[key] = BrowserStorage2.localForage;
     return;
   }
   /*! TOFIND */
@@ -1096,22 +1280,22 @@ function initPersistentStorage(_converse2, store_name, key = "persistent") {
   };
   if (api3.settings.get("persistent_store") === "localStorage") {
     config["description"] = "localStorage instance";
-    config["driver"] = [Storage2.localForage.LOCALSTORAGE];
+    config["driver"] = [BrowserStorage2.localForage.LOCALSTORAGE];
   } else if (api3.settings.get("persistent_store") === "IndexedDB") {
     config["description"] = "indexedDB instance";
-    config["driver"] = [Storage2.localForage.INDEXEDDB];
+    config["driver"] = [BrowserStorage2.localForage.INDEXEDDB];
   }
-  _converse2.storage[key] = Storage2.localForage.createInstance(config);
+  _converse2.storage[key] = BrowserStorage2.localForage.createInstance(config);
 }
 __name(initPersistentStorage, "initPersistentStorage");
 function saveJIDtoSession(_converse2, jid) {
   const { api: api3, session } = _converse2;
-  if (api3.settings.get("authentication") !== ANONYMOUS && !Strophe4.getResourceFromJid(jid)) {
+  if (api3.settings.get("authentication") !== ANONYMOUS && !Strophe6.getResourceFromJid(jid)) {
     jid = jid.toLowerCase() + generateResource();
   }
-  const bare_jid = Strophe4.getBareJidFromJid(jid);
-  const resource = Strophe4.getResourceFromJid(jid);
-  const domain = Strophe4.getDomainFromJid(jid);
+  const bare_jid = Strophe6.getBareJidFromJid(jid);
+  const resource = Strophe6.getResourceFromJid(jid);
+  const domain = Strophe6.getDomainFromJid(jid);
   Object.assign(_converse2, { jid, bare_jid, resource, domain });
   session.save({
     jid,
@@ -1120,7 +1304,7 @@ function saveJIDtoSession(_converse2, jid) {
     domain,
     // We use the `active` flag to determine whether we should use the values from sessionStorage.
     // When "cloning" a tab (e.g. via middle-click), the `active` flag will be set and we'll create
-    // a new empty user session, otherwise it'll be false and we can re-use the user session.
+    // a new empty user session, otherwise it'll be false and we can reuse the user session.
     // When the tab is reloaded, the `active` flag is set to `false`.
     "active": true
   });
@@ -1135,7 +1319,7 @@ async function setUserJID(jid) {
 __name(setUserJID, "setUserJID");
 async function initSession(_converse2, jid) {
   const is_shared_session = _converse2.api.settings.get("connection_options").worker;
-  const bare_jid = Strophe4.getBareJidFromJid(jid).toLowerCase();
+  const bare_jid = Strophe6.getBareJidFromJid(jid).toLowerCase();
   const id = `converse.session-${bare_jid}`;
   if (_converse2.session?.get("id") !== id) {
     initPersistentStorage(_converse2, bare_jid);
@@ -1217,7 +1401,8 @@ async function getLoginCredentialsFromURL() {
 __name(getLoginCredentialsFromURL, "getLoginCredentialsFromURL");
 async function getLoginCredentialsFromBrowser() {
   const jid = localStorage.getItem("conversejs-session-jid");
-  if (!jid) return null;
+  if (!jid)
+    return null;
   try {
     const creds = await navigator.credentials.get({ password: true });
     if (creds && creds.type == "password" && isValidJID(creds.id)) {
@@ -1232,7 +1417,8 @@ async function getLoginCredentialsFromBrowser() {
 __name(getLoginCredentialsFromBrowser, "getLoginCredentialsFromBrowser");
 async function getLoginCredentialsFromSCRAMKeys() {
   const jid = localStorage.getItem("conversejs-session-jid");
-  if (!jid) return null;
+  if (!jid)
+    return null;
   await setUserJID(jid);
   const login_info = await savedLoginInfo(jid);
   const scram_keys = login_info.get("scram_keys");
@@ -1245,7 +1431,8 @@ async function attemptNonPreboundSession(credentials, automatic) {
     credentials,
     automatic
   });
-  if (new_creds) return connect(new_creds);
+  if (new_creds)
+    return connect(new_creds);
   if (api3.settings.get("authentication") === LOGIN) {
     const jid = converse_default.session.get("jid");
     if (credentials) {
@@ -1257,24 +1444,30 @@ async function attemptNonPreboundSession(credentials, automatic) {
     }
     if (api3.settings.get("reuse_scram_keys")) {
       const credentials2 = await getLoginCredentialsFromSCRAMKeys();
-      if (credentials2) return connect(credentials2);
+      if (credentials2)
+        return connect(credentials2);
     }
     if (!isTestEnv() && "credentials" in navigator) {
       const credentials2 = await getLoginCredentialsFromBrowser();
-      if (credentials2) return connect(credentials2);
+      if (credentials2)
+        return connect(credentials2);
     }
-    if (!isTestEnv()) log4.debug("attemptNonPreboundSession: Couldn't find credentials to log in with");
+    if (!isTestEnv())
+      log4.debug("attemptNonPreboundSession: Couldn't find credentials to log in with");
   } else if ([ANONYMOUS, EXTERNAL].includes(api3.settings.get("authentication")) && (!automatic || api3.settings.get("auto_login"))) {
     connect();
   }
 }
 __name(attemptNonPreboundSession, "attemptNonPreboundSession");
 async function savedLoginInfo(jid) {
-  const id = `converse.scram-keys-${Strophe4.getBareJidFromJid(jid)}`;
+  const id = `converse.scram-keys-${Strophe6.getBareJidFromJid(jid)}`;
   if (converse_default.state.login_info?.get("id") === id) {
     return converse_default.state.login_info;
   }
-  const login_info = new Model2({ id });
+  const login_info = (
+    /** @type {Model} */
+    new Model2({ id })
+  );
   converse_default.state.login_info = login_info;
   initStorage(login_info, id, "persistent");
   await new Promise((f) => login_info.fetch({ "success": f, "error": f }));
@@ -1303,7 +1496,7 @@ async function connect(credentials) {
           "autoLogin: If you use auto_login and authentication='login' then you also need to provide a password."
         );
       }
-      connection2.setDisconnectionCause(Strophe4.Status.AUTHFAIL, void 0, true);
+      connection2.setDisconnectionCause(Strophe6.Status.AUTHFAIL, void 0, true);
       api3.connection.disconnect();
       return;
     }
@@ -1320,7 +1513,8 @@ async function connect(credentials) {
        */
       /* @__PURE__ */ __name((status, message) => {
         const { scram_keys } = connection2;
-        if (scram_keys) login_info.save({ scram_keys });
+        if (scram_keys)
+          login_info.save({ scram_keys });
         connection2.onConnectStatusChanged(status, message);
       }, "callback");
     }
@@ -1338,9 +1532,9 @@ function safeSave(model, attributes, options) {
 __name(safeSave, "safeSave");
 
 // shared/connection/index.js
-var i = Object.keys(Strophe5.Status).reduce((max, k) => Math.max(max, Strophe5.Status[k]), 0);
-Strophe5.Status.RECONNECTING = i + 1;
-var Connection = class extends Strophe5.Connection {
+var i = Object.keys(Strophe7.Status).reduce((max, k) => Math.max(max, Strophe7.Status[k]), 0);
+Strophe7.Status.RECONNECTING = i + 1;
+var Connection = class extends Strophe7.Connection {
   static {
     __name(this, "Connection");
   }
@@ -1351,11 +1545,11 @@ var Connection = class extends Strophe5.Connection {
   }
   /** @param {Element} body */
   xmlInput(body) {
-    log5.debug(body.outerHTML, "color: darkgoldenrod");
+    log5.debug("%c%s", "color: darkgoldenrod", body.outerHTML);
   }
   /** @param {Element} body */
   xmlOutput(body) {
-    log5.debug(body.outerHTML, "color: darkcyan");
+    log5.debug("%c%s", "color: darkcyan", body.outerHTML);
   }
   async bind() {
     const { api: api3 } = converse_default;
@@ -1369,8 +1563,8 @@ var Connection = class extends Strophe5.Connection {
     if (xrd.nodeName != "XRD" || xrd.namespaceURI != "http://docs.oasis-open.org/ns/xri/xrd-1.0") {
       return log5.info("Could not discover XEP-0156 connection methods");
     }
-    const bosh_links = sizzle(`Link[rel="urn:xmpp:alt-connections:xbosh"]`, xrd);
-    const ws_links = sizzle(`Link[rel="urn:xmpp:alt-connections:websocket"]`, xrd);
+    const bosh_links = sizzle2(`Link[rel="urn:xmpp:alt-connections:xbosh"]`, xrd);
+    const ws_links = sizzle2(`Link[rel="urn:xmpp:alt-connections:websocket"]`, xrd);
     const bosh_methods = bosh_links.map((el) => el.getAttribute("href")).filter((uri) => uri.startsWith("https:"));
     const ws_methods = ws_links.map((el) => el.getAttribute("href")).filter((uri) => uri.startsWith("wss:"));
     if (bosh_methods.length === 0 && ws_methods.length === 0) {
@@ -1383,11 +1577,11 @@ var Connection = class extends Strophe5.Connection {
     }
   }
   /**
-   * Adds support for XEP-0156 by quering the XMPP server for alternate
+   * Adds support for XEP-0156 by querying the XMPP server for alternate
    * connection methods. This allows users to use the websocket or BOSH
    * connection of their own XMPP server instead of a proxy provided by the
    * host of Converse.js.
-   * @method Connnection.discoverConnectionMethods
+   * @method Connection.discoverConnectionMethods
    * @param {string} domain
    */
   async discoverConnectionMethods(domain) {
@@ -1427,13 +1621,13 @@ var Connection = class extends Strophe5.Connection {
   async connect(jid, password, callback) {
     const { __, api: api3 } = converse_default;
     if (api3.settings.get("discover_connection_methods")) {
-      const domain = Strophe5.getDomainFromJid(jid);
+      const domain = Strophe7.getDomainFromJid(jid);
       await this.discoverConnectionMethods(domain);
     }
     if (!api3.settings.get("bosh_service_url") && !api3.settings.get("websocket_url")) {
       api3.settings.set("show_connection_url_input", true);
       (callback || this.onConnectStatusChanged.bind(this))(
-        Strophe5.Status.DISCONNECTED,
+        Strophe7.Status.DISCONNECTED,
         __("Could not automatically determine a connection URL")
       );
       return;
@@ -1463,7 +1657,7 @@ var Connection = class extends Strophe5.Connection {
     if (api3.connection.isType("websocket") && api3.settings.get("bosh_service_url")) {
       await setUserJID(bare_jid);
       this._proto._doDisconnect();
-      this._proto = new Strophe5.Bosh(this);
+      this._proto = new Strophe7.Bosh(this);
       this.service = api3.settings.get("bosh_service_url");
     } else if (api3.connection.isType("bosh") && api3.settings.get("websocket_url")) {
       if (api3.settings.get("authentication") === ANONYMOUS) {
@@ -1472,7 +1666,7 @@ var Connection = class extends Strophe5.Connection {
         await setUserJID(bare_jid);
       }
       this._proto._doDisconnect();
-      this._proto = new Strophe5.Websocket(this);
+      this._proto = new Strophe7.Websocket(this);
       this.service = api3.settings.get("websocket_url");
     }
   }
@@ -1482,9 +1676,9 @@ var Connection = class extends Strophe5.Connection {
     this.reconnecting = true;
     await tearDown(converse_default);
     const conn_status = converse_default.state.connfeedback.get("connection_status");
-    if (conn_status === Strophe5.Status.CONNFAIL) {
+    if (conn_status === Strophe7.Status.CONNFAIL) {
       this.switchTransport();
-    } else if (conn_status === Strophe5.Status.AUTHFAIL && api3.settings.get("authentication") === ANONYMOUS) {
+    } else if (conn_status === Strophe7.Status.AUTHFAIL && api3.settings.get("authentication") === ANONYMOUS) {
       await setUserJID(api3.settings.get("jid"));
     }
     api3.trigger("will-reconnect");
@@ -1503,7 +1697,9 @@ var Connection = class extends Strophe5.Connection {
   async onConnected(reconnecting) {
     const { api: api3 } = converse_default;
     delete this.reconnecting;
-    this.flush();
+    if (this.isType("bosh")) {
+      this.flush();
+    }
     await setUserJID(this.jid);
     if (converse_default.state.config.get("trusted")) {
       const bare_jid = converse_default.session.get("bare_jid");
@@ -1543,7 +1739,7 @@ var Connection = class extends Strophe5.Connection {
     converse_default.state.connfeedback.set({ connection_status: status, message });
   }
   async finishDisconnection() {
-    this.setConnectionStatus(Strophe5.Status.DISCONNECTED, this.disconnection_reason);
+    this.setConnectionStatus(Strophe7.Status.DISCONNECTED, this.disconnection_reason);
     const { api: api3 } = converse_default;
     log5.debug("DISCONNECTED");
     delete this.reconnecting;
@@ -1563,20 +1759,20 @@ var Connection = class extends Strophe5.Connection {
     const { api: api3 } = converse_default;
     if (api3.settings.get("auto_reconnect")) {
       const reason = this.disconnection_reason;
-      if (this.disconnection_cause === Strophe5.Status.AUTHFAIL) {
+      if (this.disconnection_cause === Strophe7.Status.AUTHFAIL) {
         if (api3.settings.get("credentials_url") || api3.settings.get("authentication") === ANONYMOUS) {
           return api3.connection.reconnect();
         } else {
           return this.finishDisconnection();
         }
-      } else if (this.status === Strophe5.Status.CONNECTING) {
+      } else if (this.status === Strophe7.Status.CONNECTING) {
         const { __ } = converse_default;
         this.setConnectionStatus(
-          Strophe5.Status.CONNFAIL,
+          Strophe7.Status.CONNFAIL,
           __("An error occurred while connecting to the chat server.")
         );
         return this.finishDisconnection();
-      } else if (this.disconnection_cause === LOGOUT || reason === Strophe5.ErrorCondition.NO_AUTH_MECH || reason === "host-unknown" || reason === "remote-connection-failed") {
+      } else if (this.disconnection_cause === LOGOUT || reason === Strophe7.ErrorCondition.NO_AUTH_MECH || reason === "host-unknown" || reason === "remote-connection-failed" || reason === "not-well-formed") {
         return this.finishDisconnection();
       }
       api3.connection.reconnect();
@@ -1594,62 +1790,62 @@ var Connection = class extends Strophe5.Connection {
   onConnectStatusChanged(status, condition) {
     const { __ } = converse_default;
     log5.debug(`Status changed to: ${CONNECTION_STATUS[status]}`);
-    if (status === Strophe5.Status.ATTACHFAIL) {
+    if (status === Strophe7.Status.ATTACHFAIL) {
       this.setConnectionStatus(status);
       this.worker_attach_promise?.resolve(false);
-    } else if (status === Strophe5.Status.CONNECTED || status === Strophe5.Status.ATTACHED) {
-      if (this.worker_attach_promise?.isResolved && this.status === Strophe5.Status.ATTACHED) {
+    } else if (status === Strophe7.Status.CONNECTED || status === Strophe7.Status.ATTACHED) {
+      if (this.worker_attach_promise?.isResolved && this.status === Strophe7.Status.ATTACHED) {
         return;
       }
       this.setConnectionStatus(status);
       this.worker_attach_promise?.resolve(true);
       this.setDisconnectionCause();
+      if (this.restored) {
+        this.send_initial_presence = false;
+      }
       if (this.reconnecting) {
-        log5.debug(status === Strophe5.Status.CONNECTED ? "Reconnected" : "Reattached");
+        log5.debug(status === Strophe7.Status.CONNECTED ? "Reconnected" : "Reattached");
         this.onConnected(true);
       } else {
-        log5.debug(status === Strophe5.Status.CONNECTED ? "Connected" : "Attached");
-        if (this.restored) {
-          this.send_initial_presence = false;
-        }
+        log5.debug(status === Strophe7.Status.CONNECTED ? "Connected" : "Attached");
         this.onConnected();
       }
-    } else if (status === Strophe5.Status.DISCONNECTED) {
+    } else if (status === Strophe7.Status.DISCONNECTED) {
       this.setDisconnectionCause(status, condition);
       this.onDisconnected();
-    } else if (status === Strophe5.Status.BINDREQUIRED) {
+    } else if (status === Strophe7.Status.BINDREQUIRED) {
       this.bind();
-    } else if (status === Strophe5.Status.ERROR) {
+    } else if (status === Strophe7.Status.ERROR) {
       this.setConnectionStatus(
         status,
         __("An error occurred while connecting to the chat server.")
       );
-    } else if (status === Strophe5.Status.CONNECTING) {
+    } else if (status === Strophe7.Status.CONNECTING) {
       this.setConnectionStatus(status);
-    } else if (status === Strophe5.Status.AUTHENTICATING) {
+    } else if (status === Strophe7.Status.AUTHENTICATING) {
       this.setConnectionStatus(status);
-    } else if (status === Strophe5.Status.AUTHFAIL) {
+    } else if (status === Strophe7.Status.AUTHFAIL) {
       if (!condition) {
         condition = __("Your XMPP address and/or password is incorrect. Please try again.");
       }
       this.setConnectionStatus(status, condition);
       this.setDisconnectionCause(status, condition, true);
       this.onDisconnected();
-    } else if (status === Strophe5.Status.CONNFAIL) {
+    } else if (status === Strophe7.Status.CONNFAIL) {
       let feedback = condition;
       if (condition === "host-unknown" || condition == "remote-connection-failed") {
         feedback = __(
           "We could not connect to %1$s, is your XMPP address correct?",
-          Strophe5.getDomainFromJid(this.jid)
+          Strophe7.getDomainFromJid(this.jid)
         );
       } else if (condition === "policy-violation") {
         feedback = __("The XMPP server rejected the connection because of a policy violation");
-      } else if (condition !== void 0 && condition === Strophe5?.ErrorCondition?.NO_AUTH_MECH) {
+      } else if (condition !== void 0 && condition === Strophe7?.ErrorCondition?.NO_AUTH_MECH) {
         feedback = __("The XMPP server did not offer a supported authentication mechanism");
       }
       this.setConnectionStatus(status, feedback);
       this.setDisconnectionCause(status, condition);
-    } else if (status === Strophe5.Status.DISCONNECTING) {
+    } else if (status === Strophe7.Status.DISCONNECTING) {
       this.setConnectionStatus(status);
       this.setDisconnectionCause(status, condition);
     }
@@ -1659,15 +1855,15 @@ var Connection = class extends Strophe5.Connection {
    */
   isType(type) {
     if (type.toLowerCase() === "websocket") {
-      return this._proto instanceof Strophe5.Websocket;
+      return this._proto instanceof Strophe7.Websocket;
     } else if (type.toLowerCase() === "bosh") {
-      return Strophe5.Bosh && this._proto instanceof Strophe5.Bosh;
+      return Strophe7.Bosh && this._proto instanceof Strophe7.Bosh;
     }
   }
   hasResumed() {
     const { api: api3 } = converse_default;
     if (api3.settings.get("connection_options")?.worker || this.isType("bosh")) {
-      return converse_default.state.connfeedback.get("connection_status") === Strophe5.Status.ATTACHED;
+      return converse_default.state.connfeedback.get("connection_status") === Strophe7.Status.ATTACHED;
     } else {
       return !this.do_bind;
     }
@@ -1691,7 +1887,7 @@ var MockConnection = class extends Connection {
     this.sent_stanzas = [];
     this.IQ_stanzas = [];
     this.IQ_ids = [];
-    this.features = Strophe5.xmlHtmlNode(
+    this.features = Strophe7.xmlHtmlNode(
       `<stream:features xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client"><ver xmlns="urn:xmpp:features:rosterver"/><csi xmlns="urn:xmpp:csi:0"/><this xmlns="http://jabber.org/protocol/caps" ver="UwBpfJpEt3IoLYfWma/o/p3FFRo=" hash="sha-1" node="http://prosody.im"/><bind xmlns="urn:ietf:params:xml:ns:xmpp-bind"><required/></bind><sm xmlns='urn:xmpp:sm:3'/><session xmlns="urn:ietf:params:xml:ns:xmpp-session"><optional/></session></stream:features>`
     ).firstElementChild;
     this._proto._processRequest = () => {
@@ -1703,12 +1899,12 @@ var MockConnection = class extends Connection {
       this.connected = true;
       this.mock = true;
       this.jid = "romeo@montague.lit/orchard";
-      this._changeConnectStatus(Strophe5.Status.BINDREQUIRED);
+      this._changeConnectStatus(Strophe7.Status.BINDREQUIRED);
     };
   }
   // @ts-ignore
   get _sasl_mechanism() {
-    return new Strophe5.SASLSHA256();
+    return new Strophe7.SASLSHA256();
   }
   _processRequest() {
   }
@@ -1728,12 +1924,12 @@ var MockConnection = class extends Connection {
     const { api: api3 } = converse_default;
     await api3.trigger("beforeResourceBinding", { "synchronous": true });
     this.authenticated = true;
-    this._changeConnectStatus(Strophe5.Status.CONNECTED);
+    this._changeConnectStatus(Strophe7.Status.CONNECTED);
   }
 };
 
 // shared/connection/api.js
-import { Strophe as Strophe6 } from "strophe.js";
+import { Strophe as Strophe8 } from "strophe.js";
 var connection;
 var default_connection_options = { "explicitResourceBinding": true };
 var api_default = {
@@ -1744,7 +1940,8 @@ var api_default = {
    * @return {Connection|MockConnection}
    */
   init(jid) {
-    if (jid && connection?.jid && isSameDomain(connection.jid, jid)) return connection;
+    if (jid && connection?.jid && isSameDomain(connection.jid, jid))
+      return connection;
     if (!settings_api.get("bosh_service_url") && settings_api.get("authentication") === PREBIND) {
       throw new Error("authentication is set to 'prebind' but we don't have a BOSH connection");
     }
@@ -1803,7 +2000,7 @@ var api_default = {
    */
   reconnect() {
     connection.setConnectionStatus(
-      Strophe6.Status.RECONNECTING,
+      Strophe8.Status.RECONNECTING,
       "The connection has dropped, attempting to reconnect."
     );
     if (connection?.reconnecting) {
@@ -1837,12 +2034,22 @@ import log6 from "@converse/log";
 import { getOpenPromise as getOpenPromise4 } from "@converse/openpromise";
 function debounce3(func, timeout) {
   let timer;
-  return function(...args) {
+  let lastArgs = [];
+  let lastThis;
+  function debounced(...args) {
+    lastArgs = args;
+    lastThis = this;
     clearTimeout(timer);
     timer = setTimeout(() => {
-      func.apply(this, args);
+      func.apply(lastThis, lastArgs);
     }, timeout);
+  }
+  __name(debounced, "debounced");
+  debounced.flush = function() {
+    clearTimeout(timer);
+    func.apply(lastThis, lastArgs);
   };
+  return debounced;
 }
 __name(debounce3, "debounce");
 /**
@@ -1916,20 +2123,19 @@ var promise_default = {
    * Converse and its plugins trigger various events which you can listen to via the
    * {@link _converse.api.listen} namespace.
    *
-   * Some of these events are also available as [ES2015 Promises](http://es6-features.org/#PromiseUsage)
-   * although not all of them could logically act as promises, since some events
-   * might be fired multpile times whereas promises are to be resolved (or
-   * rejected) only once.
+   * Some of these events are also available as Promises although not all of them could
+   * logically act as promises, since some events might be fired multiple times whereas
+   * promises are to be resolved (or rejected) only once.
    *
    * Events which are also promises include:
    *
-   * * [cachedRoster](/docs/html/events.html#cachedroster)
-   * * [chatBoxesFetched](/docs/html/events.html#chatBoxesFetched)
-   * * [pluginsInitialized](/docs/html/events.html#pluginsInitialized)
-   * * [roster](/docs/html/events.html#roster)
-   * * [rosterContactsFetched](/docs/html/events.html#rosterContactsFetched)
-   * * [rosterGroupsFetched](/docs/html/events.html#rosterGroupsFetched)
-   * * [rosterInitialized](/docs/html/events.html#rosterInitialized)
+   * * cachedRoster
+   * * chatBoxesFetched
+   * * pluginsInitialized
+   * * roster
+   * * rosterContactsFetched
+   * * rosterGroupsFetched
+   * * rosterInitialized
    *
    * The various plugins might also provide promises, and they do this by using the
    * `promises.add` api method.
@@ -1990,7 +2196,7 @@ var promise_default = {
 
 // shared/api/send.js
 import log7 from "@converse/log";
-import { Strophe as Strophe7 } from "strophe.js";
+import { Strophe as Strophe9 } from "strophe.js";
 
 // shared/errors.js
 var errors_exports = {};
@@ -2235,7 +2441,7 @@ var send_default = {
     const { api: api3 } = converse_default;
     if (!api3.connection.connected()) {
       log7.warn("Not sending stanza because we're not connected!");
-      log7.warn(Strophe7.serialize(stanza));
+      log7.warn(stanza);
       return;
     }
     const el = stanza instanceof Element ? stanza : stanza.tree();
@@ -2273,9 +2479,8 @@ var send_default = {
         promise = new Promise((resolve, reject2) => connection2.sendIQ(el, resolve, reject2, timeout));
         promise.catch((e) => {
           if (e === null) {
-            throw new TimeoutError(
-              `Timeout error after ${timeout}ms for the following IQ stanza: ${Strophe7.serialize(el)}`
-            );
+            log7.error(el);
+            throw new TimeoutError(`Timeout error after ${timeout}ms for IQ stanza`);
           }
         });
       } else {
@@ -2291,7 +2496,7 @@ var send_default = {
 };
 
 // plugins/chatboxes/utils.js
-import { Strophe as Strophe8 } from "strophe.js";
+import { Strophe as Strophe10 } from "strophe.js";
 import log8 from "@converse/log";
 async function onClearSession() {
   if (shouldClearCache(converse_default)) {
@@ -2309,7 +2514,7 @@ async function onClearSession() {
 }
 __name(onClearSession, "onClearSession");
 async function createChatBox(jid, attrs, Model33) {
-  jid = Strophe8.getBareJidFromJid(jid.toLowerCase());
+  jid = Strophe10.getBareJidFromJid(jid.toLowerCase());
   Object.assign(attrs, { "jid": jid, "id": jid });
   let chatbox;
   try {
@@ -2398,7 +2603,7 @@ var api_default2 = {
 
 // plugins/muc/api.js
 import log9 from "@converse/log";
-import { Strophe as Strophe9 } from "strophe.js";
+import { Strophe as Strophe11 } from "strophe.js";
 var { waitUntil: waitUntil3 } = promise_default;
 var rooms = {
   /**
@@ -2417,7 +2622,7 @@ var rooms = {
     attrs = typeof attrs === "string" ? { "nick": attrs } : attrs || {};
     if (!attrs.nick && settings_api.get("muc_nickname_from_jid")) {
       const bare_jid = converse_default.session.get("bare_jid");
-      attrs.nick = Strophe9.getNodeFromJid(bare_jid);
+      attrs.nick = Strophe11.getNodeFromJid(bare_jid);
     }
     if (jids === void 0) {
       throw new TypeError("rooms.create: You need to provide at least one JID");
@@ -2545,7 +2750,7 @@ var rooms = {
     __name(_get, "_get");
     if (jids === void 0) {
       const chats = await api_default2.get();
-      return chats.filter((c) => c.get("type") === CHATROOMS_TYPE);
+      return chats?.filter((c) => c.get("type") === CHATROOMS_TYPE) ?? [];
     } else if (typeof jids === "string") {
       return _get(jids);
     }
@@ -2568,7 +2773,7 @@ var presence_default = {
     /**
      * Send out a presence stanza
      * @method _converse.api.user.presence.send
-     * @param {import('../../plugins/status/types').presence_attrs} [attrs]
+     * @param {import('../../plugins/status/types').PresenceAttrs} [attrs]
      * @param {Array<Element>|Array<Builder>|Element|Builder} [nodes]
      *  Nodes(s) to be added as child nodes of the `presence` XML element.
      */
@@ -2742,7 +2947,8 @@ var api = {
         jid = await setUserJID(jid);
       }
       const { success } = await converse_default.api.hook("login", this, { jid, password, automatic });
-      if (success) return;
+      if (success)
+        return;
       password = password || api3.settings.get("password");
       const credentials = jid && password ? { jid, password } : null;
       await attemptNonPreboundSession(credentials, automatic);
@@ -2790,149 +2996,13 @@ var api2 = {
 };
 var api_default4 = api2;
 
-// shared/parsers.js
-import dayjs2 from "dayjs";
-import log15 from "@converse/log";
-import { Strophe as Strophe16 } from "strophe.js";
-
-// utils/html.js
-var html_exports = {};
-__export(html_exports, {
-  decodeHTMLEntities: () => decodeHTMLEntities,
-  isElement: () => isElement,
-  isEqualNode: () => isEqualNode,
-  isTagEqual: () => isTagEqual,
-  queryChildren: () => queryChildren,
-  siblingIndex: () => siblingIndex,
-  stringToElement: () => stringToElement
-});
-import DOMPurify from "dompurify";
-import { Strophe as Strophe10, Builder, Stanza } from "strophe.js";
-function isElement(el) {
-  return el instanceof Element || el instanceof HTMLDocument;
-}
-__name(isElement, "isElement");
-var EMPTY_TEXT_REGEX = /\s*\n\s*/;
-function stripEmptyTextNodes(el) {
-  if (el instanceof Builder || el instanceof Stanza) {
-    el = el.tree();
-  }
-  let n;
-  const text_nodes = [];
-  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, (node) => {
-    if (node.parentElement.nodeName.toLowerCase() === "body") {
-      return NodeFilter.FILTER_REJECT;
-    }
-    return NodeFilter.FILTER_ACCEPT;
-  });
-  while (n = walker.nextNode()) text_nodes.push(n);
-  text_nodes.forEach((n2) => EMPTY_TEXT_REGEX.test(
-    /** @type {Text} */
-    n2.data
-  ) && n2.parentElement.removeChild(n2));
-  return el;
-}
-__name(stripEmptyTextNodes, "stripEmptyTextNodes");
-function isEqualNode(actual, expected) {
-  if (!isElement(actual)) throw new Error("Element being compared must be an Element!");
-  expected = stripEmptyTextNodes(expected);
-  actual = stripEmptyTextNodes(actual);
-  let isEqual2 = actual.isEqualNode(expected);
-  if (!isEqual2) {
-    const { xmlHtmlNode } = Strophe10;
-    const actual_string = Strophe10.serialize(actual);
-    const expected_string = Strophe10.serialize(expected);
-    isEqual2 = actual_string === expected_string || xmlHtmlNode(actual_string).isEqualNode(xmlHtmlNode(expected_string));
-  }
-  return isEqual2;
-}
-__name(isEqualNode, "isEqualNode");
-function isTagEqual(stanza, name) {
-  if (stanza instanceof Strophe10.Builder) {
-    return isTagEqual(stanza.tree(), name);
-  } else if (!(stanza instanceof Element)) {
-    throw Error("isTagEqual called with value which isn't an element or Strophe.Builder instance");
-  } else {
-    return Strophe10.isTagEqual(stanza, name);
-  }
-}
-__name(isTagEqual, "isTagEqual");
-function stringToElement(s) {
-  var div = document.createElement("div");
-  div.innerHTML = s;
-  return div.firstElementChild;
-}
-__name(stringToElement, "stringToElement");
-function queryChildren(el, selector) {
-  return Array.from(el.childNodes).filter((el2) => el2 instanceof Element && el2.matches(selector));
-}
-__name(queryChildren, "queryChildren");
-function siblingIndex(el) {
-  for (var i2 = 0; el = el.previousElementSibling; i2++) ;
-  return i2;
-}
-__name(siblingIndex, "siblingIndex");
-var element = document.createElement("div");
-function decodeHTMLEntities(str) {
-  if (str && typeof str === "string") {
-    element.innerHTML = DOMPurify.sanitize(str);
-    str = element.textContent;
-    element.textContent = "";
-  }
-  return str;
-}
-__name(decodeHTMLEntities, "decodeHTMLEntities");
-
-// utils/stanza.js
-var stanza_exports = {};
-__export(stanza_exports, {
-  getAttributes: () => getAttributes,
-  isErrorStanza: () => isErrorStanza,
-  isForbiddenError: () => isForbiddenError,
-  isServiceUnavailableError: () => isServiceUnavailableError,
-  toStanza: () => toStanza
-});
-import sizzle2 from "sizzle";
-import { Strophe as Strophe11 } from "strophe.js";
-import { toStanza } from "strophe.js";
-function isErrorStanza(stanza) {
-  if (!isElement(stanza)) {
-    return false;
-  }
-  return stanza.getAttribute("type") === "error";
-}
-__name(isErrorStanza, "isErrorStanza");
-function isForbiddenError(stanza) {
-  if (!isElement(stanza)) {
-    return false;
-  }
-  return sizzle2(`error[type="auth"] forbidden[xmlns="${Strophe11.NS.STANZAS}"]`, stanza).length > 0;
-}
-__name(isForbiddenError, "isForbiddenError");
-function isServiceUnavailableError(stanza) {
-  if (!isElement(stanza)) {
-    return false;
-  }
-  return sizzle2(`error[type="cancel"] service-unavailable[xmlns="${Strophe11.NS.STANZAS}"]`, stanza).length > 0;
-}
-__name(isServiceUnavailableError, "isServiceUnavailableError");
-function getAttributes(stanza) {
-  return stanza.getAttributeNames().reduce((acc, name) => {
-    acc[name] = Strophe11.xmlunescape(stanza.getAttribute(name));
-    return acc;
-  }, {});
-}
-__name(getAttributes, "getAttributes");
-
-// shared/actions.js
-import log14 from "@converse/log";
-import { Strophe as Strophe15 } from "strophe.js";
-
 // shared/api/public.js
 import { sprintf as sprintf2 } from "sprintf-js";
 import dayjs from "dayjs";
+import advancedFormat from "dayjs/plugin/advancedFormat";
+import localizedFormat from "dayjs/plugin/localizedFormat";
 import sizzle3 from "sizzle";
-import { Stanza as Stanza2, Strophe as Strophe14, $build, $iq, $msg, $pres, stx } from "strophe.js";
+import { Stanza as Stanza2, Strophe as Strophe13, $build, $iq, $msg, $pres, stx } from "strophe.js";
 import { Collection, Model as Model6 } from "@converse/skeletor";
 import { filesize } from "filesize";
 import { css, html, render, nothing } from "lit";
@@ -3033,7 +3103,8 @@ import { Hsluv } from "hsluv";
 var cache = /* @__PURE__ */ new Map();
 async function colorize(s) {
   const v = cache.get(s);
-  if (v) return v;
+  if (v)
+    return v;
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(s))));
   const angle = (digest[0] + digest[1] * 256) / 65536 * 360;
   const hsluv = new Hsluv();
@@ -3045,93 +3116,6 @@ async function colorize(s) {
   return hsluv.hex;
 }
 __name(colorize, "colorize");
-
-// utils/form.js
-var form_exports = {};
-__export(form_exports, {
-  getCurrentWord: () => getCurrentWord,
-  getSelectValues: () => getSelectValues,
-  isMentionBoundary: () => isMentionBoundary,
-  placeCaretAtEnd: () => placeCaretAtEnd,
-  replaceCurrentWord: () => replaceCurrentWord,
-  webForm2xForm: () => webForm2xForm
-});
-import { Strophe as Strophe13, toStanza as toStanza2 } from "strophe.js";
-/**
- * @copyright 2022, the Converse.js contributors
- * @license Mozilla Public License (MPLv2)
- * @description This is the form utilities module.
- */
-var tplXformField = /* @__PURE__ */ __name((name, value) => `<field var="${name}">${value}</field>`, "tplXformField");
-var tplXformValue = /* @__PURE__ */ __name((value) => `<value>${Strophe13.xmlescape(value)}</value>`, "tplXformValue");
-function getSelectValues(select) {
-  const result = [];
-  const options = select?.options;
-  for (let i2 = 0, iLen = options.length; i2 < iLen; i2++) {
-    const opt = options[i2];
-    if (opt.selected) {
-      result.push(opt.value || opt.text);
-    }
-  }
-  return result;
-}
-__name(getSelectValues, "getSelectValues");
-function webForm2xForm(field) {
-  const name = field.getAttribute("name");
-  if (!name) {
-    return null;
-  }
-  let value;
-  if (field.getAttribute("type") === "checkbox") {
-    value = /** @type {HTMLInputElement} */
-    field.checked && "1" || "0";
-  } else if (field.tagName == "TEXTAREA") {
-    value = field.value.split("\n").filter((s) => s.trim());
-  } else if (field.tagName == "SELECT") {
-    value = getSelectValues(
-      /** @type {HTMLSelectElement} */
-      field
-    );
-  } else {
-    value = field.value;
-  }
-  return toStanza2(tplXformField(name, Array.isArray(value) ? value.map(tplXformValue) : tplXformValue(value)));
-}
-__name(webForm2xForm, "webForm2xForm");
-function getCurrentWord(input, index, delineator) {
-  if (!index) {
-    index = input.selectionEnd || void 0;
-  }
-  let [word] = input.value.slice(0, index).split(/\s/).slice(-1);
-  if (delineator) {
-    [word] = word.split(delineator).slice(-1);
-  }
-  return word;
-}
-__name(getCurrentWord, "getCurrentWord");
-function isMentionBoundary(s) {
-  return s !== "@" && RegExp(`(\\p{Z}|\\p{P})`, "u").test(s);
-}
-__name(isMentionBoundary, "isMentionBoundary");
-function replaceCurrentWord(input, new_value) {
-  const caret = input.selectionEnd || void 0;
-  const current_word = input.value.slice(0, caret).split(/\s/).pop();
-  const value = input.value;
-  const mention_boundary = isMentionBoundary(current_word[0]) ? current_word[0] : "";
-  input.value = value.slice(0, caret - current_word.length) + mention_boundary + `${new_value} ` + value.slice(caret);
-  const selection_end = caret - current_word.length + new_value.length + 1;
-  input.selectionEnd = mention_boundary ? selection_end + 1 : selection_end;
-}
-__name(replaceCurrentWord, "replaceCurrentWord");
-function placeCaretAtEnd(textarea) {
-  if (textarea !== document.activeElement) {
-    textarea.focus();
-  }
-  const len = textarea.value.length * 2;
-  setTimeout(() => textarea.setSelectionRange(len, len), 1);
-  textarea.scrollTop = 999999;
-}
-__name(placeCaretAtEnd, "placeCaretAtEnd");
 
 // utils/text.js
 var text_exports = {};
@@ -3277,7 +3261,8 @@ function withinString(string, callback, options) {
   _start.lastIndex = 0;
   while (true) {
     const match = _start.exec(string);
-    if (!match) break;
+    if (!match)
+      break;
     let start = match.index;
     if (options.ignoreHtml) {
       const attributeOpen = string.slice(Math.max(start - 3, 0), start);
@@ -3290,7 +3275,8 @@ function withinString(string, callback, options) {
     let parensEnd = -1;
     while (true) {
       const parensMatch = _parens.exec(slice);
-      if (!parensMatch) break;
+      if (!parensMatch)
+        break;
       const parensMatchEnd = parensMatch.index + parensMatch[0].length;
       parensEnd = Math.max(parensEnd, parensMatchEnd);
     }
@@ -3299,8 +3285,10 @@ function withinString(string, callback, options) {
     } else {
       slice = slice.replace(_trim, "");
     }
-    if (slice.length <= match[0].length) continue;
-    if (options.ignore && options.ignore.test(slice)) continue;
+    if (slice.length <= match[0].length)
+      continue;
+    if (options.ignore && options.ignore.test(slice))
+      continue;
     end = start + slice.length;
     const result = callback(slice, start, end);
     if (result === void 0) {
@@ -3410,10 +3398,13 @@ __name(addMediaURLsOffset, "addMediaURLsOffset");
  * @description This is the core utilities module.
  */
 var u = {
-  muc: null,
+  bookmarks: null,
+  emojis: null,
   mam: null,
-  roster: null,
-  omemo: null
+  muc: null,
+  omemo: null,
+  reactions: null,
+  roster: null
 };
 function setLogLevelFromRoute(event) {
   if (location.hash.startsWith("#converse?loglevel=")) {
@@ -3486,32 +3477,36 @@ function getUniqueId(suffix) {
   }
 }
 __name(getUniqueId, "getUniqueId");
-var utils_default = Object.assign({
-  ...array_exports,
-  ...arraybuffer_exports,
-  ...color_exports,
-  ...form_exports,
-  ...html_exports,
-  ...init_exports,
-  ...jid_exports,
-  ...object_exports,
-  ...promise_exports,
-  ...session_exports,
-  ...stanza_exports,
-  ...storage_exports,
-  ...text_exports,
-  ...url_exports,
-  getRandomInt,
-  getUniqueId,
-  isEmptyMessage,
-  onMultipleEvents,
-  prefixMentions,
-  shouldCreateMessage,
-  triggerEvent
-}, u);
+var utils_default = Object.assign(
+  {
+    ...array_exports,
+    ...arraybuffer_exports,
+    ...color_exports,
+    ...html_exports,
+    ...init_exports,
+    ...jid_exports,
+    ...object_exports,
+    ...promise_exports,
+    ...session_exports,
+    ...stanza_exports,
+    ...storage_exports,
+    ...text_exports,
+    ...url_exports,
+    getRandomInt,
+    getUniqueId,
+    isEmptyMessage,
+    onMultipleEvents,
+    prefixMentions,
+    shouldCreateMessage,
+    triggerEvent
+  },
+  u
+);
 
 // shared/api/public.js
 converse_default.api = api_default4;
+dayjs.extend(advancedFormat);
+dayjs.extend(localizedFormat);
 var env = (
   /** @type {import('./types').ConverseEnv} */
   {
@@ -3522,7 +3517,7 @@ var env = (
     Collection,
     Model: Model6,
     Stanza: Stanza2,
-    Strophe: Strophe14,
+    Strophe: Strophe13,
     TimeoutError,
     VERSION_NAME,
     css,
@@ -3552,7 +3547,7 @@ var converse = Object.assign(
      * @async
      * @memberOf converse
      * @method initialize
-     * @param { object } settings A map of [configuration-settings](https://conversejs.org/docs/html/configuration.html#configuration-settings).
+     * @param { object } settings A map of [configuration-settings](https://conversejs.org/docs/configuration/#configuration-settings).
      * @example
      * converse.initialize({
      *     auto_list_rooms: false,
@@ -3602,7 +3597,8 @@ var converse = Object.assign(
      * Exposes methods for adding and removing plugins. You'll need to write a plugin
      * if you want to have access to the private API methods defined further down below.
      *
-     * For more information on plugins, read the documentation on [writing a plugin](/docs/html/plugin_development.html).
+     * For more information on plugins, read the documentation on
+     * [writing a plugin](https://conversejs.org/docs/development/plugin-development/).
      * @namespace plugins
      * @memberOf converse
      */
@@ -3651,8 +3647,8 @@ function rejectMessage(stanza, text) {
                     id="${stanza.getAttribute("id")}"
                     xmlns="jabber:client">
                 <error type="cancel">
-                    <not-allowed xmlns="${Strophe15.NS.STANZAS}"/>
-                    <text xmlns="${Strophe15.NS.STANZAS}">${text}</text>
+                    <not-allowed xmlns="${Strophe14.NS.STANZAS}"/>
+                    <text xmlns="${Strophe14.NS.STANZAS}">${text}</text>
                 </error>
             </message>`
   );
@@ -3673,7 +3669,7 @@ function sendMarker(to_jid, id, type, msg_type) {
                 to="${to_jid}"
                 type="${msg_type ? msg_type : "chat"}"
                 xmlns="jabber:client">
-            <${Stanza3.unsafeXML(type)} xmlns="${Strophe15.NS.MARKERS}" id="${id}"/>
+            <${Stanza3.unsafeXML(type)} xmlns="${Strophe14.NS.MARKERS}" id="${id}"/>
         </message>`;
   api_default4.send(stanza);
 }
@@ -3687,8 +3683,8 @@ function sendReceiptStanza(to_jid, id) {
                 to="${to_jid}"
                 type="chat"
                 xmlns="jabber:client">
-            <received xmlns="${Strophe15.NS.RECEIPTS}" id="${id}"/>
-            <store xmlns="${Strophe15.NS.HINTS}"/>
+            <received xmlns="${Strophe14.NS.RECEIPTS}" id="${id}"/>
+            <store xmlns="${Strophe14.NS.HINTS}"/>
         </message>`;
   api_default4.send(receipt_stanza);
 }
@@ -3708,9 +3704,9 @@ function sendChatState(jid, chat_state) {
     }
     api_default4.send(
       stx2`<message id="${u2.getUniqueId()}" to="${jid}" type="chat" xmlns="jabber:client">
-                <${Stanza3.unsafeXML(chat_state)} xmlns="${Strophe15.NS.CHATSTATES}"/>
-                <no-store xmlns="${Strophe15.NS.HINTS}"/>
-                <no-permanent-store xmlns="${Strophe15.NS.HINTS}"/>
+                <${Stanza3.unsafeXML(chat_state)} xmlns="${Strophe14.NS.CHATSTATES}"/>
+                <no-store xmlns="${Strophe14.NS.HINTS}"/>
+                <no-permanent-store xmlns="${Strophe14.NS.HINTS}"/>
             </message>`
     );
   }
@@ -3726,24 +3722,29 @@ function sendRetractionMessage(jid, message, retraction_id) {
                  to="${jid}"
                  type="chat"
                  xmlns="jabber:client">
-            <retract id="${origin_id}" xmlns="${Strophe15.NS.RETRACT}"/>
+            <retract id="${origin_id}" xmlns="${Strophe14.NS.RETRACT}"/>
             <body>/me retracted a message</body>
-            <store xmlns="${Strophe15.NS.HINTS}"/>
-            <fallback xmlns="${Strophe15.NS.FALLBACK}" for="${Strophe15.NS.RETRACT}" />
+            <store xmlns="${Strophe14.NS.HINTS}"/>
+            <fallback xmlns="${Strophe14.NS.FALLBACK}" for="${Strophe14.NS.RETRACT}" />
         </message>`;
   return api_default4.connection.get().send(stanza);
 }
 __name(sendRetractionMessage, "sendRetractionMessage");
 
 // shared/parsers.js
-var { NS } = Strophe16;
+var { dayjs: dayjs2 } = public_default.env;
+var { NS } = Strophe15;
 async function parseErrorStanza(stanza) {
-  if (stanza === null) return null;
-  if (stanza instanceof Error) return stanza;
-  if (stanza.getAttribute("type") !== "error") return null;
+  if (stanza === null)
+    return null;
+  if (stanza instanceof Error)
+    return stanza;
+  if (stanza.getAttribute("type") !== "error")
+    return null;
   const error = stanza.querySelector("error");
-  if (!error) return null;
-  const els = sizzle4(`[xmlns="${Strophe16.NS.STANZAS}"]`, error);
+  if (!error)
+    return null;
+  const els = sizzle4(`[xmlns="${Strophe15.NS.STANZAS}"]`, error);
   const name = els.filter((el) => el.nodeName && el.nodeName !== "text").pop()?.nodeName;
   const extra = await api_default4.hook("parseErrorStanza", stanza, {});
   if (name === "bad-request") {
@@ -3795,18 +3796,18 @@ async function parseErrorStanza(stanza) {
 }
 __name(parseErrorStanza, "parseErrorStanza");
 function getStanzaIDs(stanza, original_stanza) {
-  const sids = sizzle4(`stanza-id[xmlns="${Strophe16.NS.SID}"]`, stanza);
+  const sids = sizzle4(`stanza-id[xmlns="${Strophe15.NS.SID}"]`, stanza);
   const sid_attrs = sids.reduce((acc, s) => {
     acc[`stanza_id ${s.getAttribute("by")}`] = s.getAttribute("id");
     return acc;
   }, {});
-  const origin_id = sizzle4(`origin-id[xmlns="${Strophe16.NS.SID}"]`, stanza).pop()?.getAttribute("id");
+  const origin_id = sizzle4(`origin-id[xmlns="${Strophe15.NS.SID}"]`, stanza).pop()?.getAttribute("id");
   const attrs = {
     origin_id,
     msgid: stanza.getAttribute("id") || original_stanza.getAttribute("id"),
     ...sid_attrs
   };
-  const result = sizzle4(`message > result[xmlns="${Strophe16.NS.MAM}"]`, original_stanza).pop();
+  const result = sizzle4(`message > result[xmlns="${Strophe15.NS.MAM}"]`, original_stanza).pop();
   if (result) {
     const bare_jid = converse_default.session.get("bare_jid");
     const by_jid = original_stanza.getAttribute("from") || bare_jid;
@@ -3816,26 +3817,26 @@ function getStanzaIDs(stanza, original_stanza) {
 }
 __name(getStanzaIDs, "getStanzaIDs");
 function getEncryptionAttributes(stanza) {
-  const eme_tag = sizzle4(`encryption[xmlns="${Strophe16.NS.EME}"]`, stanza).pop();
+  const eme_tag = sizzle4(`encryption[xmlns="${Strophe15.NS.EME}"]`, stanza).pop();
   const namespace = eme_tag?.getAttribute("namespace");
   const attrs = {};
   if (namespace) {
     attrs.is_encrypted = true;
     attrs.encryption_namespace = namespace;
-  } else if (sizzle4(`encrypted[xmlns="${Strophe16.NS.OMEMO}"]`, stanza).pop()) {
+  } else if (sizzle4(`encrypted[xmlns="${Strophe15.NS.OMEMO}"]`, stanza).pop()) {
     attrs.is_encrypted = true;
-    attrs.encryption_namespace = Strophe16.NS.OMEMO;
+    attrs.encryption_namespace = Strophe15.NS.OMEMO;
   }
   return attrs;
 }
 __name(getEncryptionAttributes, "getEncryptionAttributes");
 function getDeprecatedRetractionAttributes(stanza, original_stanza) {
-  const fastening = sizzle4(`> apply-to[xmlns="${Strophe16.NS.FASTEN}"]`, stanza).pop();
+  const fastening = sizzle4(`> apply-to[xmlns="${Strophe15.NS.FASTEN}"]`, stanza).pop();
   if (fastening) {
     const applies_to_id = fastening.getAttribute("id");
-    const retracted = sizzle4(`> retract[xmlns="${Strophe16.NS.RETRACT0}"]`, fastening).pop();
+    const retracted = sizzle4(`> retract[xmlns="${Strophe15.NS.RETRACT0}"]`, fastening).pop();
     if (retracted) {
-      const delay = sizzle4(`delay[xmlns="${Strophe16.NS.DELAY}"]`, original_stanza).pop();
+      const delay = sizzle4(`delay[xmlns="${Strophe15.NS.DELAY}"]`, original_stanza).pop();
       const time = delay ? dayjs2(delay.getAttribute("stamp")).toISOString() : (/* @__PURE__ */ new Date()).toISOString();
       return {
         editable: false,
@@ -3848,9 +3849,9 @@ function getDeprecatedRetractionAttributes(stanza, original_stanza) {
 }
 __name(getDeprecatedRetractionAttributes, "getDeprecatedRetractionAttributes");
 function getRetractionAttributes(stanza, original_stanza) {
-  const retraction = sizzle4(`> retract[xmlns="${Strophe16.NS.RETRACT}"]`, stanza).pop();
+  const retraction = sizzle4(`> retract[xmlns="${Strophe15.NS.RETRACT}"]`, stanza).pop();
   if (retraction) {
-    const delay = sizzle4(`> delay[xmlns="${Strophe16.NS.DELAY}"]`, original_stanza).pop();
+    const delay = sizzle4(`> delay[xmlns="${Strophe15.NS.DELAY}"]`, original_stanza).pop();
     const time = delay ? dayjs2(delay.getAttribute("stamp")).toISOString() : (/* @__PURE__ */ new Date()).toISOString();
     return {
       editable: false,
@@ -3858,7 +3859,7 @@ function getRetractionAttributes(stanza, original_stanza) {
       retracted_id: retraction.getAttribute("id")
     };
   } else {
-    const tombstone = sizzle4(`> retracted[xmlns="${Strophe16.NS.RETRACT}"]`, stanza).pop() || sizzle4(`> retracted[xmlns="${Strophe16.NS.RETRACT0}"]`, stanza).pop();
+    const tombstone = sizzle4(`> retracted[xmlns="${Strophe15.NS.RETRACT}"]`, stanza).pop() || sizzle4(`> retracted[xmlns="${Strophe15.NS.RETRACT0}"]`, stanza).pop();
     if (tombstone) {
       return {
         editable: false,
@@ -3872,11 +3873,11 @@ function getRetractionAttributes(stanza, original_stanza) {
 }
 __name(getRetractionAttributes, "getRetractionAttributes");
 function getCorrectionAttributes(stanza, original_stanza) {
-  const el = sizzle4(`replace[xmlns="${Strophe16.NS.MESSAGE_CORRECT}"]`, stanza).pop();
+  const el = sizzle4(`replace[xmlns="${Strophe15.NS.MESSAGE_CORRECT}"]`, stanza).pop();
   if (el) {
     const replace_id = el.getAttribute("id");
     if (replace_id) {
-      const delay = sizzle4(`delay[xmlns="${Strophe16.NS.DELAY}"]`, original_stanza).pop();
+      const delay = sizzle4(`delay[xmlns="${Strophe15.NS.DELAY}"]`, original_stanza).pop();
       const time = delay ? dayjs2(delay.getAttribute("stamp")).toISOString() : (/* @__PURE__ */ new Date()).toISOString();
       return {
         replace_id,
@@ -3888,10 +3889,10 @@ function getCorrectionAttributes(stanza, original_stanza) {
 }
 __name(getCorrectionAttributes, "getCorrectionAttributes");
 function getOpenGraphMetadata(stanza) {
-  const fastening = sizzle4(`> apply-to[xmlns="${Strophe16.NS.FASTEN}"]`, stanza).pop();
+  const fastening = sizzle4(`> apply-to[xmlns="${Strophe15.NS.FASTEN}"]`, stanza).pop();
   if (fastening) {
     const applies_to_id = fastening.getAttribute("id");
-    const meta = sizzle4(`> meta[xmlns="${Strophe16.NS.XHTML}"]`, fastening);
+    const meta = sizzle4(`> meta[xmlns="${Strophe15.NS.XHTML}"]`, fastening);
     if (meta.length) {
       const msg_limit = api_default4.settings.get("message_limit");
       const data = meta.reduce((acc, el) => {
@@ -3920,7 +3921,7 @@ function getOpenGraphMetadata(stanza) {
 }
 __name(getOpenGraphMetadata, "getOpenGraphMetadata");
 function getSpoilerAttributes(stanza) {
-  const spoiler = sizzle4(`spoiler[xmlns="${Strophe16.NS.SPOILER}"]`, stanza).pop();
+  const spoiler = sizzle4(`spoiler[xmlns="${Strophe15.NS.SPOILER}"]`, stanza).pop();
   return {
     "is_spoiler": !!spoiler,
     "spoiler_hint": spoiler?.textContent
@@ -3928,7 +3929,7 @@ function getSpoilerAttributes(stanza) {
 }
 __name(getSpoilerAttributes, "getSpoilerAttributes");
 function getOutOfBandAttributes(stanza) {
-  const xform = sizzle4(`x[xmlns="${Strophe16.NS.OUTOFBAND}"]`, stanza).pop();
+  const xform = sizzle4(`x[xmlns="${Strophe15.NS.OUTOFBAND}"]`, stanza).pop();
   if (xform) {
     return {
       "oob_url": xform.querySelector("url")?.textContent,
@@ -3941,7 +3942,7 @@ __name(getOutOfBandAttributes, "getOutOfBandAttributes");
 function getErrorAttributes(stanza) {
   if (stanza.getAttribute("type") === "error") {
     const error = stanza.querySelector("error");
-    const text = sizzle4(`text[xmlns="${Strophe16.NS.STANZAS}"]`, error).pop();
+    const text = sizzle4(`text[xmlns="${Strophe15.NS.STANZAS}"]`, error).pop();
     return {
       is_error: true,
       error_text: text?.textContent,
@@ -3953,8 +3954,19 @@ function getErrorAttributes(stanza) {
   return {};
 }
 __name(getErrorAttributes, "getErrorAttributes");
+function getReplyAttributes(stanza) {
+  const reply = sizzle4(`reply[xmlns="${Strophe15.NS.REPLY}"]`, stanza).pop();
+  if (reply) {
+    return {
+      reply_to_id: reply.getAttribute("id"),
+      reply_to: reply.getAttribute("to")
+    };
+  }
+  return {};
+}
+__name(getReplyAttributes, "getReplyAttributes");
 function getReferences(stanza) {
-  return sizzle4(`reference[xmlns="${Strophe16.NS.REFERENCE}"]`, stanza).map((ref) => {
+  return sizzle4(`reference[xmlns="${Strophe15.NS.REFERENCE}"]`, stanza).map((ref) => {
     const anchor = ref.getAttribute("anchor");
     const text = stanza.querySelector(anchor ? `#${anchor}` : "body")?.textContent;
     if (!text) {
@@ -3974,12 +3986,12 @@ function getReferences(stanza) {
 }
 __name(getReferences, "getReferences");
 function getReceiptId(stanza) {
-  const receipt = sizzle4(`received[xmlns="${Strophe16.NS.RECEIPTS}"]`, stanza).pop();
+  const receipt = sizzle4(`received[xmlns="${Strophe15.NS.RECEIPTS}"]`, stanza).pop();
   return receipt?.getAttribute("id");
 }
 __name(getReceiptId, "getReceiptId");
 function isCarbon(stanza) {
-  const xmlns = Strophe16.NS.CARBONS;
+  const xmlns = Strophe15.NS.CARBONS;
   return sizzle4(`message > received[xmlns="${xmlns}"]`, stanza).length > 0 || sizzle4(`message > sent[xmlns="${xmlns}"]`, stanza).length > 0;
 }
 __name(isCarbon, "isCarbon");
@@ -3996,11 +4008,11 @@ function getChatState(stanza) {
 }
 __name(getChatState, "getChatState");
 function isValidReceiptRequest(stanza, attrs) {
-  return attrs.sender !== "me" && !attrs.is_carbon && !attrs.is_archived && sizzle4(`request[xmlns="${Strophe16.NS.RECEIPTS}"]`, stanza).length;
+  return attrs.sender !== "me" && !attrs.is_carbon && !attrs.is_archived && sizzle4(`request[xmlns="${Strophe15.NS.RECEIPTS}"]`, stanza).length;
 }
 __name(isValidReceiptRequest, "isValidReceiptRequest");
 function throwErrorIfInvalidForward(stanza) {
-  const bare_forward = sizzle4(`message > forwarded[xmlns="${Strophe16.NS.FORWARD}"]`, stanza).length;
+  const bare_forward = sizzle4(`message > forwarded[xmlns="${Strophe15.NS.FORWARD}"]`, stanza).length;
   if (bare_forward) {
     rejectMessage(stanza, "Forwarded messages not part of an encapsulating protocol are not supported");
     const from_jid = stanza.getAttribute("from");
@@ -4011,9 +4023,9 @@ __name(throwErrorIfInvalidForward, "throwErrorIfInvalidForward");
 function getChatMarker(stanza) {
   return sizzle4(
     `
-        acknowledged[xmlns="${Strophe16.NS.MARKERS}"],
-        displayed[xmlns="${Strophe16.NS.MARKERS}"],
-        received[xmlns="${Strophe16.NS.MARKERS}"]`,
+        acknowledged[xmlns="${Strophe15.NS.MARKERS}"],
+        displayed[xmlns="${Strophe15.NS.MARKERS}"],
+        received[xmlns="${Strophe15.NS.MARKERS}"]`,
     stanza
   ).pop();
 }
@@ -4023,12 +4035,12 @@ function isHeadline(stanza) {
 }
 __name(isHeadline, "isHeadline");
 async function isMUCPrivateMessage(stanza) {
-  const bare_jid = Strophe16.getBareJidFromJid(stanza.getAttribute("from"));
+  const bare_jid = Strophe15.getBareJidFromJid(stanza.getAttribute("from"));
   return !!await api_default4.rooms.get(bare_jid);
 }
 __name(isMUCPrivateMessage, "isMUCPrivateMessage");
 function isServerMessage(stanza) {
-  if (sizzle4(`mentions[xmlns="${Strophe16.NS.MENTIONS}"]`, stanza).pop()) {
+  if (sizzle4(`mentions[xmlns="${Strophe15.NS.MENTIONS}"]`, stanza).pop()) {
     return false;
   }
   const from_jid = stanza.getAttribute("from");
@@ -4039,7 +4051,7 @@ function isServerMessage(stanza) {
 }
 __name(isServerMessage, "isServerMessage");
 function isArchived(original_stanza) {
-  return !!sizzle4(`message > result[xmlns="${Strophe16.NS.MAM}"]`, original_stanza).pop();
+  return !!sizzle4(`message > result[xmlns="${Strophe15.NS.MAM}"]`, original_stanza).pop();
 }
 __name(isArchived, "isArchived");
 function parseXFormField(field, readonly, stanza) {
@@ -4073,12 +4085,13 @@ function parseXFormField(field, readonly, stanza) {
   } else if (type === "fixed") {
     const text = field.querySelector("value")?.textContent;
     return { text, label, type, var: v, ...result };
-  } else if (type === "jid-multi") {
+  } else if (type === "jid-multi" || type === "text-multi") {
+    const values = Array.from(field.querySelectorAll(":scope > value")).map((el) => el?.textContent);
     return {
       type,
       var: v,
       label,
-      value: field.querySelector("value")?.textContent,
+      values,
       required: !!field.querySelector("required"),
       ...result
     };
@@ -4153,7 +4166,7 @@ function getInputType(field) {
 }
 __name(getInputType, "getInputType");
 function parseXForm(stanza) {
-  const xs = sizzle4(`x[xmlns="${Strophe16.NS.XFORM}"]`, stanza);
+  const xs = sizzle4(`x[xmlns="${Strophe15.NS.XFORM}"]`, stanza);
   if (xs.length > 1) {
     log15.error(stanza);
     throw new Error("Invalid stanza");
@@ -4214,12 +4227,11 @@ __name(parseXForm, "parseXForm");
 
 // index.js
 import { Collection as Collection17, EventEmitter as EventEmitter3, Model as Model32 } from "@converse/skeletor";
-import { Builder as Builder2, Stanza as Stanza9 } from "strophe.js";
+import { Builder as Builder2, Stanza as Stanza13 } from "strophe.js";
 
 // shared/message.js
-import dayjs3 from "dayjs";
 import sizzle6 from "sizzle";
-import { Strophe as Strophe19, $iq as $iq3 } from "strophe.js";
+import { Strophe as Strophe18 } from "strophe.js";
 import { Model as Model7 } from "@converse/skeletor";
 import log17 from "@converse/log";
 
@@ -4270,7 +4282,7 @@ __name(ColorAwareModel, "ColorAwareModel");
 
 // shared/model-with-contact.js
 import { getOpenPromise as getOpenPromise7 } from "@converse/openpromise";
-import { Strophe as Strophe17 } from "strophe.js";
+import { Strophe as Strophe16 } from "strophe.js";
 function ModelWithContact(BaseModel) {
   return class ModelWithContact extends BaseModel {
     static {
@@ -4282,23 +4294,31 @@ function ModelWithContact(BaseModel) {
      */
     initialize() {
       super.initialize();
+      this.on("change:num_unread", () => this.updateContactUnreadCounter());
+      this.on("contact:add", () => this.updateContactUnreadCounter());
       this.rosterContactAdded = getOpenPromise7();
       this.onClosedChanged = () => this.setModelContact(this.get("jid"));
       this.contact = null;
+    }
+    updateContactUnreadCounter() {
+      if (this.contact && this.get("type") === PRIVATE_CHAT_TYPE) {
+        utils_default.safeSave(this.contact, { num_unread: this.get("num_unread") });
+      }
     }
     /**
      * @param {string} jid
      */
     async setModelContact(jid) {
-      if (this.contact?.get("jid") === jid) return;
-      if (this.get("closed")) {
+      if (this.contact?.get("jid") === jid)
+        return;
+      if (this.get("type") === PRIVATE_CHAT_TYPE && this.get("closed")) {
         this.off("change:closed", this.onClosedChanged);
         this.on("change:closed", this.onClosedChanged);
         return;
       }
       const { session, state } = converse_default;
       let contact;
-      if (Strophe17.getBareJidFromJid(jid) === session.get("bare_jid")) {
+      if (Strophe16.getBareJidFromJid(jid) === session.get("bare_jid")) {
         contact = state.profile;
       } else {
         contact = await api_default4.contacts.get(jid);
@@ -4364,15 +4384,17 @@ async function parseVCardResultStanza(iq) {
 __name(parseVCardResultStanza, "parseVCardResultStanza");
 
 // plugins/vcard/utils.js
-var { Strophe: Strophe18, $iq: $iq2, sizzle: sizzle5, stx: stx3 } = public_default.env;
-Strophe18.addNamespace("VCARD_UPDATE", "vcard-temp:x:update");
+var { Stanza: Stanza4, Strophe: Strophe17, sizzle: sizzle5, stx: stx3 } = public_default.env;
+Strophe17.addNamespace("VCARD_UPDATE", "vcard-temp:x:update");
 function createStanza(type, jid, vcard_el) {
-  const iq = $iq2(jid ? { "type": type, "to": jid } : { "type": type });
-  if (!vcard_el) {
-    iq.c("vCard", { "xmlns": Strophe18.NS.VCARD });
-  } else {
+  const iq = stx3`
+        <iq type="${type}"
+            ${jid ? Stanza4.unsafeXML(`to="${jid}"`) : ""}
+            xmlns="jabber:client">
+            ${vcard_el ? "" : stx3`<vCard xmlns="${Strophe17.NS.VCARD}"></vCard>`}
+        </iq>`;
+  if (vcard_el)
     iq.cnode(vcard_el);
-  }
   return iq;
 }
 __name(createStanza, "createStanza");
@@ -4407,7 +4429,7 @@ async function getVCardForModel(model, lazy_load = false) {
       if (["error", "info"].includes(model.get("type"))) {
         return;
       }
-      jid = Strophe18.getBareJidFromJid(model.get("from"));
+      jid = Strophe17.getBareJidFromJid(model.get("from"));
     } else {
       jid = model.get("jid");
     }
@@ -4443,11 +4465,12 @@ async function getVCardForOccupant(occupant, lazy_load = true) {
 }
 __name(getVCardForOccupant, "getVCardForOccupant");
 async function getVCardForMUCMessage(message, lazy_load = true) {
-  if (["error", "info"].includes(message.get("type"))) return;
+  if (["error", "info"].includes(message.get("type")))
+    return;
   await api_default4.waitUntil("VCardsInitialized");
   const { vcards, profile } = converse_default.state;
   const muc = message?.collection?.chatbox;
-  const nick = Strophe18.getResourceFromJid(message.get("from"));
+  const nick = Strophe17.getResourceFromJid(message.get("from"));
   if (nick && muc?.get("nick") === nick) {
     return profile.vcard;
   } else {
@@ -4474,7 +4497,7 @@ function clearVCardsSession() {
 __name(clearVCardsSession, "clearVCardsSession");
 async function fetchVCard(jid) {
   const bare_jid = converse_default.session.get("bare_jid");
-  const to = Strophe18.getBareJidFromJid(jid) === bare_jid ? null : jid;
+  const to = Strophe17.getBareJidFromJid(jid) === bare_jid ? null : jid;
   let iq;
   try {
     iq = await api_default4.sendIQ(createStanza("get", to));
@@ -4494,10 +4517,10 @@ async function fetchVCard(jid) {
 __name(fetchVCard, "fetchVCard");
 async function handleVCardUpdatePresence(pres) {
   await api_default4.waitUntil("VCardsInitialized");
-  const photo = sizzle5(`x[xmlns="${Strophe18.NS.VCARD_UPDATE}"] photo`, pres).pop();
+  const photo = sizzle5(`x[xmlns="${Strophe17.NS.VCARD_UPDATE}"] photo`, pres).pop();
   if (photo) {
     const avatar_hash = photo.textContent;
-    const from_jid = Strophe18.getBareJidFromJid(pres.getAttribute("from"));
+    const from_jid = Strophe17.getBareJidFromJid(pres.getAttribute("from"));
     const vcard = await converse_default.state.vcards.get(from_jid);
     if (vcard?.get("image_hash") !== avatar_hash) {
       api_default4.vcard.update(from_jid, true).catch((e) => log16.error(e));
@@ -4515,6 +4538,7 @@ function unregisterPresenceHandler() {
 }
 __name(unregisterPresenceHandler, "unregisterPresenceHandler");
 function registerPresenceHandler() {
+  unregisterPresenceHandler();
   const connection2 = api_default4.connection.get();
   presence_ref = connection2.addHandler(
     /** @param {Element} pres */
@@ -4533,8 +4557,8 @@ function registerPresenceHandler() {
 }
 __name(registerPresenceHandler, "registerPresenceHandler");
 function updatePresence(stanza) {
-  if (sizzle5(`x[xmlns=${Strophe18.NS.VCARD_UPDATE}"]`, stanza.root()).length === 0) {
-    const node = stx3`<x xmlns="${Strophe18.NS.VCARD_UPDATE}"></x>`;
+  if (sizzle5(`x[xmlns=${Strophe17.NS.VCARD_UPDATE}"]`, stanza.root()).length === 0) {
+    const node = stx3`<x xmlns="${Strophe17.NS.VCARD_UPDATE}"></x>`;
     stanza.root().cnode(node).up();
   }
   return stanza;
@@ -4567,8 +4591,10 @@ function ModelWithVCard(BaseModel) {
      */
     async getVCard() {
       const { pluggable: pluggable2 } = converse_default;
-      if (!pluggable2.plugins["converse-vcard"]?.enabled(converse_default)) return null;
-      if (this._vcard) return this._vcard;
+      if (!pluggable2.plugins["converse-vcard"]?.enabled(converse_default))
+        return null;
+      if (this._vcard)
+        return this._vcard;
       this._vcard = await getVCardForModel(this, this.lazy_load_vcard);
       this.trigger("vcard:add", { vcard: this._vcard });
       return this._vcard;
@@ -4578,6 +4604,7 @@ function ModelWithVCard(BaseModel) {
 __name(ModelWithVCard, "ModelWithVCard");
 
 // shared/message.js
+var { dayjs: dayjs3, stx: stx4 } = public_default.env;
 var BaseMessage = class extends ModelWithVCard(ModelWithContact(ColorAwareModel(Model7))) {
   static {
     __name(this, "BaseMessage");
@@ -4602,7 +4629,8 @@ var BaseMessage = class extends ModelWithVCard(ModelWithContact(ColorAwareModel(
     this.lazy_load_vcard = true;
     super.initialize();
     this.chatbox = this.collection?.chatbox;
-    if (!this.checkValidity()) return;
+    if (!this.checkValidity())
+      return;
     if (this.get("file")) {
       this.on("change:put", () => this.uploadFile());
     }
@@ -4684,7 +4712,7 @@ var BaseMessage = class extends ModelWithVCard(ModelWithContact(ColorAwareModel(
     return this.get("from") === prev_model.get("from") && !this.isRetracted() && !prev_model.isRetracted() && !this.isMeCommand() && !prev_model.isMeCommand() && !!this.get("is_encrypted") === !!prev_model.get("is_encrypted") && this.get("type") === prev_model.get("type") && this.get("type") !== "info" && date.isBefore(dayjs3(prev_model.get("time")).add(10, "minutes")) && (this.get("type") === "groupchat" ? this.get("occupant_id") === prev_model.get("occupant_id") : true);
   }
   /**
-   * Determines whether this messsage may be retracted by the current user.
+   * Determines whether this message may be retracted by the current user.
    * @returns { Boolean }
    */
   mayBeRetracted() {
@@ -4707,24 +4735,26 @@ var BaseMessage = class extends ModelWithVCard(ModelWithContact(ColorAwareModel(
    * https://xmpp.org/extensions/xep-0363.html#request
    */
   sendSlotRequestStanza() {
-    if (!this.file) return Promise.reject(new Error("file is undefined"));
-    const iq = $iq3({
-      "from": converse_default.session.get("jid"),
-      "to": this.get("slot_request_url"),
-      "type": "get"
-    }).c("request", {
-      "xmlns": Strophe19.NS.HTTPUPLOAD,
-      "filename": this.file.name,
-      "size": this.file.size,
-      "content-type": this.file.type
-    });
+    if (!this.file)
+      return Promise.reject(new Error("file is undefined"));
+    const iq = stx4`
+            <iq from="${converse_default.session.get("jid")}"
+                to="${this.get("slot_request_url")}"
+                type="get"
+                xmlns="jabber:client">
+                <request xmlns="${Strophe18.NS.HTTPUPLOAD}"
+                         filename="${this.file.name}"
+                         size="${this.file.size}"
+                         content-type="${this.file.type}">
+                </request>
+            </iq>`;
     return api_default4.sendIQ(iq);
   }
   /**
    * @param {Element} stanza
    */
   getUploadRequestMetadata(stanza) {
-    const headers = sizzle6(`slot[xmlns="${Strophe19.NS.HTTPUPLOAD}"] put header`, stanza);
+    const headers = sizzle6(`slot[xmlns="${Strophe18.NS.HTTPUPLOAD}"] put header`, stanza);
     return {
       headers: headers.map((h) => ({ "name": h.getAttribute("name"), "value": h.textContent })).filter((h) => ["Authorization", "Expires"].includes(h.name))
     };
@@ -4742,7 +4772,7 @@ var BaseMessage = class extends ModelWithVCard(ModelWithContact(ColorAwareModel(
         type: "error"
       });
     }
-    const slot = sizzle6(`slot[xmlns="${Strophe19.NS.HTTPUPLOAD}"]`, stanza).pop();
+    const slot = sizzle6(`slot[xmlns="${Strophe18.NS.HTTPUPLOAD}"]`, stanza).pop();
     if (slot) {
       this.upload_metadata = this.getUploadRequestMetadata(stanza);
       this.save({
@@ -4791,11 +4821,11 @@ var BaseMessage = class extends ModelWithVCard(ModelWithContact(ColorAwareModel(
       let message;
       if (xhr.responseText) {
         message = __(
-          'Sorry, could not succesfully upload your file. Your server\u2019s response: "%1$s"',
+          'Sorry, could not successfully upload your file. Your server\u2019s response: "%1$s"',
           xhr.responseText
         );
       } else {
-        message = __("Sorry, could not succesfully upload your file.");
+        message = __("Sorry, could not successfully upload your file.");
       }
       this.save({
         is_ephemeral: true,
@@ -4826,13 +4856,12 @@ import { Model as Model8 } from "@converse/skeletor";
 import log19 from "@converse/log";
 
 // plugins/chat/parsers.js
-import dayjs4 from "dayjs";
 import log18 from "@converse/log";
-var { Strophe: Strophe20, sizzle: sizzle7 } = public_default.env;
+var { Strophe: Strophe19, dayjs: dayjs4, sizzle: sizzle7 } = public_default.env;
 async function parseMessage(stanza) {
   throwErrorIfInvalidForward(stanza);
   let to_jid = stanza.getAttribute("to");
-  const to_resource = Strophe20.getResourceFromJid(to_jid);
+  const to_resource = Strophe19.getResourceFromJid(to_jid);
   const resource = converse_default.session.get("resource");
   if (api_default4.settings.get("filter_by_resource") && to_resource && to_resource !== resource) {
     return new StanzaParseError(
@@ -4845,7 +4874,7 @@ async function parseMessage(stanza) {
   let from_jid = stanza.getAttribute("from") || bare_jid;
   if (isCarbon(stanza)) {
     if (from_jid === bare_jid) {
-      const selector = `[xmlns="${Strophe20.NS.CARBONS}"] > forwarded[xmlns="${Strophe20.NS.FORWARD}"] > message`;
+      const selector = `[xmlns="${Strophe19.NS.CARBONS}"] > forwarded[xmlns="${Strophe19.NS.FORWARD}"] > message`;
       stanza = sizzle7(selector, stanza).pop();
       to_jid = stanza.getAttribute("to");
       from_jid = stanza.getAttribute("from");
@@ -4857,7 +4886,7 @@ async function parseMessage(stanza) {
   const is_archived = isArchived(stanza);
   if (is_archived) {
     if (from_jid === bare_jid) {
-      const selector = `[xmlns="${Strophe20.NS.MAM}"] > forwarded[xmlns="${Strophe20.NS.FORWARD}"] > message`;
+      const selector = `[xmlns="${Strophe19.NS.MAM}"] > forwarded[xmlns="${Strophe19.NS.FORWARD}"] > message`;
       stanza = sizzle7(selector, stanza).pop();
       to_jid = stanza.getAttribute("to");
       from_jid = stanza.getAttribute("from");
@@ -4868,7 +4897,7 @@ async function parseMessage(stanza) {
       );
     }
   }
-  const from_bare_jid = Strophe20.getBareJidFromJid(from_jid);
+  const from_bare_jid = Strophe19.getBareJidFromJid(from_jid);
   const is_me = from_bare_jid === bare_jid;
   if (is_me && to_jid === null) {
     return new StanzaParseError(
@@ -4880,7 +4909,7 @@ async function parseMessage(stanza) {
   const is_server_message = isServerMessage(stanza);
   let contact, contact_jid;
   if (!is_headline && !is_server_message) {
-    contact_jid = is_me ? Strophe20.getBareJidFromJid(to_jid) : from_bare_jid;
+    contact_jid = is_me ? Strophe19.getBareJidFromJid(to_jid) : from_bare_jid;
     contact = await api_default4.contacts.get(contact_jid);
     if (contact === void 0 && !api_default4.settings.get("allow_non_roster_messaging")) {
       log18.error(stanza);
@@ -4890,7 +4919,7 @@ async function parseMessage(stanza) {
       );
     }
   }
-  const delay = sizzle7(`delay[xmlns="${Strophe20.NS.DELAY}"]`, original_stanza).pop();
+  const delay = sizzle7(`delay[xmlns="${Strophe19.NS.DELAY}"]`, original_stanza).pop();
   const marker = getChatMarker(stanza);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   let attrs = Object.assign(
@@ -4904,9 +4933,9 @@ async function parseMessage(stanza) {
       "from": stanza.getAttribute("from"),
       "is_carbon": isCarbon(original_stanza),
       "is_delayed": !!delay,
-      "is_markable": !!sizzle7(`markable[xmlns="${Strophe20.NS.MARKERS}"]`, stanza).length,
+      "is_markable": !!sizzle7(`markable[xmlns="${Strophe19.NS.MARKERS}"]`, stanza).length,
       "is_marker": !!marker,
-      "is_unstyled": !!sizzle7(`unstyled[xmlns="${Strophe20.NS.STYLING}"]`, stanza).length,
+      "is_unstyled": !!sizzle7(`unstyled[xmlns="${Strophe19.NS.STYLING}"]`, stanza).length,
       "marker_id": marker && marker.getAttribute("id"),
       "nick": contact?.attributes?.nickname,
       "receipt_id": getReceiptId(stanza),
@@ -4925,7 +4954,8 @@ async function parseMessage(stanza) {
     getCorrectionAttributes(stanza, original_stanza),
     getStanzaIDs(stanza, original_stanza),
     getRetractionAttributes(stanza, original_stanza),
-    getEncryptionAttributes(stanza)
+    getEncryptionAttributes(stanza),
+    getReplyAttributes(stanza)
   );
   if (attrs.is_archived) {
     const from = original_stanza.getAttribute("from");
@@ -4949,7 +4979,7 @@ async function parseMessage(stanza) {
 __name(parseMessage, "parseMessage");
 
 // plugins/chat/utils.js
-var { Strophe: Strophe21, u: u4 } = public_default.env;
+var { Strophe: Strophe20, u: u4 } = public_default.env;
 function routeToChat(event) {
   if (!location.hash.startsWith("#converse/chat?jid=")) {
     return;
@@ -4964,7 +4994,7 @@ function routeToChat(event) {
 __name(routeToChat, "routeToChat");
 function isNewMessage(message) {
   if (message instanceof Element) {
-    return !(sizzle8(`result[xmlns="${Strophe21.NS.MAM}"]`, message).length && sizzle8(`delay[xmlns="${Strophe21.NS.DELAY}"]`, message).length);
+    return !(sizzle8(`result[xmlns="${Strophe20.NS.MAM}"]`, message).length && sizzle8(`delay[xmlns="${Strophe20.NS.DELAY}"]`, message).length);
   } else if (message instanceof Model8) {
     message = message.attributes;
   }
@@ -4972,7 +5002,7 @@ function isNewMessage(message) {
 }
 __name(isNewMessage, "isNewMessage");
 async function handleErrorMessage(stanza) {
-  const from_jid = Strophe21.getBareJidFromJid(stanza.getAttribute("from"));
+  const from_jid = Strophe20.getBareJidFromJid(stanza.getAttribute("from"));
   const bare_jid = converse_default.session.get("bare_jid");
   if (u4.isSameBareJID(from_jid, bare_jid)) {
     return;
@@ -5044,7 +5074,8 @@ async function handleMessageStanza(stanza) {
       /** @type {StanzaParseError} */
       attrs
     );
-    if (stanza2) log19.error(stanza2);
+    if (stanza2)
+      log19.error(stanza2);
     return log19.error(message);
   }
   const { body, plaintext, contact_jid, nick } = (
@@ -5060,16 +5091,16 @@ async function handleMessageStanza(stanza) {
 __name(handleMessageStanza, "handleMessageStanza");
 async function enableCarbons() {
   const bare_jid = converse_default.session.get("bare_jid");
-  const domain = Strophe21.getDomainFromJid(bare_jid);
-  const supported = await api_default4.disco.supports(Strophe21.NS.CARBONS, domain);
+  const domain = Strophe20.getDomainFromJid(bare_jid);
+  const supported = await api_default4.disco.supports(Strophe20.NS.CARBONS, domain);
   if (!supported) {
     log19.warn("Not enabling carbons because it's not supported!");
     return;
   }
-  const iq = new Strophe21.Builder("iq", {
+  const iq = new Strophe20.Builder("iq", {
     "from": api_default4.connection.get().jid,
     "type": "set"
-  }).c("enable", { xmlns: Strophe21.NS.CARBONS });
+  }).c("enable", { xmlns: Strophe20.NS.CARBONS });
   const result = await api_default4.sendIQ(iq, null, false);
   if (result === null) {
     log19.warn(`A timeout occurred while trying to enable carbons`);
@@ -5083,7 +5114,7 @@ async function enableCarbons() {
 __name(enableCarbons, "enableCarbons");
 
 // shared/model-with-messages.js
-var { Strophe: Strophe22, stx: stx4, u: u5 } = public_default.env;
+var { Strophe: Strophe21, stx: stx5, u: u5 } = public_default.env;
 function ModelWithMessages(BaseModel) {
   return class ModelWithMessages extends BaseModel {
     static {
@@ -5164,14 +5195,14 @@ function ModelWithMessages(BaseModel) {
       const resolve = this.messages.fetched.resolve;
       this.messages.fetch({
         add: true,
-        success: /* @__PURE__ */ __name(() => {
+        success: () => {
           this.afterMessagesFetched();
           resolve();
-        }, "success"),
-        error: /* @__PURE__ */ __name(() => {
+        },
+        error: () => {
           this.afterMessagesFetched();
           resolve();
-        }, "error")
+        }
       });
       return this.messages.fetched;
     }
@@ -5188,11 +5219,12 @@ function ModelWithMessages(BaseModel) {
     /**
      * @param {BaseMessage} message
      * @param {MessageAttributes} attrs
-     * @returns {object}
+     * @returns {Promise<object>}
      */
-    getUpdatedMessageAttributes(message, attrs) {
+    async getUpdatedMessageAttributes(message, attrs) {
+      let new_attrs;
       if (!attrs.error_type && message.get("error_type") === "Decryption") {
-        return Object.assign({}, attrs, {
+        new_attrs = Object.assign({}, attrs, {
           error_condition: void 0,
           error_message: void 0,
           error_text: void 0,
@@ -5202,18 +5234,19 @@ function ModelWithMessages(BaseModel) {
           is_error: false
         });
       } else {
-        return {
+        new_attrs = {
           is_archived: attrs.is_archived,
-          time: attrs.time ? attrs.time : message.get("time")
+          ...attrs.is_archived && attrs.time && { time: attrs.time }
         };
       }
+      return await api_default4.hook("getUpdatedMessageAttributes", message, new_attrs, attrs);
     }
     /**
      * @param {BaseMessage} message
      * @param {MessageAttributes} attrs
      */
-    updateMessage(message, attrs) {
-      const new_attrs = this.getUpdatedMessageAttributes(message, attrs);
+    async updateMessage(message, attrs) {
+      const new_attrs = await this.getUpdatedMessageAttributes(message, attrs);
       new_attrs && message.save(new_attrs);
     }
     /**
@@ -5246,7 +5279,7 @@ function ModelWithMessages(BaseModel) {
       const older_versions = message.get("older_versions") || {};
       if (attrs.time < message.get("time") && message.get("edited")) {
         older_versions[attrs.time] = attrs["message"];
-        message.save({ "older_versions": older_versions });
+        message.save({ older_versions });
       } else {
         if (Object.keys(older_versions).length) {
           older_versions[message.get("edited")] = message.getMessageText();
@@ -5298,7 +5331,8 @@ function ModelWithMessages(BaseModel) {
         older_versions[edited_time] = message.getMessageText();
         message.save({
           ...["body", "is_only_emojis", "media_urls", "references", "is_encrypted"].reduce((obj, k) => {
-            if (attrs.hasOwnProperty(k)) obj[k] = attrs[k];
+            if (attrs.hasOwnProperty(k))
+              obj[k] = attrs[k];
             return obj;
           }, {}),
           ...{
@@ -5324,7 +5358,7 @@ function ModelWithMessages(BaseModel) {
         log20.error(e);
         return;
       }
-      api_default4.trigger("sendMessage", { "chatbox": this, message });
+      api_default4.trigger("sendMessage", { chatbox: this, message });
       return message;
     }
     /**
@@ -5347,7 +5381,7 @@ function ModelWithMessages(BaseModel) {
      */
     async sendFiles(files) {
       const { __, session } = converse_default;
-      const result = await api_default4.disco.features.get(Strophe22.NS.HTTPUPLOAD, session.get("domain"));
+      const result = await api_default4.disco.features.get(Strophe21.NS.HTTPUPLOAD, session.get("domain"));
       const item = result.pop();
       if (!item) {
         this.createMessage({
@@ -5357,7 +5391,7 @@ function ModelWithMessages(BaseModel) {
         });
         return;
       }
-      const data = item.dataforms.where({ "FORM_TYPE": { "value": Strophe22.NS.HTTPUPLOAD, "type": "hidden" } }).pop();
+      const data = item.dataforms.where({ "FORM_TYPE": { "value": Strophe21.NS.HTTPUPLOAD, "type": "hidden" } }).pop();
       const max_file_size = parseInt((data?.attributes || {})["max-file-size"]?.value, 10);
       const slot_request_url = item?.id;
       if (!slot_request_url) {
@@ -5547,7 +5581,7 @@ function ModelWithMessages(BaseModel) {
       return message;
     }
     /**
-     * Used by sub-classes to indicate wether a message is a chat
+     * Used by sub-classes to indicate whether a message is a chat
      * message, as opposed to error or info messages.
      * @param {BaseMessage} _message
      * @returns {boolean}
@@ -5579,8 +5613,15 @@ function ModelWithMessages(BaseModel) {
      * @param {object} attrs
      */
     getMessageReferencedByError(attrs) {
-      const id = attrs.msgid;
-      return id && this.messages.models.find((m) => [m.get("msgid"), m.get("retraction_id")].includes(id));
+      if (attrs.msgid) {
+        return this.messages.models.find(
+          (m) => [m.get("msgid"), m.get("retraction_id"), m.get("origin_id")].includes(attrs.msgid)
+        );
+      } else if (attrs.reaction_to_id) {
+        return this.messages.models.find(
+          (m) => [m.get("msgid"), m.get("origin_id")].includes(attrs.reaction_to_id)
+        );
+      }
     }
     /**
      * Looks whether we already have a retraction for this
@@ -5607,15 +5648,19 @@ function ModelWithMessages(BaseModel) {
     /**
      * Returns an already cached message (if it exists) based on the
      * passed in attributes map.
+     *
+     * @fires getDuplicateMessageQueries
      * @param {object} attrs - Attributes representing a received
      *  message, as returned by {@link parseMessage}
-     * @returns {BaseMessage}
+     * @returns {Promise<BaseMessage|undefined>}
      */
-    getDuplicateMessage(attrs) {
+    async getDuplicateMessage(attrs) {
+      const extra_queries = await api_default4.hook("getDuplicateMessageQueries", this, [], attrs);
       const queries = [
         ...this.getStanzaIdQueryAttrs(attrs),
         this.getOriginIdQueryAttrs(attrs),
-        this.getMessageBodyQueryAttrs(attrs)
+        this.getMessageBodyQueryAttrs(attrs),
+        ...extra_queries
       ].filter((s) => s);
       return this.messages.models.find(
         /** @param {BaseMessage} m */
@@ -5672,7 +5717,7 @@ function ModelWithMessages(BaseModel) {
         return;
       }
       if (msg?.get("is_markable") || force) {
-        const from_jid = Strophe22.getBareJidFromJid(msg.get("from"));
+        const from_jid = Strophe21.getBareJidFromJid(msg.get("from"));
         sendMarker(from_jid, msg.get("msgid"), type, msg.get("type"));
       }
     }
@@ -5725,7 +5770,7 @@ function ModelWithMessages(BaseModel) {
           new_attrs.error = __("Sorry, an error occurred while trying to send your message.");
         }
       }
-      return await api_default4.hook("getErrorAttributesForMessage", attrs, new_attrs);
+      return await api_default4.hook("getErrorAttributesForMessage", message, new_attrs, attrs);
     }
     /**
      * @param {Element} stanza
@@ -5737,7 +5782,8 @@ function ModelWithMessages(BaseModel) {
           /** @type {errors.StanzaParseError} */
           attrs_or_error
         );
-        if (stanza2) log20.error(stanza2);
+        if (stanza2)
+          log20.error(stanza2);
         return log20.error(message2);
       }
       const attrs = (
@@ -5759,19 +5805,16 @@ function ModelWithMessages(BaseModel) {
      * @param {BaseMessage} message
      */
     incrementUnreadMsgsCounter(message) {
-      const settings4 = {
-        "num_unread": this.get("num_unread") + 1
-      };
-      if (this.get("num_unread") === 0) {
-        settings4["first_unread_id"] = message.get("id");
-      }
-      this.save(settings4);
+      this.save({
+        num_unread: this.get("num_unread") + 1,
+        ...this.get("num_unread") === 0 ? { first_unread_id: message.get("id") } : null
+      });
     }
     clearUnreadMsgCounter() {
       if (this.get("num_unread") > 0) {
         this.sendMarkerForMessage(this.messages.last());
+        u5.safeSave(this, { num_unread: 0 });
       }
-      u5.safeSave(this, { num_unread: 0 });
     }
     /**
      * Handles message retraction based on the passed in attributes.
@@ -5783,9 +5826,11 @@ function ModelWithMessages(BaseModel) {
     async handleRetraction(attrs) {
       const RETRACTION_ATTRIBUTES = ["retracted", "retracted_id", "editable"];
       if (attrs.retracted) {
-        if (attrs.is_tombstone) return false;
+        if (attrs.is_tombstone)
+          return false;
         for (const m of this.messages.models) {
-          if (m.get("from") !== attrs.from) continue;
+          if (m.get("from") !== attrs.from)
+            continue;
           if (m.get("origin_id") === attrs.retracted_id || m.get("msgid") === attrs.retracted_id) {
             m.save(pick2(attrs, RETRACTION_ATTRIBUTES));
             return true;
@@ -5838,29 +5883,32 @@ function ModelWithMessages(BaseModel) {
         oob_url,
         origin_id,
         references,
+        reply_to_id,
+        reply_to,
         spoiler_hint,
         type
       } = message.attributes;
-      const stanza = stx4`
+      const stanza = stx5`
                 <message xmlns="jabber:client"
                         from="${message.get("type") === "groupchat" ? api_default4.connection.get().jid : message.get("from")}"
                         to="${message.get("to") || this.get("jid")}"
                         type="${this.get("message_type")}"
                         id="${edited && u5.getUniqueId() || msgid}">
-                    ${body ? stx4`<body>${body}</body>` : ""}
-                    <active xmlns="${Strophe22.NS.CHATSTATES}"/>
-                    ${type === "chat" ? stx4`<request xmlns="${Strophe22.NS.RECEIPTS}"></request>` : ""}
-                    ${!is_encrypted && oob_url ? stx4`<x xmlns="${Strophe22.NS.OUTOFBAND}"><url>${oob_url}</url></x>` : ""}
-                    ${!is_encrypted && is_spoiler ? stx4`<spoiler xmlns="${Strophe22.NS.SPOILER}">${spoiler_hint ?? ""}</spoiler>` : ""}
+                    ${body ? stx5`<body>${body}</body>` : ""}
+                    <active xmlns="${Strophe21.NS.CHATSTATES}"/>
+                    ${type === "chat" ? stx5`<request xmlns="${Strophe21.NS.RECEIPTS}"></request>` : ""}
+                    ${!is_encrypted && oob_url ? stx5`<x xmlns="${Strophe21.NS.OUTOFBAND}"><url>${oob_url}</url></x>` : ""}
+                    ${!is_encrypted && is_spoiler ? stx5`<spoiler xmlns="${Strophe21.NS.SPOILER}">${spoiler_hint ?? ""}</spoiler>` : ""}
                     ${!is_encrypted ? references?.map(
-        (ref) => stx4`<reference xmlns="${Strophe22.NS.REFERENCE}"
+        (ref) => stx5`<reference xmlns="${Strophe21.NS.REFERENCE}"
                                                 begin="${ref.begin}"
                                                 end="${ref.end}"
                                                 type="${ref.type}"
                                                 uri="${ref.uri}"></reference>`
       ) : ""}
-                    ${edited ? stx4`<replace xmlns="${Strophe22.NS.MESSAGE_CORRECT}" id="${msgid}"></replace>` : ""}
-                    ${origin_id ? stx4`<origin-id xmlns="${Strophe22.NS.SID}" id="${origin_id}"></origin-id>` : ""}
+                    ${reply_to_id ? stx5`<reply xmlns="${Strophe21.NS.REPLY}" id="${reply_to_id}" to="${reply_to || ""}"></reply>` : ""}
+                    ${edited ? stx5`<replace xmlns="${Strophe21.NS.MESSAGE_CORRECT}" id="${msgid}"></replace>` : ""}
+                    ${origin_id ? stx5`<origin-id xmlns="${Strophe21.NS.SID}" id="${origin_id}"></origin-id>` : ""}
                 </message>`;
       const data = await api_default4.hook("createMessageStanza", this, { message, stanza });
       return data.stanza;
@@ -5916,7 +5964,7 @@ var EmojiPicker = class extends Model10 {
 var picker_default = EmojiPicker;
 
 // plugins/emoji/plugin.js
-import { getOpenPromise as getOpenPromise9 } from "@converse/openpromise";
+import { getOpenPromise as getOpenPromise10 } from "@converse/openpromise";
 
 // plugins/emoji/api.js
 var emojis = {
@@ -5932,7 +5980,8 @@ var emojis = {
       try {
         const path = api_default4.settings.get("assets_path");
         const response = await fetch(`${path}/emoji.json`);
-        if (!response.ok) throw new Error("Failed to fetch emoji.json");
+        if (!response.ok)
+          throw new Error("Failed to fetch emoji.json");
         json = await response.json();
       } catch (e) {
         console.error("Failed to load emoji.json:", e);
@@ -5944,7 +5993,7 @@ var emojis = {
       public_default.emojis.list = Object.values(public_default.emojis.by_sn);
       public_default.emojis.list.sort((a, b) => a.sn < b.sn ? -1 : a.sn > b.sn ? 1 : 0);
       public_default.emojis.shortnames = public_default.emojis.list.map((m) => m.sn);
-      const getShortNames = /* @__PURE__ */ __name(() => public_default.emojis.shortnames.map((s) => s.replace(/[+]/g, "\\$&")).join("|"), "getShortNames");
+      const getShortNames = /* @__PURE__ */ __name(() => public_default.emojis.shortnames.map((s) => s.replace(/[+]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|"), "getShortNames");
       public_default.emojis.shortnames_regex = new RegExp(getShortNames(), "gi");
       public_default.emojis.initialized_promise.resolve();
     }
@@ -5958,6 +6007,10 @@ var api_default5 = emojis_api;
 var ASCII_REGEX = "(\\*\\\\0\\/\\*|\\*\\\\O\\/\\*|\\-___\\-|\\:'\\-\\)|'\\:\\-\\)|'\\:\\-D|\\>\\:\\-\\)|>\\:\\-\\)|'\\:\\-\\(|\\>\\:\\-\\(|>\\:\\-\\(|\\:'\\-\\(|O\\:\\-\\)|0\\:\\-3|0\\:\\-\\)|0;\\^\\)|O;\\-\\)|0;\\-\\)|O\\:\\-3|\\-__\\-|\\:\\-\xDE|\\:\\-\xDE|\\<\\/3|<\\/3|\\:'\\)|\\:\\-D|'\\:\\)|'\\=\\)|'\\:D|'\\=D|\\>\\:\\)|>\\:\\)|\\>;\\)|>;\\)|\\>\\=\\)|>\\=\\)|;\\-\\)|\\*\\-\\)|;\\-\\]|;\\^\\)|'\\:\\(|'\\=\\(|\\:\\-\\*|\\:\\^\\*|\\>\\:P|>\\:P|X\\-P|\\>\\:\\[|>\\:\\[|\\:\\-\\(|\\:\\-\\[|\\>\\:\\(|>\\:\\(|\\:'\\(|;\\-\\(|\\>\\.\\<|>\\.<|#\\-\\)|%\\-\\)|X\\-\\)|\\\\0\\/|\\\\O\\/|0\\:3|0\\:\\)|O\\:\\)|O\\=\\)|O\\:3|B\\-\\)|8\\-\\)|B\\-D|8\\-D|\\-_\\-|\\>\\:\\\\|>\\:\\\\|\\>\\:\\/|>\\:\\/|\\:\\-\\/|\\:\\-\\.|\\:\\-P|\\:\xDE|\\:\xDE|\\:\\-b|\\:\\-O|O_O|\\>\\:O|>\\:O|\\:\\-X|\\:\\-#|\\:\\-\\)|\\(y\\)|\\<3|<3|\\:D|\\=D|;\\)|\\*\\)|;\\]|;D|\\:\\*|\\=\\*|\\:\\(|\\:\\[|\\=\\(|\\:@|;\\(|D\\:|\\:\\$|\\=\\$|#\\)|%\\)|X\\)|B\\)|8\\)|\\:\\/|\\:\\\\|\\=\\/|\\=\\\\|\\:L|\\=L|\\:P|\\=P|\\:b|\\:O|\\:X|\\:#|\\=X|\\=#|\\:\\)|\\=\\]|\\=\\)|\\:\\])";
 var ASCII_REPLACE_REGEX = new RegExp("<object[^>]*>.*?</object>|<span[^>]*>.*?</span>|<(?:object|embed|svg|img|div|span|p|a)[^>]*>|((\\s|^)" + ASCII_REGEX + "(?=\\s|$|[!,.?]))", "gi");
 var CODEPOINTS_REGEX = /(?:\ud83d\udc68\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc68\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc68\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc68\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc68\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffe]|\ud83e\uddd1\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1|\ud83d\udc6b\ud83c[\udffb-\udfff]|\ud83d\udc6c\ud83c[\udffb-\udfff]|\ud83d\udc6d\ud83c[\udffb-\udfff]|\ud83d[\udc6b-\udc6d])|(?:\ud83d[\udc68\udc69]|\ud83e\uddd1)(?:\ud83c[\udffb-\udfff])?\u200d(?:\u2695\ufe0f|\u2696\ufe0f|\u2708\ufe0f|\ud83c[\udf3e\udf73\udf93\udfa4\udfa8\udfeb\udfed]|\ud83d[\udcbb\udcbc\udd27\udd2c\ude80\ude92]|\ud83e[\uddaf-\uddb3\uddbc\uddbd])|(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75]|\u26f9)((?:\ud83c[\udffb-\udfff]|\ufe0f)\u200d[\u2640\u2642]\ufe0f)|(?:\ud83c[\udfc3\udfc4\udfca]|\ud83d[\udc6e\udc71\udc73\udc77\udc81\udc82\udc86\udc87\ude45-\ude47\ude4b\ude4d\ude4e\udea3\udeb4-\udeb6]|\ud83e[\udd26\udd35\udd37-\udd39\udd3d\udd3e\uddb8\uddb9\uddcd-\uddcf\uddd6-\udddd])(?:\ud83c[\udffb-\udfff])?\u200d[\u2640\u2642]\ufe0f|(?:\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f|\ud83c\udff3\ufe0f\u200d\ud83c\udf08|\ud83c\udff4\u200d\u2620\ufe0f|\ud83d\udc15\u200d\ud83e\uddba|\ud83d\udc41\u200d\ud83d\udde8|\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc6f\u200d\u2640\ufe0f|\ud83d\udc6f\u200d\u2642\ufe0f|\ud83e\udd3c\u200d\u2640\ufe0f|\ud83e\udd3c\u200d\u2642\ufe0f|\ud83e\uddde\u200d\u2640\ufe0f|\ud83e\uddde\u200d\u2642\ufe0f|\ud83e\udddf\u200d\u2640\ufe0f|\ud83e\udddf\u200d\u2642\ufe0f)|[#*0-9]\ufe0f?\u20e3|(?:[©®\u2122\u265f]\ufe0f)|(?:\ud83c[\udc04\udd70\udd71\udd7e\udd7f\ude02\ude1a\ude2f\ude37\udf21\udf24-\udf2c\udf36\udf7d\udf96\udf97\udf99-\udf9b\udf9e\udf9f\udfcd\udfce\udfd4-\udfdf\udff3\udff5\udff7]|\ud83d[\udc3f\udc41\udcfd\udd49\udd4a\udd6f\udd70\udd73\udd76-\udd79\udd87\udd8a-\udd8d\udda5\udda8\uddb1\uddb2\uddbc\uddc2-\uddc4\uddd1-\uddd3\udddc-\uddde\udde1\udde3\udde8\uddef\uddf3\uddfa\udecb\udecd-\udecf\udee0-\udee5\udee9\udef0\udef3]|[\u203c\u2049\u2139\u2194-\u2199\u21a9\u21aa\u231a\u231b\u2328\u23cf\u23ed-\u23ef\u23f1\u23f2\u23f8-\u23fa\u24c2\u25aa\u25ab\u25b6\u25c0\u25fb-\u25fe\u2600-\u2604\u260e\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262a\u262e\u262f\u2638-\u263a\u2640\u2642\u2648-\u2653\u2660\u2663\u2665\u2666\u2668\u267b\u267f\u2692-\u2697\u2699\u269b\u269c\u26a0\u26a1\u26a7\u26aa\u26ab\u26b0\u26b1\u26bd\u26be\u26c4\u26c5\u26c8\u26cf\u26d1\u26d3\u26d4\u26e9\u26ea\u26f0-\u26f5\u26f8\u26fa\u26fd\u2702\u2708\u2709\u270f\u2712\u2714\u2716\u271d\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u2764\u27a1\u2934\u2935\u2b05-\u2b07\u2b1b\u2b1c\u2b50\u2b55\u3030\u303d\u3297\u3299])(?:\ufe0f|(?!\ufe0e))|(?:(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75\udd90]|[\u261d\u26f7\u26f9\u270c\u270d])(?:\ufe0f|(?!\ufe0e))|(?:\ud83c[\udf85\udfc2-\udfc4\udfc7\udfca]|\ud83d[\udc42\udc43\udc46-\udc50\udc66-\udc69\udc6e\udc70-\udc78\udc7c\udc81-\udc83\udc85-\udc87\udcaa\udd7a\udd95\udd96\ude45-\ude47\ude4b-\ude4f\udea3\udeb4-\udeb6\udec0\udecc]|\ud83e[\udd0f\udd18-\udd1c\udd1e\udd1f\udd26\udd30-\udd39\udd3d\udd3e\uddb5\uddb6\uddb8\uddb9\uddbb\uddcd-\uddcf\uddd1-\udddd]|[\u270a\u270b]))(?:\ud83c[\udffb-\udfff])?|(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc77\udb40\udc6c\udb40\udc73\udb40\udc7f|\ud83c\udde6\ud83c[\udde8-\uddec\uddee\uddf1\uddf2\uddf4\uddf6-\uddfa\uddfc\uddfd\uddff]|\ud83c\udde7\ud83c[\udde6\udde7\udde9-\uddef\uddf1-\uddf4\uddf6-\uddf9\uddfb\uddfc\uddfe\uddff]|\ud83c\udde8\ud83c[\udde6\udde8\udde9\uddeb-\uddee\uddf0-\uddf5\uddf7\uddfa-\uddff]|\ud83c\udde9\ud83c[\uddea\uddec\uddef\uddf0\uddf2\uddf4\uddff]|\ud83c\uddea\ud83c[\udde6\udde8\uddea\uddec\udded\uddf7-\uddfa]|\ud83c\uddeb\ud83c[\uddee-\uddf0\uddf2\uddf4\uddf7]|\ud83c\uddec\ud83c[\udde6\udde7\udde9-\uddee\uddf1-\uddf3\uddf5-\uddfa\uddfc\uddfe]|\ud83c\udded\ud83c[\uddf0\uddf2\uddf3\uddf7\uddf9\uddfa]|\ud83c\uddee\ud83c[\udde8-\uddea\uddf1-\uddf4\uddf6-\uddf9]|\ud83c\uddef\ud83c[\uddea\uddf2\uddf4\uddf5]|\ud83c\uddf0\ud83c[\uddea\uddec-\uddee\uddf2\uddf3\uddf5\uddf7\uddfc\uddfe\uddff]|\ud83c\uddf1\ud83c[\udde6-\udde8\uddee\uddf0\uddf7-\uddfb\uddfe]|\ud83c\uddf2\ud83c[\udde6\udde8-\udded\uddf0-\uddff]|\ud83c\uddf3\ud83c[\udde6\udde8\uddea-\uddec\uddee\uddf1\uddf4\uddf5\uddf7\uddfa\uddff]|\ud83c\uddf4\ud83c\uddf2|\ud83c\uddf5\ud83c[\udde6\uddea-\udded\uddf0-\uddf3\uddf7-\uddf9\uddfc\uddfe]|\ud83c\uddf6\ud83c\udde6|\ud83c\uddf7\ud83c[\uddea\uddf4\uddf8\uddfa\uddfc]|\ud83c\uddf8\ud83c[\udde6-\uddea\uddec-\uddf4\uddf7-\uddf9\uddfb\uddfd-\uddff]|\ud83c\uddf9\ud83c[\udde6\udde8\udde9\uddeb-\udded\uddef-\uddf4\uddf7\uddf9\uddfb\uddfc\uddff]|\ud83c\uddfa\ud83c[\udde6\uddec\uddf2\uddf3\uddf8\uddfe\uddff]|\ud83c\uddfb\ud83c[\udde6\udde8\uddea\uddec\uddee\uddf3\uddfa]|\ud83c\uddfc\ud83c[\uddeb\uddf8]|\ud83c\uddfd\ud83c\uddf0|\ud83c\uddfe\ud83c[\uddea\uddf9]|\ud83c\uddff\ud83c[\udde6\uddf2\uddfc]|\ud83c[\udccf\udd8e\udd91-\udd9a\udde6-\uddff\ude01\ude32-\ude36\ude38-\ude3a\ude50\ude51\udf00-\udf20\udf2d-\udf35\udf37-\udf7c\udf7e-\udf84\udf86-\udf93\udfa0-\udfc1\udfc5\udfc6\udfc8\udfc9\udfcf-\udfd3\udfe0-\udff0\udff4\udff8-\udfff]|\ud83d[\udc00-\udc3e\udc40\udc44\udc45\udc51-\udc65\udc6a\udc6f\udc79-\udc7b\udc7d-\udc80\udc84\udc88-\udca9\udcab-\udcfc\udcff-\udd3d\udd4b-\udd4e\udd50-\udd67\udda4\uddfb-\ude44\ude48-\ude4a\ude80-\udea2\udea4-\udeb3\udeb7-\udebf\udec1-\udec5\uded0-\uded2\uded5\udeeb\udeec\udef4-\udefa\udfe0-\udfeb]|\ud83e[\udd0d\udd0e\udd10-\udd17\udd1d\udd20-\udd25\udd27-\udd2f\udd3a\udd3c\udd3f-\udd45\udd47-\udd71\udd73-\udd76\udd7a-\udda2\udda5-\uddaa\uddae-\uddb4\uddb7\uddba\uddbc-\uddca\uddd0\uddde-\uddff\ude70-\ude73\ude78-\ude7a\ude80-\ude82\ude90-\ude95]|[\u23e9-\u23ec\u23f0\u23f3\u267e\u26ce\u2705\u2728\u274c\u274e\u2753-\u2755\u2795-\u2797\u27b0\u27bf\ue50a])|\ufe0f/g;
+
+// plugins/emoji/constants.js
+var SHORTNAME_RE = /^:[a-zA-Z0-9_+*-]+:$/;
+var PUBLISH_DEBOUNCE_MILLIS = 3e4;
 
 // plugins/emoji/utils.js
 var { u: u6 } = public_default.env;
@@ -6097,16 +6150,27 @@ function toCodePoint(unicode_surrogates) {
   return r.join("-");
 }
 __name(toCodePoint, "toCodePoint");
+function emojiToShortname(emoji) {
+  if (emoji.match(SHORTNAME_RE)) {
+    return emoji;
+  } else {
+    const by_cp = getEmojisByAttribute("cp");
+    const cp = u6.emojis.emojiToCodepointKey(emoji);
+    return by_cp[cp]?.sn ?? emoji;
+  }
+}
+__name(emojiToShortname, "emojiToShortname");
+function emojiToCodepointKey(emoji) {
+  return [...emoji].map((c) => c.codePointAt(0).toString(16)).join("-");
+}
+__name(emojiToCodepointKey, "emojiToCodepointKey");
 function fromCodePoint(codepoint) {
   let code = typeof codepoint === "string" ? parseInt(codepoint, 16) : codepoint;
   if (code < 65536) {
     return String.fromCharCode(code);
   }
   code -= 65536;
-  return String.fromCharCode(
-    55296 + (code >> 10),
-    56320 + (code & 1023)
-  );
+  return String.fromCharCode(55296 + (code >> 10), 56320 + (code & 1023));
 }
 __name(fromCodePoint, "fromCodePoint");
 function convert(unicode) {
@@ -6130,10 +6194,10 @@ function convert(unicode) {
 __name(convert, "convert");
 function convertASCII2Emoji(str) {
   return str.replace(ASCII_REPLACE_REGEX, (entire, _, m2, m3) => {
-    if (typeof m3 === "undefined" || m3 === "" || !(u6.unescapeHTML(m3) in ASCII_LIST)) {
+    if (typeof m3 === "undefined" || m3 === "" || !(unescapeHTML(m3) in ASCII_LIST)) {
       return entire;
     }
-    m3 = u6.unescapeHTML(m3);
+    m3 = unescapeHTML(m3);
     const unicode = ASCII_LIST[m3].toUpperCase();
     return m2 + convert(unicode);
   });
@@ -6152,10 +6216,10 @@ function getShortnameReferences(text) {
     const cp = public_default.emojis.by_sn[ref[0].toLowerCase()]?.cp;
     return {
       cp,
-      "begin": ref.index,
-      "end": ref.index + ref[0].length,
-      "shortname": ref[0],
-      "emoji": cp ? convert(cp) : null
+      begin: ref.index,
+      end: ref.index + ref[0].length,
+      shortname: ref[0],
+      emoji: cp ? convert(cp) : null
     };
   });
 }
@@ -6165,7 +6229,8 @@ function parseStringForEmojis(str, callback) {
   const U200D = String.fromCharCode(8205);
   return String(str).replace(CODEPOINTS_REGEX, (emoji, _, offset) => {
     const icon_id = toCodePoint(emoji.indexOf(U200D) < 0 ? emoji.replace(UFE0Fg, "") : emoji);
-    if (icon_id) callback(icon_id, emoji, offset);
+    if (icon_id)
+      callback(icon_id, emoji, offset);
     return emoji;
   });
 }
@@ -6174,11 +6239,11 @@ function getCodePointReferences(text) {
   const references = [];
   parseStringForEmojis(text, (icon_id, emoji, offset) => {
     references.push({
-      "begin": offset,
-      "cp": icon_id,
-      "emoji": emoji,
-      "end": offset + emoji.length,
-      "shortname": getEmojisByAttribute("cp")[icon_id]?.sn || ""
+      begin: offset,
+      cp: icon_id,
+      emoji,
+      end: offset + emoji.length,
+      shortname: getEmojisByAttribute("cp")[icon_id]?.sn || ""
     });
   });
   return references;
@@ -6204,7 +6269,7 @@ function isOnlyEmojis(text) {
     return false;
   }
   const emojis2 = words.filter((text2) => {
-    const refs = getCodePointReferences(u6.shortnamesToUnicode(text2));
+    const refs = getCodePointReferences(u6.emojis.shortnamesToUnicode(text2));
     return refs.length === 1 && (text2.toLowerCase() === refs[0]["shortname"] || text2 === refs[0]["emoji"]);
   });
   return emojis2.length === words.length;
@@ -6224,13 +6289,251 @@ function getEmojisByAttribute(attr) {
 }
 __name(getEmojisByAttribute, "getEmojisByAttribute");
 Object.assign(u6, {
-  getCodePointReferences,
-  getShortnameReferences,
-  convertASCII2Emoji,
-  getEmojisByAttribute,
-  isOnlyEmojis,
-  shortnamesToUnicode
+  emojis: {
+    convert,
+    convertASCII2Emoji,
+    emojiToCodepointKey,
+    emojiToShortname,
+    getCodePointReferences,
+    getEmojisByAttribute,
+    getShortnameReferences,
+    isOnlyEmojis,
+    shortnamesToUnicode
+  }
 });
+
+// plugins/emoji/handlers.js
+var { Strophe: Strophe22 } = public_default.env;
+function registerPEPPushHandler() {
+  const bare_jid = converse_default.session.get("bare_jid");
+  api_default4.connection.get().addHandler(
+    /** @param {Element} stanza */
+    (stanza) => {
+      const { popular_emojis } = converse_default.state;
+      popular_emojis?.applyPopularEmojisFromStanza(stanza);
+      return true;
+    },
+    Strophe22.NS.REACTIONS_POPULAR,
+    "message",
+    "headline",
+    null,
+    bare_jid
+  );
+}
+__name(registerPEPPushHandler, "registerPEPPushHandler");
+async function updatePopularEmojis(message) {
+  const body = message.get("body");
+  if (!body)
+    return;
+  await api_default4.emojis.initialize();
+  const { popular_emojis } = converse_default.state;
+  if (!popular_emojis)
+    return;
+  const shortname_refs = new Set(getShortnameReferences(body).map(({ shortname }) => shortname));
+  const cp_refs = new Set(getCodePointReferences(body).map(({ emoji }) => emoji));
+  const emojis2 = [...shortname_refs, ...cp_refs];
+  if (emojis2.length) {
+    popular_emojis.recordUsage(emojis2);
+  }
+}
+__name(updatePopularEmojis, "updatePopularEmojis");
+async function parseMessage2(attrs, text) {
+  await api_default4.emojis.initialize();
+  return {
+    ...attrs,
+    is_only_emojis: text ? isOnlyEmojis(text) : false
+  };
+}
+__name(parseMessage2, "parseMessage");
+
+// plugins/emoji/popular-emojis.js
+import log21 from "@converse/log";
+import { getOpenPromise as getOpenPromise9 } from "@converse/openpromise";
+import { Model as Model11 } from "@converse/skeletor";
+var { Strophe: Strophe23, sizzle: sizzle9, stx: stx6, u: u7 } = public_default.env;
+var PopularEmojis = class extends Model11 {
+  static {
+    __name(this, "PopularEmojis");
+  }
+  defaults() {
+    return {
+      // Format: { 'unicode_emoji': 'ISO8601-timestamp', ... }
+      timestamps: {}
+    };
+  }
+  initialize() {
+    super.initialize();
+    const { session } = converse_default;
+    const storage_key = `converse.popular_emojis_frequencies.${session.get("bare_jid")}`;
+    const fetched_flag_key = `${storage_key}-fetched`;
+    this.fetched_flag = fetched_flag_key;
+    this.debouncedPublish = debounce3(() => this.publish(), PUBLISH_DEBOUNCE_MILLIS);
+    u7.initStorage(this, storage_key);
+    this.fetchPopularEmojis();
+  }
+  async fetchPopularEmojis() {
+    if (converse_default.state.session.get(this.fetched_flag)) {
+      const deferred = getOpenPromise9();
+      this.fetch({
+        success: () => deferred.resolve(),
+        error: () => deferred.resolve()
+      });
+      return deferred;
+    } else {
+      await this.fetchPopularEmojisFromServer();
+    }
+  }
+  /**
+   * Fetch the user's stored popular emojis from their PEP node and apply them.
+   * If no item is stored, the default `popular_emojis` setting is left unchanged.
+   */
+  async fetchPopularEmojisFromServer() {
+    const bare_jid = converse_default.state.session.get("bare_jid");
+    let iq;
+    try {
+      iq = await api_default4.sendIQ(
+        stx6`<iq type="get" from="${bare_jid}" to="${bare_jid}" xmlns="jabber:client">
+                    <pubsub xmlns="${Strophe23.NS.PUBSUB}">
+                        <items node="${Strophe23.NS.REACTIONS_POPULAR}" max_items="1"/>
+                    </pubsub>
+                </iq>`
+      );
+      this.applyPopularEmojisFromStanza(iq);
+    } catch (e) {
+      if (e?.querySelector?.("item-not-found"))
+        return;
+      log21.warn("fetchPopularEmojisFromServer: could not fetch popular emojis from PubSub");
+      log21.error(e);
+      return;
+    }
+  }
+  /**
+   * Parse a list of unicode emoji from a popular-reactions PubSub item and
+   * merge the received timestamps with local ones, keeping the most recent
+   * timestamp per emoji (last-write-wins per slot).
+   *
+   * @param {Element} stanza - An IQ result or headline message containing the pubsub item
+   */
+  applyPopularEmojisFromStanza(stanza) {
+    const item = sizzle9(`items[node="${Strophe23.NS.REACTIONS_POPULAR}"] item`, stanza).pop();
+    if (!item)
+      return;
+    const popular_el = item.getElementsByTagNameNS(Strophe23.NS.REACTIONS_POPULAR, "popular-reactions")[0];
+    if (!popular_el)
+      return;
+    const reactions = Array.from(popular_el.querySelectorAll("reaction")).map((el) => ({ emoji: el.textContent?.trim(), stamp: el.getAttribute("stamp") })).filter(({ emoji, stamp }) => emoji && stamp);
+    if (!reactions.length)
+      return;
+    const local_timestamps = { ...this.get("timestamps") || {} };
+    for (const { emoji, stamp } of reactions) {
+      const remote_ms = new Date(stamp).getTime();
+      if (isNaN(remote_ms))
+        continue;
+      const normalised_stamp = new Date(remote_ms).toISOString();
+      const local_stamp = local_timestamps[emoji];
+      const local_ms = local_stamp ? new Date(local_stamp).getTime() : 0;
+      if (remote_ms > local_ms) {
+        local_timestamps[emoji] = normalised_stamp;
+      }
+    }
+    this.save({ timestamps: local_timestamps });
+  }
+  /**
+   * Record that an emoji was just used, setting its timestamp to now.
+   * Accepts unicode emoji or shortnames. Shortnames are converted to unicode
+   * before storage to prevent duplicates. Unicode is stored as-is (preserving
+   * variation selectors like U+FE0F).
+   *
+   * @param {string[]} emojis - An array of unicode emojis and/or shortnames
+   */
+  recordUsage(emojis2) {
+    const timestamps = { ...this.get("timestamps") || {} };
+    const by_sn = public_default.emojis.by_sn || {};
+    emojis2.forEach((emoji) => {
+      let unicode;
+      if (SHORTNAME_RE.test(emoji)) {
+        const emoji_data = by_sn[emoji];
+        if (emoji_data?.cp) {
+          unicode = u7.emojis.convert(emoji_data.cp);
+        } else {
+          return;
+        }
+      } else {
+        unicode = emoji;
+      }
+      timestamps[unicode] = (/* @__PURE__ */ new Date()).toISOString();
+    });
+    this.save({ timestamps });
+    this.debouncedPublish();
+  }
+  /**
+   * Get emojis sorted by most recently used first.
+   * @param {number} [maxLength=5] - Maximum number of emojis to return
+   * @returns {string[]} - Array of unicode emoji keys sorted by timestamp descending
+   */
+  getSortedEmojis(maxLength = 5) {
+    const timestamps = this.get("timestamps") || {};
+    return Object.entries(timestamps).sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime() || a[0].localeCompare(b[0])).map((entry) => entry[0]).slice(0, maxLength);
+  }
+  /**
+   * @returns {Promise<import('./types').EmojiDataByUnicode>} Map from unicode emoji to data
+   */
+  async getPopularEmojis() {
+    await api_default4.emojis.initialize();
+    const result = (
+      /** @type{import('./types').EmojiDataByUnicode} */
+      {}
+    );
+    const default_setting = api_default4.settings.get("popular_emojis") ?? [];
+    const max = default_setting.length || 5;
+    const sorted = this.getSortedEmojis(max);
+    const by_cp = u7.emojis.getEmojisByAttribute("cp");
+    for (const key of sorted) {
+      const emoji_data = by_cp[emojiToCodepointKey(key)];
+      if (!emoji_data)
+        continue;
+      result[key] = emoji_data;
+    }
+    if (Object.keys(result).length < max) {
+      const by_sn = public_default.emojis.by_sn || {};
+      for (const sn of default_setting) {
+        if (Object.keys(result).length >= max)
+          break;
+        const data = by_sn[sn];
+        const unicode = data?.cp ? u7.emojis.convert(data.cp) : null;
+        if (unicode && !result[unicode]) {
+          const emoji_data = by_cp[emojiToCodepointKey(unicode)];
+          if (emoji_data)
+            result[unicode] = emoji_data;
+        }
+      }
+    }
+    return result;
+  }
+  async publish() {
+    await api_default4.emojis.initialize();
+    const default_setting = api_default4.settings.get("popular_emojis") ?? [];
+    const max = default_setting.length || 5;
+    const sorted = this.getSortedEmojis(max);
+    const timestamps = this.get("timestamps") || {};
+    const item = stx6`
+            <item id="current">
+                <popular-reactions xmlns="${Strophe23.NS.REACTIONS_POPULAR}">
+                    ${sorted.map((e) => stx6`<reaction stamp="${timestamps[e]}">${e}</reaction>`)}
+                </popular-reactions>
+            </item>`;
+    try {
+      await api_default4.pubsub.publish(null, Strophe23.NS.REACTIONS_POPULAR, item, {
+        persist_items: "true",
+        access_model: "whitelist"
+      });
+    } catch (e) {
+      log21.warn("PopularEmojis#publish: failed to update popular emojis");
+      log21.error(e);
+    }
+  }
+};
+var popular_emojis_default = PopularEmojis;
 
 // plugins/emoji/plugin.js
 /**
@@ -6238,75 +6541,77 @@ Object.assign(u6, {
  * @copyright 2022, the Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
+var { Strophe: Strophe24 } = public_default.env;
+Strophe24.addNamespace("REACTIONS_POPULAR", "urn:xmpp:reactions:popular:0");
 public_default.emojis = {
   initialized: false,
-  initialized_promise: getOpenPromise9()
+  initialized_promise: getOpenPromise10()
 };
 public_default.plugins.add("converse-emoji", {
   initialize() {
     const { ___ } = converse_default;
     api_default4.settings.extend({
-      "emoji_image_path": "https://twemoji.maxcdn.com/v/12.1.6/",
-      "emoji_categories": {
-        "smileys": ":grinning:",
-        "people": ":thumbsup:",
-        "activity": ":soccer:",
-        "travel": ":motorcycle:",
-        "objects": ":bomb:",
-        "nature": ":rainbow:",
-        "food": ":hotdog:",
-        "symbols": ":musical_note:",
-        "flags": ":flag_ac:",
-        "custom": null
+      emoji_image_path: "https://twemoji.maxcdn.com/v/12.1.6/",
+      emoji_categories: {
+        popular: ":star:",
+        smileys: ":grinning:",
+        people: ":thumbsup:",
+        activity: ":soccer:",
+        travel: ":motorcycle:",
+        objects: ":bomb:",
+        nature: ":rainbow:",
+        food: ":hotdog:",
+        symbols: ":musical_note:",
+        flags: ":flag_ac:",
+        custom: null
       },
+      popular_emojis: [":thumbsup:", ":heart:", ":laughing:", ":joy:", ":tada:"],
       // We use the triple-underscore method which doesn't actually
       // translate but does signify to gettext that these strings should
       // go into the POT file. The translation then happens in the
       // template. We do this so that users can pass in their own
       // strings via converse.initialize, which is before __ is
       // available.
-      "emoji_category_labels": {
-        "smileys": ___("Smileys and emotions"),
-        "people": ___("People"),
-        "activity": ___("Activities"),
-        "travel": ___("Travel"),
-        "objects": ___("Objects"),
-        "nature": ___("Animals and nature"),
-        "food": ___("Food and drink"),
-        "symbols": ___("Symbols"),
-        "flags": ___("Flags"),
-        "custom": ___("Stickers")
+      emoji_category_labels: {
+        popular: ___("Frequently used"),
+        smileys: ___("Smileys and emotions"),
+        people: ___("People"),
+        activity: ___("Activities"),
+        travel: ___("Travel"),
+        objects: ___("Objects"),
+        nature: ___("Animals and nature"),
+        food: ___("Food and drink"),
+        symbols: ___("Symbols"),
+        flags: ___("Flags"),
+        custom: ___("Stickers")
       }
     });
     const exports = { EmojiPicker: picker_default };
     Object.assign(converse_default, exports);
     Object.assign(converse_default.exports, exports);
     Object.assign(api_default4, api_default5);
-    api_default4.listen.on("getOutgoingMessageAttributes", async (_chat, attrs) => {
-      await api_default4.emojis.initialize();
-      const { original_text: text } = attrs;
-      return {
-        ...attrs,
-        is_only_emojis: text ? isOnlyEmojis(text) : false
-      };
+    api_default4.listen.on("connected", () => {
+      registerPEPPushHandler();
+      if (converse_default.state.popular_emojis)
+        return;
+      const popular_emojis = new popular_emojis_default();
+      Object.assign(converse_default.state, { popular_emojis });
     });
-    async function parseMessage2(_stanza, attrs) {
-      await api_default4.emojis.initialize();
-      return {
-        ...attrs,
-        is_only_emojis: attrs.body ? isOnlyEmojis(attrs.body) : false
-      };
-    }
-    __name(parseMessage2, "parseMessage");
-    api_default4.listen.on("parseMUCMessage", parseMessage2);
-    api_default4.listen.on("parseMessage", parseMessage2);
+    api_default4.listen.on("clearSession", () => {
+      converse_default.state.popular_emojis?.debouncedPublish.flush();
+      delete converse_default.state.popular_emojis;
+    });
+    api_default4.listen.on("getOutgoingMessageAttributes", async (_chat, attrs) => parseMessage2(attrs, attrs.original_text));
+    api_default4.listen.on("parseMUCMessage", (_chat, attrs) => parseMessage2(attrs, attrs.body));
+    api_default4.listen.on("parseMessage", (_chat, attrs) => parseMessage2(attrs, attrs.body));
+    api_default4.listen.on("sendMessage", async ({ message }) => updatePopularEmojis(message));
   }
 });
 
 // plugins/bookmarks/model.js
-import { Model as Model11 } from "@converse/skeletor";
-var { Strophe: Strophe23 } = public_default.env;
-var Bookmark = class extends Model11 {
+import { Model as Model12 } from "@converse/skeletor";
+var { Strophe: Strophe25 } = public_default.env;
+var Bookmark = class extends Model12 {
   static {
     __name(this, "Bookmark");
   }
@@ -6314,35 +6619,35 @@ var Bookmark = class extends Model11 {
     return "jid";
   }
   getDisplayName() {
-    return this.get("name") && Strophe23.xmlunescape(this.get("name")) || this.get("jid");
+    return this.get("name") && Strophe25.xmlunescape(this.get("name")) || this.get("jid");
   }
 };
 var model_default = Bookmark;
 
 // plugins/bookmarks/collection.js
 import { nothing as nothing2 } from "lit";
-import { Stanza as Stanza5 } from "strophe.js";
+import { Stanza as Stanza9 } from "strophe.js";
 import { Collection as Collection8 } from "@converse/skeletor";
-import { getOpenPromise as getOpenPromise15 } from "@converse/openpromise";
-import log31 from "@converse/log";
+import { getOpenPromise as getOpenPromise16 } from "@converse/openpromise";
+import log33 from "@converse/log";
 
 // plugins/bookmarks/parsers.js
-var { Strophe: Strophe24, sizzle: sizzle9 } = public_default.env;
+var { Strophe: Strophe26, sizzle: sizzle10 } = public_default.env;
 async function parseStanzaForBookmarks(stanza) {
   let ns;
   let sel;
   const bare_jid = converse_default.session.get("bare_jid");
-  if (await api_default4.disco.supports(`${Strophe24.NS.BOOKMARKS2}#compat`, bare_jid)) {
-    ns = Strophe24.NS.BOOKMARKS2;
+  if (await api_default4.disco.supports(`${Strophe26.NS.BOOKMARKS2}#compat`, bare_jid)) {
+    ns = Strophe26.NS.BOOKMARKS2;
     sel = `items[node="${ns}"] item conference`;
   } else {
-    ns = Strophe24.NS.BOOKMARKS;
+    ns = Strophe26.NS.BOOKMARKS;
     sel = `items[node="${ns}"] item storage[xmlns="${ns}"] conference`;
   }
-  return sizzle9(sel, stanza).map(
+  return sizzle10(sel, stanza).map(
     /** @param {Element} el */
     (el) => {
-      const jid = ns === Strophe24.NS.BOOKMARKS2 ? el.parentElement.getAttribute("id") : el.getAttribute("jid");
+      const jid = ns === Strophe26.NS.BOOKMARKS2 ? el.parentElement.getAttribute("id") : el.getAttribute("jid");
       return {
         jid,
         name: el.getAttribute("name") || jid,
@@ -6357,7 +6662,7 @@ async function parseStanzaForBookmarks(stanza) {
 __name(parseStanzaForBookmarks, "parseStanzaForBookmarks");
 
 // plugins/muc/message.js
-import { Strophe as Strophe25 } from "strophe.js";
+import { Strophe as Strophe27 } from "strophe.js";
 var MUCMessage = class extends message_default {
   static {
     __name(this, "MUCMessage");
@@ -6378,7 +6683,7 @@ var MUCMessage = class extends message_default {
     return this.occupant?.getDisplayName() || this.get("nick");
   }
   /**
-   * Determines whether this messsage may be moderated,
+   * Determines whether this message may be moderated,
    * based on configuration settings and server support.
    * @method _converse.ChatRoomMessages#mayBeModerated
    * @returns {Promise<boolean>}
@@ -6407,7 +6712,7 @@ var MUCMessage = class extends message_default {
       if (occupant.get("occupant_id") !== this.get("occupant_id")) {
         return;
       }
-    } else if (occupant.get("nick") !== Strophe25.getResourceFromJid(this.get("from"))) {
+    } else if (occupant.get("nick") !== Strophe27.getResourceFromJid(this.get("from"))) {
       return;
     }
     this.setOccupant(occupant);
@@ -6428,8 +6733,9 @@ var MUCMessage = class extends message_default {
     } else if (this.get("type") === "chat" && this.get("sender") === "them") {
       this.occupant = this.chatbox;
     } else {
-      if (this.occupant) return;
-      const nick = Strophe25.getResourceFromJid(this.get("from"));
+      if (this.occupant)
+        return;
+      const nick = Strophe27.getResourceFromJid(this.get("from"));
       const occupant_id = this.get("occupant_id");
       this.occupant = nick || occupant_id ? this.occupants.findOccupant({ nick, occupant_id }) : null;
       if (!this.occupant) {
@@ -6475,10 +6781,10 @@ var messages_default = MUCMessages;
 // plugins/muc/muc.js
 import debounce5 from "lodash-es/debounce";
 import pick3 from "lodash-es/pick";
-import sizzle12 from "sizzle";
-import { getOpenPromise as getOpenPromise10 } from "@converse/openpromise";
-import { Model as Model14 } from "@converse/skeletor";
-import log24 from "@converse/log";
+import sizzle13 from "sizzle";
+import { getOpenPromise as getOpenPromise11 } from "@converse/openpromise";
+import { Model as Model15 } from "@converse/skeletor";
+import log25 from "@converse/log";
 
 // utils/parse-helpers.js
 /**
@@ -6628,24 +6934,23 @@ var ROOM_FEATURES = [
 var MUC_NICK_CHANGED_CODE = "303";
 
 // plugins/muc/muc.js
-import { Strophe as Strophe29, Stanza as Stanza4, $build as $build2 } from "strophe.js";
+import { Strophe as Strophe31, Stanza as Stanza6, $build as $build2 } from "strophe.js";
 
 // plugins/muc/affiliations/utils.js
-import log21 from "@converse/log";
+import log22 from "@converse/log";
 
 // plugins/muc/parsers.js
-import dayjs5 from "dayjs";
-var { Strophe: Strophe26, sizzle: sizzle10, u: u7 } = public_default.env;
-var { NS: NS2 } = Strophe26;
+var { Strophe: Strophe28, dayjs: dayjs5, sizzle: sizzle11, u: u8 } = public_default.env;
+var { NS: NS2 } = Strophe28;
 function getMEPActivities(stanza) {
-  const items_el = sizzle10(`items[node="${Strophe26.NS.CONFINFO}"]`, stanza).pop();
+  const items_el = sizzle11(`items[node="${Strophe28.NS.CONFINFO}"]`, stanza).pop();
   if (!items_el) {
     return null;
   }
   const from = stanza.getAttribute("from");
   const msgid = stanza.getAttribute("id");
-  const selector = `item conference-info[xmlns="${Strophe26.NS.CONFINFO}"] activity[xmlns="${Strophe26.NS.ACTIVITY}"]`;
-  return sizzle10(selector, items_el).map(
+  const selector = `item conference-info[xmlns="${Strophe28.NS.CONFINFO}"] activity[xmlns="${Strophe28.NS.ACTIVITY}"]`;
+  return sizzle11(selector, items_el).map(
     /** @param {Element} el */
     (el) => {
       const message = el.querySelector("text")?.textContent;
@@ -6660,17 +6965,17 @@ function getMEPActivities(stanza) {
 }
 __name(getMEPActivities, "getMEPActivities");
 function getJIDFromMUCUserData(stanza) {
-  const item = sizzle10(`message > x[xmlns="${Strophe26.NS.MUC_USER}"] item`, stanza).pop();
+  const item = sizzle11(`message > x[xmlns="${Strophe28.NS.MUC_USER}"] item`, stanza).pop();
   return item?.getAttribute("jid");
 }
 __name(getJIDFromMUCUserData, "getJIDFromMUCUserData");
 function getDeprecatedModerationAttributes(stanza) {
-  const fastening = sizzle10(`apply-to[xmlns="${Strophe26.NS.FASTEN}"]`, stanza).pop();
+  const fastening = sizzle11(`apply-to[xmlns="${Strophe28.NS.FASTEN}"]`, stanza).pop();
   if (fastening) {
     const applies_to_id = fastening.getAttribute("id");
-    const moderated = sizzle10(`moderated[xmlns="${Strophe26.NS.MODERATE0}"]`, fastening).pop();
+    const moderated = sizzle11(`moderated[xmlns="${Strophe28.NS.MODERATE0}"]`, fastening).pop();
     if (moderated) {
-      const retracted = sizzle10(`retract[xmlns="${Strophe26.NS.RETRACT0}"]`, moderated).pop();
+      const retracted = sizzle11(`retract[xmlns="${Strophe28.NS.RETRACT0}"]`, moderated).pop();
       if (retracted) {
         return {
           editable: false,
@@ -6682,9 +6987,9 @@ function getDeprecatedModerationAttributes(stanza) {
       }
     }
   } else {
-    const tombstone = sizzle10(`> moderated[xmlns="${Strophe26.NS.MODERATE0}"]`, stanza).pop();
+    const tombstone = sizzle11(`> moderated[xmlns="${Strophe28.NS.MODERATE0}"]`, stanza).pop();
     if (tombstone) {
-      const retracted = sizzle10(`retracted[xmlns="${Strophe26.NS.RETRACT0}"]`, tombstone).pop();
+      const retracted = sizzle11(`retracted[xmlns="${Strophe28.NS.RETRACT0}"]`, tombstone).pop();
       if (retracted) {
         return {
           editable: false,
@@ -6700,9 +7005,9 @@ function getDeprecatedModerationAttributes(stanza) {
 }
 __name(getDeprecatedModerationAttributes, "getDeprecatedModerationAttributes");
 function getModerationAttributes(stanza) {
-  const retract = sizzle10(`> retract[xmlns="${Strophe26.NS.RETRACT}"]`, stanza).pop();
+  const retract = sizzle11(`> retract[xmlns="${Strophe28.NS.RETRACT}"]`, stanza).pop();
   if (retract) {
-    const moderated = sizzle10(`moderated[xmlns="${Strophe26.NS.MODERATE}"]`, retract).pop();
+    const moderated = sizzle11(`moderated[xmlns="${Strophe28.NS.MODERATE}"]`, retract).pop();
     if (moderated) {
       return {
         editable: false,
@@ -6714,7 +7019,7 @@ function getModerationAttributes(stanza) {
       };
     }
   } else {
-    const tombstone = sizzle10(`retracted[xmlns="${Strophe26.NS.RETRACT}"]`, stanza).pop();
+    const tombstone = sizzle11(`retracted[xmlns="${Strophe28.NS.RETRACT}"]`, stanza).pop();
     if (tombstone) {
       return {
         editable: false,
@@ -6730,7 +7035,7 @@ function getModerationAttributes(stanza) {
 }
 __name(getModerationAttributes, "getModerationAttributes");
 function getStatusCodes(stanza, type) {
-  const codes = sizzle10(`${type} > x[xmlns="${Strophe26.NS.MUC_USER}"] status`, stanza).map(
+  const codes = sizzle11(`${type} > x[xmlns="${Strophe28.NS.MUC_USER}"] status`, stanza).map(
     /** @param {Element} s */
     (s) => s.getAttribute("code")
   ).filter(
@@ -6747,8 +7052,8 @@ function getStatusCodes(stanza, type) {
 }
 __name(getStatusCodes, "getStatusCodes");
 function getOccupantID(stanza, chatbox) {
-  if (chatbox.features.get(Strophe26.NS.OCCUPANTID)) {
-    return sizzle10(`occupant-id[xmlns="${Strophe26.NS.OCCUPANTID}"]`, stanza).pop()?.getAttribute("id");
+  if (chatbox.features.get(Strophe28.NS.OCCUPANTID)) {
+    return sizzle11(`occupant-id[xmlns="${Strophe28.NS.OCCUPANTID}"]`, stanza).pop()?.getAttribute("id");
   }
 }
 __name(getOccupantID, "getOccupantID");
@@ -6759,7 +7064,7 @@ function getSender(attrs, chatbox) {
     is_me = attrs.occupant_id === own_occupant_id;
   } else if (attrs.from_real_jid) {
     const bare_jid = converse_default.session.get("bare_jid");
-    is_me = Strophe26.getBareJidFromJid(attrs.from_real_jid) === bare_jid;
+    is_me = Strophe28.getBareJidFromJid(attrs.from_real_jid) === bare_jid;
   } else {
     is_me = attrs.nick === chatbox.get("nick");
   }
@@ -6768,12 +7073,12 @@ function getSender(attrs, chatbox) {
 __name(getSender, "getSender");
 async function parseMUCMessage(original_stanza, chatbox) {
   throwErrorIfInvalidForward(original_stanza);
-  const forwarded_stanza = sizzle10(
+  const forwarded_stanza = sizzle11(
     `result[xmlns="${NS2.MAM}"] > forwarded[xmlns="${NS2.FORWARD}"] > message`,
     original_stanza
   ).pop();
   const stanza = forwarded_stanza || original_stanza;
-  if (sizzle10(`message > forwarded[xmlns="${Strophe26.NS.FORWARD}"]`, stanza).length) {
+  if (sizzle11(`message > forwarded[xmlns="${Strophe28.NS.FORWARD}"]`, stanza).length) {
     return new StanzaParseError(
       stanza,
       `Invalid Stanza: Forged MAM groupchat message from ${stanza.getAttribute("from")}`
@@ -6782,16 +7087,16 @@ async function parseMUCMessage(original_stanza, chatbox) {
   let delay;
   let body;
   if (forwarded_stanza) {
-    if (sizzle10(`message > forwarded[xmlns="${Strophe26.NS.FORWARD}"]`, forwarded_stanza).length) {
+    if (sizzle11(`message > forwarded[xmlns="${Strophe28.NS.FORWARD}"]`, forwarded_stanza).length) {
       return new StanzaParseError(
         original_stanza,
         `Invalid Stanza: Forged MAM groupchat message from ${original_stanza.getAttribute("from")}`
       );
     }
-    delay = sizzle10(`delay[xmlns="${Strophe26.NS.DELAY}"]`, forwarded_stanza.parentElement).pop();
+    delay = sizzle11(`delay[xmlns="${Strophe28.NS.DELAY}"]`, forwarded_stanza.parentElement).pop();
     body = forwarded_stanza.querySelector(":scope > body")?.textContent?.trim();
   } else {
-    delay = sizzle10(`message > delay[xmlns="${Strophe26.NS.DELAY}"]`, original_stanza).pop();
+    delay = sizzle11(`message > delay[xmlns="${Strophe28.NS.DELAY}"]`, original_stanza).pop();
     body = original_stanza.querySelector(":scope > body")?.textContent?.trim();
   }
   const from = stanza.getAttribute("from");
@@ -6804,17 +7109,17 @@ async function parseMUCMessage(original_stanza, chatbox) {
         body,
         "activities": getMEPActivities(stanza),
         "chat_state": getChatState(stanza),
-        "from_muc": Strophe26.getBareJidFromJid(from),
+        "from_muc": Strophe28.getBareJidFromJid(from),
         "is_archived": isArchived(original_stanza),
         "is_carbon": isCarbon(original_stanza),
         "is_delayed": !!delay,
-        "is_forwarded": !!sizzle10(`message > forwarded[xmlns="${Strophe26.NS.FORWARD}"]`, stanza).length,
+        "is_forwarded": !!sizzle11(`message > forwarded[xmlns="${Strophe28.NS.FORWARD}"]`, stanza).length,
         "is_headline": isHeadline(stanza),
-        "is_markable": !!sizzle10(`message > markable[xmlns="${Strophe26.NS.MARKERS}"]`, stanza).length,
+        "is_markable": !!sizzle11(`message > markable[xmlns="${Strophe28.NS.MARKERS}"]`, stanza).length,
         "is_marker": !!marker,
-        "is_unstyled": !!sizzle10(`message > unstyled[xmlns="${Strophe26.NS.STYLING}"]`, stanza).length,
+        "is_unstyled": !!sizzle11(`message > unstyled[xmlns="${Strophe28.NS.STYLING}"]`, stanza).length,
         "marker_id": marker && marker.getAttribute("id"),
-        "nick": Strophe26.unescapeNode(Strophe26.getResourceFromJid(from)),
+        "nick": Strophe28.unescapeNode(Strophe28.getResourceFromJid(from)),
         "occupant_id": getOccupantID(stanza, chatbox),
         "receipt_id": getReceiptId(stanza),
         "received": (/* @__PURE__ */ new Date()).toISOString(),
@@ -6834,6 +7139,7 @@ async function parseMUCMessage(original_stanza, chatbox) {
       getRetractionAttributes(stanza, original_stanza),
       getModerationAttributes(stanza),
       getEncryptionAttributes(stanza),
+      getReplyAttributes(stanza),
       getStatusCodes(stanza, "message")
     )
   );
@@ -6863,21 +7169,21 @@ async function parseMUCMessage(original_stanza, chatbox) {
       "Invalid Stanza: MUC messages SHOULD NOT be XEP-0280 carbon copied"
     );
   }
-  attrs["id"] = attrs["origin_id"] || attrs[`stanza_id ${attrs.from_muc || attrs.from}`] || u7.getUniqueId();
-  attrs = await api_default4.hook("parseMUCMessage", original_stanza, attrs);
-  const metadata = await u7.getMediaURLsMetadata(attrs.is_encrypted ? attrs.plaintext : attrs.body);
+  attrs["id"] = attrs["origin_id"] || attrs[`stanza_id ${attrs.from_muc || attrs.from}`] || u8.getUniqueId();
+  attrs = await api_default4.hook("parseMUCMessage", original_stanza, attrs, chatbox);
+  const metadata = await u8.getMediaURLsMetadata(attrs.is_encrypted ? attrs.plaintext : attrs.body);
   return Object.assign(attrs, metadata);
 }
 __name(parseMUCMessage, "parseMUCMessage");
 function parseMemberListIQ(iq) {
-  return sizzle10(`query[xmlns="${Strophe26.NS.MUC_ADMIN}"] item`, iq).map(
+  return sizzle11(`query[xmlns="${Strophe28.NS.MUC_ADMIN}"] item`, iq).map(
     /** @param {Element} item */
     (item) => {
       const data = {
         "affiliation": item.getAttribute("affiliation")
       };
       const jid = item.getAttribute("jid");
-      if (u7.isValidJID(jid)) {
+      if (u8.isValidJID(jid)) {
         data["jid"] = jid;
       } else {
         data["nick"] = jid;
@@ -6896,7 +7202,7 @@ function parseMemberListIQ(iq) {
 }
 __name(parseMemberListIQ, "parseMemberListIQ");
 function parsePresenceUserItem(stanza, nick) {
-  const item = sizzle10(`presence > x[xmlns="${Strophe26.NS.MUC_USER}"] item`, stanza).pop();
+  const item = sizzle11(`presence > x[xmlns="${Strophe28.NS.MUC_USER}"] item`, stanza).pop();
   if (item) {
     const actor = item.querySelector("actor");
     return {
@@ -6925,19 +7231,19 @@ async function parseMUCPresence(stanza, chatbox) {
   await chatbox.initialized;
   const from = stanza.getAttribute("from");
   const type = stanza.getAttribute("type");
-  const nick = Strophe26.getResourceFromJid(from);
+  const nick = Strophe28.getResourceFromJid(from);
   const attrs = (
     /** @type {MUCPresenceAttributes} */
     {
       from,
       nick,
       type,
-      muc_jid: Strophe26.getBareJidFromJid(from),
+      muc_jid: Strophe28.getBareJidFromJid(from),
       occupant_id: getOccupantID(stanza, chatbox),
       status: stanza.querySelector(":scope > status")?.textContent ?? void 0,
       show: stanza.querySelector(":scope > show")?.textContent ?? void 0,
-      image_hash: sizzle10(`presence > x[xmlns="${Strophe26.NS.VCARDUPDATE}"] photo`, stanza).pop()?.textContent,
-      hats: sizzle10(`presence > hats[xmlns="${Strophe26.NS.MUC_HATS}"] hat`, stanza).map(
+      image_hash: sizzle11(`presence > x[xmlns="${Strophe28.NS.VCARDUPDATE}"] photo`, stanza).pop()?.textContent,
+      hats: sizzle11(`presence > hats[xmlns="${Strophe28.NS.MUC_HATS}"] hat`, stanza).map(
         /** @param {Element} h */
         (h) => ({
           title: h.getAttribute("title"),
@@ -6965,11 +7271,11 @@ __name(parseMUCPresence, "parseMUCPresence");
  * @typedef {import('@converse/skeletor').Model} Model
  * @typedef {import('../constants').AFFILIATIONS} AFFILIATIONS
  */
-var { Strophe: Strophe27, $iq: $iq4, u: u8, stx: stx5 } = public_default.env;
+var { Stanza: Stanza5, Strophe: Strophe29, u: u9, stx: stx7 } = public_default.env;
 async function getAffiliationList(affiliation, muc_jid) {
-  const iq = stx5`
+  const iq = stx7`
         <iq xmlns="jabber:client" to="${muc_jid}" type="get">
-            <query xmlns="${Strophe27.NS.MUC_ADMIN}">
+            <query xmlns="${Strophe29.NS.MUC_ADMIN}">
                 <item affiliation="${affiliation}"/>
             </query>
         </iq>`;
@@ -6977,21 +7283,21 @@ async function getAffiliationList(affiliation, muc_jid) {
   if (result === null) {
     const err_msg = `Error: timeout while fetching ${affiliation} list for MUC ${muc_jid}`;
     const err = new Error(err_msg);
-    log21.warn(err_msg);
+    log22.warn(err_msg);
     return err;
   }
-  if (u8.isErrorStanza(result)) {
+  if (u9.isErrorStanza(result)) {
     const err_msg = `Error: not allowed to fetch ${affiliation} list for MUC ${muc_jid}`;
     const err = new Error(err_msg);
-    log21.warn(err_msg);
-    log21.warn(result);
+    log22.warn(err_msg);
+    log22.warn(result);
     return err;
   }
   return parseMemberListIQ(result).filter((p) => p).sort((a, b) => a.nick < b.nick ? -1 : a.nick > b.nick ? 1 : 0);
 }
 __name(getAffiliationList, "getAffiliationList");
 function setAffiliations(muc_jid, users) {
-  const affiliations = [...new Set(users.map((u30) => u30.affiliation))];
+  const affiliations = [...new Set(users.map((u32) => u32.affiliation))];
   return Promise.all(affiliations.map((a) => setAffiliation(a, muc_jid, users)));
 }
 __name(setAffiliations, "setAffiliations");
@@ -7007,14 +7313,16 @@ function setAffiliation(affiliation, muc_jids, members) {
 __name(setAffiliation, "setAffiliation");
 function sendAffiliationIQ(affiliation, muc_jid, member) {
   affiliation = member.affiliation || affiliation;
-  const iq = $iq4({ to: muc_jid, type: "set" }).c("query", { xmlns: Strophe27.NS.MUC_ADMIN }).c("item", {
-    affiliation,
-    ...affiliation === "outcast" ? {} : { nick: member.nick },
-    jid: member.jid
-  });
-  if (member.reason !== void 0) {
-    iq.c("reason", member.reason);
-  }
+  const iq = stx7`
+        <iq to="${muc_jid}" type="set" xmlns="jabber:client">
+            <query xmlns="${Strophe29.NS.MUC_ADMIN}">
+                <item affiliation="${affiliation}"
+                      ${affiliation !== "outcast" && member.nick ? Stanza5.unsafeXML(`nick="${member.nick}"`) : ""}
+                      jid="${member.jid}">
+                    ${member.reason ? stx7`<reason>${member.reason}</reason>` : ""}
+                </item>
+            </query>
+        </iq>`;
   return api_default4.sendIQ(iq);
 }
 __name(sendAffiliationIQ, "sendAffiliationIQ");
@@ -7031,17 +7339,19 @@ function computeAffiliationsDelta(exclude_existing, remove_absentees, new_list, 
     );
   }
   if (remove_absentees) {
-    delta = delta.concat(old_jids.filter((jid) => !new_jids.includes(jid)).map((jid) => ({ "jid": jid, "affiliation": "none" })));
+    delta = delta.concat(
+      old_jids.filter((jid) => !new_jids.includes(jid)).map((jid) => ({ jid, "affiliation": "none" }))
+    );
   }
   return delta;
 }
 __name(computeAffiliationsDelta, "computeAffiliationsDelta");
 
 // shared/chatbox.js
-import { Model as Model12 } from "@converse/skeletor";
-import log22 from "@converse/log";
-var { u: u9 } = public_default.env;
-var ChatBoxBase = class extends ModelWithMessages(Model12) {
+import { Model as Model13 } from "@converse/skeletor";
+import log23 from "@converse/log";
+var { u: u10 } = public_default.env;
+var ChatBoxBase = class extends ModelWithMessages(Model13) {
   static {
     __name(this, "ChatBoxBase");
   }
@@ -7061,7 +7371,7 @@ var ChatBoxBase = class extends ModelWithMessages(Model12) {
     const auto_join = api_default4.settings.get("auto_join_private_chats").concat(room_jids);
     if (api_default4.settings.get("singleton") && !auto_join.includes(attrs.jid) && !api_default4.settings.get("auto_join_on_invite")) {
       const msg = `${attrs.jid} is not allowed because singleton is true and it's not being auto_joined`;
-      log22.warn(msg);
+      log23.warn(msg);
       return msg;
     }
   }
@@ -7073,13 +7383,13 @@ var ChatBoxBase = class extends ModelWithMessages(Model12) {
       const filter = /* @__PURE__ */ __name((c) => !c.get("hidden") && c.get("jid") !== this.get("jid") && c.get("id") !== "controlbox", "filter");
       const other_chats = converse_default.state.chatboxes.filter(filter);
       if (force || other_chats.length === 0) {
-        other_chats.forEach((c) => u9.safeSave(c, { hidden: true }));
-        u9.safeSave(this, { hidden: false, closed: false });
+        other_chats.forEach((c) => u10.safeSave(c, { hidden: true }));
+        u10.safeSave(this, { hidden: false, closed: false });
         this.trigger("show");
       }
       return this;
     }
-    u9.safeSave(this, { hidden: false, closed: false });
+    u10.safeSave(this, { hidden: false, closed: false });
     this.trigger("show");
     return this;
   }
@@ -7095,14 +7405,14 @@ var ChatBoxBase = class extends ModelWithMessages(Model12) {
         await new Promise((success, reject) => {
           return this.destroy({
             success,
-            error: /* @__PURE__ */ __name((_m, e) => reject(e), "error")
+            error: (_m, e) => reject(e)
           });
         });
       } catch (e) {
-        log22.debug(e);
+        log23.debug(e);
       }
     } else {
-      u9.safeSave(this, { closed: true });
+      u10.safeSave(this, { closed: true });
     }
     if (api_default4.settings.get("clear_messages_on_reconnection")) {
       await this.clearMessages();
@@ -7121,15 +7431,15 @@ var ChatBoxBase = class extends ModelWithMessages(Model12) {
 };
 
 // plugins/muc/utils.js
-import log23 from "@converse/log";
-var { Strophe: Strophe28, sizzle: sizzle11, u: u10 } = public_default.env;
+import log24 from "@converse/log";
+var { Strophe: Strophe30, sizzle: sizzle12, u: u11 } = public_default.env;
 async function getDefaultMUCService() {
   let muc_service = api_default4.settings.get("muc_domain") || converse_default.session.get("default_muc_service");
   if (!muc_service) {
     const domain = converse_default.session.get("domain");
     const items = await api_default4.disco.entities.items(domain);
     for (const item of items) {
-      if (await api_default4.disco.features.has(Strophe28.NS.MUC, item.get("jid"))) {
+      if (await api_default4.disco.features.has(Strophe30.NS.MUC, item.get("jid"))) {
         muc_service = item.get("jid");
         converse_default.session.save({ default_muc_service: muc_service });
         break;
@@ -7144,9 +7454,16 @@ function isChatRoom(model) {
 }
 __name(isChatRoom, "isChatRoom");
 function shouldCreateGroupchatMessage(attrs) {
-  return attrs.nick && (u10.shouldCreateMessage(attrs) || attrs.is_tombstone);
+  return attrs.nick && (u11.shouldCreateMessage(attrs) || attrs.is_tombstone);
 }
 __name(shouldCreateGroupchatMessage, "shouldCreateGroupchatMessage");
+function getMUCDuplicateMessageQueries(_, queries, attrs) {
+  if (attrs.activities?.length) {
+    return [...queries, { type: "mep", msgid: attrs.msgid }];
+  }
+  return queries;
+}
+__name(getMUCDuplicateMessageQueries, "getMUCDuplicateMessageQueries");
 function occupantsComparator(occupant1, occupant2) {
   const role1 = occupant1.get("role") || "none";
   const role2 = occupant2.get("role") || "none";
@@ -7190,8 +7507,8 @@ async function routeToRoom(event) {
   }
   event?.preventDefault();
   const jid = location.hash.split("=").pop();
-  if (!u10.isValidMUCJID(jid)) {
-    return log23.warn(`invalid jid "${jid}" provided in url fragment`);
+  if (!u11.isValidMUCJID(jid)) {
+    return log24.warn(`invalid jid "${jid}" provided in url fragment`);
   }
   await api_default4.waitUntil("roomsAutoJoined");
   if (api_default4.settings.get("allow_bookmarks")) {
@@ -7209,13 +7526,17 @@ async function openChatRoom(jid, settings4) {
 }
 __name(openChatRoom, "openChatRoom");
 async function onDirectMUCInvitation(message) {
-  const x_el = sizzle11('x[xmlns="jabber:x:conference"]', message).pop(), from = Strophe28.getBareJidFromJid(message.getAttribute("from")), room_jid = x_el.getAttribute("jid"), reason = x_el.getAttribute("reason");
+  const x_el = sizzle12('x[xmlns="jabber:x:conference"]', message).pop(), from = Strophe30.getBareJidFromJid(message.getAttribute("from")), room_jid = x_el.getAttribute("jid"), reason = x_el.getAttribute("reason");
   let result;
-  if (api_default4.settings.get("auto_join_on_invite")) {
+  const { api: api3 } = converse_default;
+  const room = await api3.rooms.get(room_jid);
+  if (room) {
+    result = false;
+  } else if (api3.settings.get("auto_join_on_invite")) {
     result = true;
   } else {
     const contact = converse_default.state.roster.get(from)?.getDisplayName() ?? from;
-    result = await api_default4.hook("confirmDirectMUCInvitation", { contact, reason, jid: room_jid }, false);
+    result = await api3.hook("confirmDirectMUCInvitation", { contact, reason, jid: room_jid }, false);
   }
   if (result) {
     const chatroom = await openChatRoom(room_jid, { password: x_el.getAttribute("password") });
@@ -7228,7 +7549,7 @@ __name(onDirectMUCInvitation, "onDirectMUCInvitation");
 function getDefaultMUCNickname() {
   const { profile } = converse_default.state;
   if (!profile) {
-    log23.error("Called getDefaultMUCNickname before statusInitialized has been fired.");
+    log24.error("Called getDefaultMUCNickname before statusInitialized has been fired.");
     return "";
   }
   const nick = profile.getNickname();
@@ -7236,7 +7557,7 @@ function getDefaultMUCNickname() {
     return nick;
   } else if (api_default4.settings.get("muc_nickname_from_jid")) {
     const bare_jid = converse_default.session.get("bare_jid");
-    return Strophe28.unescapeNode(Strophe28.getNodeFromJid(bare_jid));
+    return Strophe30.unescapeNode(Strophe30.getNodeFromJid(bare_jid));
   }
 }
 __name(getDefaultMUCNickname, "getDefaultMUCNickname");
@@ -7259,7 +7580,7 @@ async function autoJoinRooms() {
       } else if (muc instanceof Object) {
         return api_default4.rooms.open(muc.jid, { ...muc });
       } else {
-        log23.error('Invalid muc criteria specified for "auto_join_rooms"');
+        log24.error('Invalid muc criteria specified for "auto_join_rooms"');
         return Promise.resolve();
       }
     })
@@ -7268,7 +7589,7 @@ async function autoJoinRooms() {
 }
 __name(autoJoinRooms, "autoJoinRooms");
 function onAddClientFeatures() {
-  api_default4.disco.own.features.add(Strophe28.NS.MUC);
+  api_default4.disco.own.features.add(Strophe30.NS.MUC);
   if (api_default4.settings.get("allow_muc_invitations")) {
     api_default4.disco.own.features.add("jabber:x:conference");
   }
@@ -7291,7 +7612,7 @@ function onBeforeResourceBinding() {
   api_default4.connection.get().addHandler(
     /** @param {Element} stanza */
     (stanza) => {
-      const muc_jid = Strophe28.getBareJidFromJid(stanza.getAttribute("from"));
+      const muc_jid = Strophe30.getBareJidFromJid(stanza.getAttribute("from"));
       if (!converse_default.state.chatboxes.get(muc_jid)) {
         api_default4.waitUntil("chatBoxesFetched").then(async () => {
           const muc = converse_default.state.chatboxes.get(muc_jid);
@@ -7311,8 +7632,8 @@ function onBeforeResourceBinding() {
 __name(onBeforeResourceBinding, "onBeforeResourceBinding");
 
 // plugins/muc/session.js
-import { Model as Model13 } from "@converse/skeletor";
-var MUCSession = class extends Model13 {
+import { Model as Model14 } from "@converse/skeletor";
+var MUCSession = class extends Model14 {
   static {
     __name(this, "MUCSession");
   }
@@ -7325,7 +7646,7 @@ var MUCSession = class extends Model13 {
 var session_default = MUCSession;
 
 // plugins/muc/muc.js
-var { u: u11, stx: stx6 } = public_default.env;
+var { u: u12, stx: stx8 } = public_default.env;
 var DISCO_INFO_TIMEOUT_ON_JOIN = 3e4;
 var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBoxBase))) {
   static {
@@ -7378,8 +7699,9 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
         this.initialize();
       }
     });
-    if (this.get("closed")) return;
-    this.initialized = getOpenPromise10();
+    if (this.get("closed"))
+      return;
+    this.initialized = getOpenPromise11();
     this.debouncedRejoin = debounce5(this.rejoin, 250);
     this.initOccupants();
     this.initDiscoModels();
@@ -7419,7 +7741,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (this.isEntered()) {
       await this.fetchOccupants().catch(
         /** @param {Error} e */
-        (e) => log24.error(e)
+        (e) => log25.error(e)
       );
       if (this.isRAICandidate()) {
         this.session.save("connection_status", ROOMSTATUS.DISCONNECTED);
@@ -7430,7 +7752,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
         await new Promise((r) => this.features.fetch({ "success": r, "error": r }));
         await this.fetchMessages().catch(
           /** @param {Error} e */
-          (e) => log24.error(e)
+          (e) => log25.error(e)
         );
         return true;
       }
@@ -7465,7 +7787,8 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     /*! TOFIND */
     return;
     api_default4.send(await this.constructJoinPresence(password, is_new));
-    if (is_new) await this.refreshDiscoInfo();
+    if (is_new)
+      await this.refreshDiscoInfo();
   }
   /**
    * Clear stale cache and re-join a MUC we've been in before.
@@ -7487,17 +7810,17 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     const { profile } = converse_default.state;
     const show = profile.get("show");
     const status_message = profile.get("status_message");
-    const stanza = stx6`
+    const stanza = stx8`
             <presence xmlns="jabber:client"
                       id="${getUniqueId()}"
                       from="${api_default4.connection.get().jid}"
                       to="${this.getRoomJIDAndNick()}">
-                <x xmlns="${Strophe29.NS.MUC}">
-                    ${maxstanzas ? stx6`<history maxstanzas="${maxstanzas}"/>` : ""}
-                    ${password ? stx6`<password>${password}</password>` : ""}
+                <x xmlns="${Strophe31.NS.MUC}">
+                    <history maxstanzas="${maxstanzas || 0}"/>
+                    ${password ? stx8`<password>${password}</password>` : ""}
                 </x>
-                ${PRES_SHOW_VALUES.includes(show) ? stx6`<show>${show}</show>` : ""}
-                ${status_message ? stx6`<status>${status_message}</status>` : ""}
+                ${PRES_SHOW_VALUES.includes(show) ? stx8`<show>${show}</show>` : ""}
+                ${status_message ? stx8`<status>${status_message}</status>` : ""}
             </presence>`;
     return await api_default4.hook("constructedMUCPresence", this, stanza);
   }
@@ -7524,10 +7847,10 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       const key = `stanza_id ${this.get("jid")}`;
       const id = msg.get(key);
       if (!id) {
-        log24.error(`Can't send marker for message without stanza ID: ${key}`);
+        log25.error(`Can't send marker for message without stanza ID: ${key}`);
         return Promise.resolve();
       }
-      const from_jid = Strophe29.getBareJidFromJid(msg.get("from"));
+      const from_jid = Strophe31.getBareJidFromJid(msg.get("from"));
       sendMarker(from_jid, id, type, msg.get("type"));
     }
     return Promise.resolve();
@@ -7553,8 +7876,8 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    */
   enableRAI() {
     if (api_default4.settings.get("muc_subscribe_to_rai")) {
-      const muc_domain = Strophe29.getDomainFromJid(this.get("jid"));
-      api_default4.user.presence.send({ to: muc_domain }, $build2("rai", { "xmlns": Strophe29.NS.RAI }));
+      const muc_domain = Strophe31.getDomainFromJid(this.get("jid"));
+      api_default4.user.presence.send({ to: muc_domain }, stx8`<rai xmlns="${Strophe31.NS.RAI}"></rai>`);
     }
   }
   /**
@@ -7574,7 +7897,8 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       }
     } else {
       await this.initialized;
-      if (conn_status === roomstatus.DISCONNECTED) this.rejoin();
+      if (conn_status === roomstatus.DISCONNECTED)
+        this.rejoin();
       this.clearUnreadMsgCounter();
     }
   }
@@ -7615,7 +7939,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       await this.fetchMessages();
     }
     api_default4.trigger("enteredNewRoom", this);
-    if (api_default4.settings.get("auto_register_muc_nickname") && await api_default4.disco.supports(Strophe29.NS.MUC_REGISTER, this.get("jid"))) {
+    if (api_default4.settings.get("auto_register_muc_nickname") && await api_default4.disco.supports(Strophe31.NS.MUC_REGISTER, this.get("jid"))) {
       this.registerNickname();
     }
   }
@@ -7625,7 +7949,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
         try {
           await this.leave();
         } catch (e) {
-          log24.error(e);
+          log25.error(e);
         }
         this.enableRAI();
       } else {
@@ -7650,7 +7974,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
   initDiscoModels() {
     const bare_jid = converse_default.session.get("bare_jid");
     let id = `converse.muc-features-${bare_jid}-${this.get("jid")}`;
-    this.features = new Model14(
+    this.features = new Model15(
       Object.assign(
         { id },
         public_default.ROOM_FEATURES.reduce((acc, feature) => {
@@ -7662,7 +7986,10 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     this.features.browserStorage = createStore(id, "session");
     this.features.listenTo(converse_default, "beforeLogout", () => this.features.browserStorage.flush());
     id = `converse.muc-config-${bare_jid}-${this.get("jid")}`;
-    this.config = new Model14({ id });
+    this.config = new Model15(
+      /** @type {import('./types').MUCConfigAttributes} */
+      { id }
+    );
     this.config.browserStorage = createStore(id, "session");
     this.config.listenTo(converse_default, "beforeLogout", () => this.config.browserStorage.flush());
   }
@@ -7697,15 +8024,15 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (stanza.querySelector("body")) {
       return;
     }
-    const item = sizzle12(`x[xmlns="${Strophe29.NS.MUC_USER}"] item`, stanza).pop();
+    const item = sizzle13(`x[xmlns="${Strophe31.NS.MUC_USER}"] item`, stanza).pop();
     if (item) {
       const from = stanza.getAttribute("from");
       const jid = item.getAttribute("jid");
       const data = {
         from,
         states: [],
-        jid: Strophe29.getBareJidFromJid(jid),
-        resource: Strophe29.getResourceFromJid(jid)
+        jid: Strophe31.getBareJidFromJid(jid),
+        resource: Strophe31.getResourceFromJid(jid)
       };
       const affiliation = item.getAttribute("affiliation");
       if (affiliation) {
@@ -7729,13 +8056,14 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
   async handleErrorMessageStanza(stanza) {
     const { __ } = converse_default;
     const attrs_or_error = await parseMUCMessage(stanza, this);
-    if (u11.isErrorObject(attrs_or_error)) {
+    if (u12.isErrorObject(attrs_or_error)) {
       const { stanza: stanza2, message: message2 } = (
         /** @type {StanzaParseError} */
         attrs_or_error
       );
-      if (stanza2) log24.error(stanza2);
-      return log24.error(message2);
+      if (stanza2)
+        log25.error(stanza2);
+      return log25.error(message2);
     }
     const attrs = (
       /** @type {MessageAttributes} */
@@ -7744,7 +8072,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (!await this.shouldShowErrorMessage(attrs)) {
       return;
     }
-    const nick = Strophe29.getResourceFromJid(attrs.from);
+    const nick = Strophe31.getResourceFromJid(attrs.from);
     const occupant = nick ? this.getOccupant(nick) : null;
     const model = occupant ? occupant : this;
     const message = model.getMessageReferencedByError(attrs);
@@ -7793,7 +8121,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (this.isEntered()) {
       return;
     }
-    const rai = sizzle12(`rai[xmlns="${Strophe29.NS.RAI}"]`, stanza).pop();
+    const rai = sizzle13(`rai[xmlns="${Strophe31.NS.RAI}"]`, stanza).pop();
     const active_mucs = Array.from(rai?.querySelectorAll("activity") || []).map((m) => m.textContent);
     if (active_mucs.includes(this.get("jid"))) {
       this.save({
@@ -7811,12 +8139,12 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (this.isEntered()) {
       return;
     }
-    const msgs = sizzle12(
-      `mentions[xmlns="${Strophe29.NS.MENTIONS}"] forwarded[xmlns="${Strophe29.NS.FORWARD}"] message[type="groupchat"]`,
+    const msgs = sizzle13(
+      `mentions[xmlns="${Strophe31.NS.MENTIONS}"] forwarded[xmlns="${Strophe31.NS.FORWARD}"] message[type="groupchat"]`,
       stanza
     );
     const muc_jid = this.get("jid");
-    const mentions = msgs.filter((m) => Strophe29.getBareJidFromJid(m.getAttribute("from")) === muc_jid);
+    const mentions = msgs.filter((m) => Strophe31.getBareJidFromJid(m.getAttribute("from")) === muc_jid);
     if (mentions.length) {
       this.save({
         "has_activity": true,
@@ -7846,7 +8174,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     }
     if (type === "groupchat") {
       if (isArchived(stanza)) {
-        return log24.warn(`Received a MAM message with type "groupchat"`);
+        return log25.warn(`Received a MAM message with type "groupchat"`);
       }
     } else if (!type) {
       return this.handleForwardedMentions(stanza);
@@ -7855,15 +8183,16 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     try {
       attrs_or_error = await parseMUCMessage(stanza, this);
     } catch (e) {
-      return log24.error(e);
+      return log25.error(e);
     }
-    if (u11.isErrorObject(attrs_or_error)) {
+    if (u12.isErrorObject(attrs_or_error)) {
       const { stanza: stanza2, message } = (
         /** @type {StanzaParseError} */
         attrs_or_error
       );
-      if (stanza2) log24.error(stanza2);
-      return log24.error(message);
+      if (stanza2)
+        log25.error(stanza2);
+      return log25.error(message);
     }
     const attrs = (
       /** @type {MUCMessageAttributes} */
@@ -7889,7 +8218,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    */
   registerHandlers() {
     const muc_jid = this.get("jid");
-    const muc_domain = Strophe29.getDomainFromJid(muc_jid);
+    const muc_domain = Strophe31.getDomainFromJid(muc_jid);
     this.removeHandlers();
     const connection2 = api_default4.connection.get();
     this.presence_handler = connection2.addHandler(
@@ -7948,7 +8277,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
         this.handleAffiliationChangedMessage(stanza);
         return true;
       },
-      Strophe29.NS.MUC_USER,
+      Strophe31.NS.MUC_USER,
       "message",
       null,
       null,
@@ -7987,7 +8316,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (name) {
       return name.trim();
     } else if (api_default4.settings.get("locked_muc_domain") === "hidden") {
-      return Strophe29.getNodeFromJid(this.get("jid"));
+      return Strophe31.getNodeFromJid(this.get("jid"));
     } else {
       return this.get("jid");
     }
@@ -8007,7 +8336,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       id = getUniqueId("sendIQ");
       el.setAttribute("id", id);
     }
-    const promise = getOpenPromise10();
+    const promise = getOpenPromise11();
     const timeout = api_default4.settings.get("stanza_timeout");
     const connection2 = api_default4.connection.get();
     const timeoutHandler = connection2.addTimedHandler(timeout, () => {
@@ -8039,15 +8368,15 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     const editable = message.get("editable");
     const retraction_id = getUniqueId();
     const id = message.get("id");
-    const stanza = stx6`
+    const stanza = stx8`
             <message id="${retraction_id}"
                      to="${this.get("jid")}"
                      type="groupchat"
                      xmlns="jabber:client">
-                <retract id="${id}" xmlns="${Strophe29.NS.RETRACT}"/>
+                <retract id="${id}" xmlns="${Strophe31.NS.RETRACT}"/>
                 <body>/me retracted a message</body>
-                <store xmlns="${Strophe29.NS.HINTS}"/>
-                <fallback xmlns="${Strophe29.NS.FALLBACK}" for="${Strophe29.NS.RETRACT}" />
+                <store xmlns="${Strophe31.NS.HINTS}"/>
+                <fallback xmlns="${Strophe31.NS.FALLBACK}" for="${Strophe31.NS.RETRACT}" />
             </message>`;
     message.set({
       retracted: (/* @__PURE__ */ new Date()).toISOString(),
@@ -8056,10 +8385,10 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       editable: false
     });
     const result = await this.sendTimedMessage(stanza);
-    if (u11.isErrorStanza(result)) {
-      log24.error(result);
+    if (u12.isErrorStanza(result)) {
+      log25.error(result);
     } else if (result instanceof TimeoutError) {
-      log24.error(result);
+      log25.error(result);
       message.save({
         editable,
         error_type: "timeout",
@@ -8090,7 +8419,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       editable: false
     });
     const result = await this.sendRetractionIQ(message, reason);
-    if (result === null || u11.isErrorStanza(result)) {
+    if (result === null || u12.isErrorStanza(result)) {
       message.save({
         editable,
         moderated: void 0,
@@ -8107,11 +8436,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @param {string} [reason] - The reason for retracting the message.
    */
   sendRetractionIQ(message, reason) {
-    const iq = stx6`
+    const iq = stx8`
             <iq to="${this.get("jid")}" type="set" xmlns="jabber:client">
-                <moderate id="${message.get(`stanza_id ${this.get("jid")}`)}" xmlns="${Strophe29.NS.MODERATE}">
-                    <retract xmlns="${Strophe29.NS.RETRACT}"/>
-                    ${reason ? stx6`<reason>${reason}</reason>` : ""}
+                <moderate id="${message.get(`stanza_id ${this.get("jid")}`)}" xmlns="${Strophe31.NS.MODERATE}">
+                    <retract xmlns="${Strophe31.NS.RETRACT}"/>
+                    ${reason ? stx8`<reason>${reason}</reason>` : ""}
                 </moderate>
             </iq>`;
     return api_default4.sendIQ(iq, null, false);
@@ -8124,11 +8453,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @param {string} [new_jid] - The JID of the new groupchat which replaces this one.
    */
   sendDestroyIQ(reason, new_jid) {
-    const iq = stx6`
+    const iq = stx8`
             <iq to="${this.get("jid")}" type="set" xmlns="jabber:client">
-                <query xmlns="${Strophe29.NS.MUC_OWNER}">
-                    <destroy ${new_jid ? Stanza4.unsafeXML(`jid="${Strophe29.xmlescape(new_jid)}"`) : ""}>
-                        ${reason ? stx6`<reason>${reason}</reason>` : ""}
+                <query xmlns="${Strophe31.NS.MUC_OWNER}">
+                    <destroy ${new_jid ? Stanza6.unsafeXML(`jid="${Strophe31.xmlescape(new_jid)}"`) : ""}>
+                        ${reason ? stx8`<reason>${reason}</reason>` : ""}
                     </destroy>
                 </query>
             </iq>`;
@@ -8151,10 +8480,10 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       await new Promise(
         (resolve) => this.features.destroy({
           success: resolve,
-          error: /* @__PURE__ */ __name((_, e) => {
-            log24.error(e);
+          error: (_, e) => {
+            log25.error(e);
             resolve();
-          }, "error")
+          }
         })
       );
     }
@@ -8163,10 +8492,10 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       await new Promise(
         (resolve) => disco_entity.destroy({
           success: resolve,
-          error: /* @__PURE__ */ __name((_, e) => {
-            log24.error(e);
+          error: (_, e) => {
+            log25.error(e);
             resolve();
-          }, "error")
+          }
         })
       );
     }
@@ -8194,17 +8523,17 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     await new Promise(
       (success) => this.session.destroy({
         success,
-        error: /* @__PURE__ */ __name((_, e) => {
-          log24.error(e);
+        error: (_, e) => {
+          log25.error(e);
           success();
-        }, "error")
+        }
       })
     );
     return super.close();
   }
   canModerateMessages() {
     const self = this.getOwnOccupant();
-    return self && self.isModerator() && api_default4.disco.supports(Strophe29.NS.MODERATE, this.get("jid"));
+    return self && self.isModerator() && api_default4.disco.supports(Strophe31.NS.MODERATE, this.get("jid"));
   }
   canPostMessages() {
     return this.isEntered() && !(this.features.get("moderated") && this.getOwnRole() === "visitor");
@@ -8288,7 +8617,9 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       [text, references] = this.parseTextForReferences(attrs.body);
     }
     const origin_id = getUniqueId();
-    const body = text ? u11.shortnamesToUnicode(text) : void 0;
+    const body = text ? u12.emojis.shortnamesToUnicode(text) : void 0;
+    const reply_to_id = this.get("reply_to_id");
+    const reply_to = this.get("reply_to");
     attrs = Object.assign(
       {},
       attrs,
@@ -8297,6 +8628,8 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
         is_spoiler,
         origin_id,
         references,
+        reply_to_id,
+        reply_to,
         id: origin_id,
         msgid: origin_id,
         from: `${this.get("jid")}/${this.get("nick")}`,
@@ -8307,8 +8640,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
         type: "groupchat",
         original_text: text
       },
-      await u11.getMediaURLsMetadata(text)
+      await u12.getMediaURLsMetadata(text)
     );
+    if (reply_to_id) {
+      this.save({ reply_to_id: void 0, reply_to: void 0 });
+    }
     attrs = await api_default4.hook("getOutgoingMessageAttributes", this, attrs);
     return attrs;
   }
@@ -8319,7 +8655,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    */
   getRoomJIDAndNick() {
     const nick = this.get("nick");
-    const jid = Strophe29.getBareJidFromJid(this.get("jid"));
+    const jid = Strophe31.getBareJidFromJid(this.get("jid"));
     return jid + (nick !== null ? `/${nick}` : "");
   }
   /**
@@ -8335,15 +8671,16 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       return;
     }
     const chat_state = this.get("chat_state");
-    if (chat_state === GONE) return;
-    api_default4.send(stx6`
+    if (chat_state === GONE)
+      return;
+    api_default4.send(stx8`
             <message to="${this.get("jid")}" type="groupchat" xmlns="jabber:client">
-                ${chat_state === INACTIVE ? stx6`<inactive xmlns="${Strophe29.NS.CHATSTATES}"/>` : ""}
-                ${chat_state === ACTIVE ? stx6`<active xmlns="${Strophe29.NS.CHATSTATES}"/>` : ""}
-                ${chat_state === COMPOSING ? stx6`<composing xmlns="${Strophe29.NS.CHATSTATES}"/>` : ""}
-                ${chat_state === PAUSED ? stx6`<paused xmlns="${Strophe29.NS.CHATSTATES}"/>` : ""}
-                <no-store xmlns="${Strophe29.NS.HINTS}"/>
-                <no-permanent-store xmlns="${Strophe29.NS.HINTS}"/>
+                ${chat_state === INACTIVE ? stx8`<inactive xmlns="${Strophe31.NS.CHATSTATES}"/>` : ""}
+                ${chat_state === ACTIVE ? stx8`<active xmlns="${Strophe31.NS.CHATSTATES}"/>` : ""}
+                ${chat_state === COMPOSING ? stx8`<composing xmlns="${Strophe31.NS.CHATSTATES}"/>` : ""}
+                ${chat_state === PAUSED ? stx8`<paused xmlns="${Strophe31.NS.CHATSTATES}"/>` : ""}
+                <no-store xmlns="${Strophe31.NS.HINTS}"/>
+                <no-permanent-store xmlns="${Strophe31.NS.HINTS}"/>
             </message>`);
   }
   /**
@@ -8355,12 +8692,12 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (this.features.get("membersonly")) {
       this.updateMemberLists([{ jid: recipient, affiliation: "member", reason }]);
     }
-    const invitation = stx6`
+    const invitation = stx8`
             <message xmlns="jabber:client" to="${recipient}" id="${getUniqueId()}">
                 <x xmlns="jabber:x:conference"
                     jid="${this.get("jid")}"
-                    ${this.get("password") ? Stanza4.unsafeXML(`password="${Strophe29.xmlescape(this.get("password"))}"`) : ""}
-                    ${reason ? Stanza4.unsafeXML(`reason="${Strophe29.xmlescape(reason)}"`) : ""} />
+                    ${this.get("password") ? Stanza6.unsafeXML(`password="${Strophe31.xmlescape(this.get("password"))}"`) : ""}
+                    ${reason ? Stanza6.unsafeXML(`reason="${Strophe31.xmlescape(reason)}"`) : ""} />
             </message>`;
     api_default4.send(invitation);
     api_default4.trigger("roomInviteSent", {
@@ -8381,7 +8718,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (result instanceof StanzaError) {
       return result;
     }
-    return this.getDiscoInfo().catch((e) => log24.error(e));
+    return this.getDiscoInfo().catch((e) => log25.error(e));
   }
   /**
    * Fetch the *extended* MUC info from the server and cache it locally
@@ -8389,11 +8726,12 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @returns {Promise}
    */
   async getDiscoInfo() {
-    const identity = await api_default4.disco.getIdentity("conference", "text", this.get("jid"));
+    const jid = this.get("jid");
+    const identity = await api_default4.disco.getIdentity("conference", "text", jid);
     if (identity?.get("name")) {
       this.save({ name: identity.get("name") });
     } else {
-      log24.error(`No identity or name found for ${this.get("jid")}`);
+      this.save({ name: Strophe31.getNodeFromJid(jid) });
     }
     await this.getDiscoInfoFields();
     await this.getDiscoInfoFeatures();
@@ -8417,11 +8755,12 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       return config2;
     }, {});
     this.config.save(config);
-    if (config["roomname"]) this.save({ name: config["roomname"] });
+    if (config["roomname"])
+      this.save({ name: config["roomname"] });
   }
   /**
    * Use converse-disco to populate the features {@link Model} which
-   * is stored as an attibute on this {@link MUC}.
+   * is stored as an attribute on this {@link MUC}.
    * The results may be cached. If you want to force fetching the features from the
    * server, call {@link MUC#refreshDiscoInfo} instead.
    * @returns {Promise}
@@ -8438,7 +8777,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     features.each((feature) => {
       const fieldname = feature.get("var");
       if (!fieldname.startsWith("muc_")) {
-        if (fieldname === Strophe29.NS.MAM) {
+        if (fieldname === Strophe31.NS.MAM) {
           attrs.mam_enabled = true;
         } else {
           attrs[fieldname] = true;
@@ -8487,7 +8826,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    */
   async autoConfigureChatRoom() {
     const stanza = await this.fetchRoomConfiguration();
-    const fields = sizzle12("field", stanza);
+    const fields = sizzle13("field", stanza);
     const configArray = fields.map((f) => this.addFieldValue(f));
     if (configArray.length) {
       return this.sendConfiguration(configArray);
@@ -8500,9 +8839,9 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @returns {Promise<Element>}
    */
   fetchRoomConfiguration() {
-    return api_default4.sendIQ(stx6`
+    return api_default4.sendIQ(stx8`
             <iq to="${this.get("jid")}" type="get" xmlns="jabber:client">
-                <query xmlns="${Strophe29.NS.MUC_OWNER}"/>
+                <query xmlns="${Strophe31.NS.MUC_OWNER}"/>
             </iq>`);
   }
   /**
@@ -8512,11 +8851,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    *  the `result` stanza received from the XMPP server.
    */
   sendConfiguration(config = []) {
-    const iq = stx6`
+    const iq = stx8`
             <iq to="${this.get("jid")}" type="set" xmlns="jabber:client">
-                <query xmlns="${Strophe29.NS.MUC_OWNER}">
-                    <x xmlns="${Strophe29.NS.XFORM}" type="submit">
-                        ${config.map((el) => Strophe29.Builder.fromString(el.outerHTML))}
+                <query xmlns="${Strophe31.NS.MUC_OWNER}">
+                    <x xmlns="${Strophe31.NS.XFORM}" type="submit">
+                        ${config.map((el) => Strophe31.Builder.fromString(el.outerHTML))}
                     </x>
                 </query>
             </iq>`;
@@ -8524,13 +8863,13 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
   }
   onCommandError(err) {
     const { __ } = converse_default;
-    log24.fatal(err);
+    log25.fatal(err);
     const message = __("Sorry, an error happened while running the command.") + " " + __("Check your browser's developer console for details.");
     this.createMessage({ message, "type": "error" });
   }
   getNickOrJIDFromCommandArgs(args) {
     const { __ } = converse_default;
-    if (u11.isValidJID(args.trim())) {
+    if (u12.isValidJID(args.trim())) {
       return args.trim();
     }
     if (!args.startsWith("@")) {
@@ -8664,9 +9003,9 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @param {String} nick
    */
   async setNickname(nick) {
-    const jid = Strophe29.getBareJidFromJid(this.get("jid"));
+    const jid = Strophe31.getBareJidFromJid(this.get("jid"));
     api_default4.send(
-      stx6`<presence xmlns="jabber:client"
+      stx8`<presence xmlns="jabber:client"
                     id="${getUniqueId()}"
                     from="${api_default4.connection.get().jid}"
                     to="${jid}/${nick}"></presence>`
@@ -8677,15 +9016,15 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @param {MUCOccupant} occupant
    * @param {string} role
    * @param {string} reason
-   * @param {function} onSuccess - callback for a succesful response
+   * @param {function} onSuccess - callback for a successful response
    * @param {function} onError - callback for an error response
    */
   setRole(occupant, role, reason, onSuccess, onError) {
-    const iq = stx6`
+    const iq = stx8`
             <iq to="${this.get("jid")}" type="set" xmlns="jabber:client">
-                <query xmlns="${Strophe29.NS.MUC_ADMIN}">
+                <query xmlns="${Strophe31.NS.MUC_ADMIN}">
                     <item nick="${occupant.get("nick")}" role="${role}">
-                        ${reason !== null ? stx6`<reason>${reason}</reason>` : ""}
+                        ${reason !== null ? stx8`<reason>${reason}</reason>` : ""}
                     </item>
                 </query>
             </iq>`;
@@ -8696,7 +9035,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @returns {MUCOccupant}
    */
   getOccupant(nickname_or_jid) {
-    return u11.isValidJID(nickname_or_jid) ? this.getOccupantByJID(nickname_or_jid) : this.getOccupantByNickname(nickname_or_jid);
+    return u12.isValidJID(nickname_or_jid) ? this.getOccupantByJID(nickname_or_jid) : this.getOccupantByNickname(nickname_or_jid);
   }
   /**
    * Return an array of occupant models that have the required role
@@ -8777,7 +9116,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
        */
       (acc, val) => {
         if (val instanceof Error) {
-          log24.error(val);
+          log25.error(val);
           return acc;
         }
         return [...val, ...acc];
@@ -8813,7 +9152,8 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    */
   async getAndPersistNickname(nick) {
     nick = nick || this.get("nick") || await this.getReservedNick() || await this.getNicknameFromHook() || converse_default.exports.getDefaultMUCNickname();
-    if (nick) safeSave(this, { nick }, { silent: true });
+    if (nick)
+      safeSave(this, { nick }, { silent: true });
     return nick;
   }
   /**
@@ -8823,12 +9163,12 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @returns {Promise<string>} A promise which resolves with the reserved nick or null
    */
   async getReservedNick() {
-    const stanza = stx6`
+    const stanza = stx8`
             <iq to="${this.get("jid")}" type="get" xmlns="jabber:client">
-                <query xmlns="${Strophe29.NS.DISCO_INFO}" node="x-roomuser-item"/>
+                <query xmlns="${Strophe31.NS.DISCO_INFO}" node="x-roomuser-item"/>
             </iq>`;
     const result = await api_default4.sendIQ(stanza, DISCO_INFO_TIMEOUT_ON_JOIN, false);
-    if (u11.isErrorObject(result)) {
+    if (u12.isErrorObject(result)) {
       throw result;
     }
     const identity_el = result?.querySelector('query[node="x-roomuser-item"] identity');
@@ -8848,28 +9188,28 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     let iq, err_msg;
     try {
       iq = await api_default4.sendIQ(
-        stx6`<iq to="${jid}" type="get" xmlns="jabber:client">
-                    <query xmlns="${Strophe29.NS.MUC_REGISTER}"/>
+        stx8`<iq to="${jid}" type="get" xmlns="jabber:client">
+                    <query xmlns="${Strophe31.NS.MUC_REGISTER}"/>
                 </iq>`
       );
     } catch (e) {
-      if (sizzle12(`not-allowed[xmlns="${Strophe29.NS.STANZAS}"]`, e).length) {
+      if (sizzle13(`not-allowed[xmlns="${Strophe31.NS.STANZAS}"]`, e).length) {
         err_msg = __("You're not allowed to register yourself in this groupchat.");
-      } else if (sizzle12(`registration-required[xmlns="${Strophe29.NS.STANZAS}"]`, e).length) {
+      } else if (sizzle13(`registration-required[xmlns="${Strophe31.NS.STANZAS}"]`, e).length) {
         err_msg = __("You're not allowed to register in this groupchat because it's members-only.");
       }
-      log24.error(e);
+      log25.error(e);
       return err_msg;
     }
-    const required_fields = sizzle12("field required", iq).map((f) => f.parentElement);
+    const required_fields = sizzle13("field required", iq).map((f) => f.parentElement);
     if (required_fields.length > 1 && required_fields[0].getAttribute("var") !== "muc#register_roomnick") {
-      return log24.error(`Can't register the user register in the groupchat ${jid} due to the required fields`);
+      return log25.error(`Can't register the user register in the groupchat ${jid} due to the required fields`);
     }
     try {
       await api_default4.sendIQ(
-        stx6`<iq to="${jid}" type="set" xmlns="jabber:client">
-                    <query xmlns="${Strophe29.NS.MUC_REGISTER}">
-                        <x xmlns="${Strophe29.NS.XFORM}" type="submit">
+        stx8`<iq to="${jid}" type="set" xmlns="jabber:client">
+                    <query xmlns="${Strophe31.NS.MUC_REGISTER}">
+                        <x xmlns="${Strophe31.NS.XFORM}" type="submit">
                             <field var="FORM_TYPE">
                                 <value>http://jabber.org/protocol/muc#register</value>
                             </field>
@@ -8883,11 +9223,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     } catch (e) {
       const err = await parseErrorStanza(e);
       if (err?.name === "service-unavailable") {
-        log24.error("Can't register your nickname in this groupchat, it doesn't support registration.");
+        log25.error("Can't register your nickname in this groupchat, it doesn't support registration.");
       } else if (err?.name === "bad-request") {
-        log24.error("Can't register your nickname in this groupchat, invalid data form supplied.");
+        log25.error("Can't register your nickname in this groupchat, invalid data form supplied.");
       } else {
-        log24.error(e);
+        log25.error(e);
       }
       throw err;
     }
@@ -8899,11 +9239,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
   async unregisterNickname() {
     if (api_default4.settings.get("auto_register_muc_nickname") === "unregister") {
       try {
-        if (await api_default4.disco.supports(Strophe29.NS.MUC_REGISTER, this.get("jid"))) {
+        if (await api_default4.disco.supports(Strophe31.NS.MUC_REGISTER, this.get("jid"))) {
           await this.sendUnregistrationIQ();
         }
       } catch (e) {
-        log24.error(e);
+        log25.error(e);
       }
     }
   }
@@ -8914,13 +9254,13 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * registered) by other users.
    */
   sendUnregistrationIQ() {
-    const iq = stx6`
+    const iq = stx8`
             <iq to="${this.get("jid")}" type="set" xmlns="jabber:client">
-                <query xmlns="${Strophe29.NS.MUC_REGISTER}">
+                <query xmlns="${Strophe31.NS.MUC_REGISTER}">
                     <remove/>
                 </query>
             </iq>`;
-    return api_default4.sendIQ(iq).catch((e) => log24.error(e));
+    return api_default4.sendIQ(iq).catch((e) => log25.error(e));
   }
   /**
    * Given a presence stanza, update the occupant model based on its contents.
@@ -8944,8 +9284,8 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     const occupant_attrs = {
       ...attrs,
       presence,
-      jid: Strophe29.getBareJidFromJid(jid) || occupant?.attributes?.jid,
-      resource: Strophe29.getResourceFromJid(jid) || occupant?.attributes?.resource
+      jid: Strophe31.getBareJidFromJid(jid) || occupant?.attributes?.jid,
+      resource: Strophe31.getResourceFromJid(jid) || occupant?.attributes?.resource
     };
     if (attrs.is_self) {
       let modified = false;
@@ -8953,7 +9293,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
         modified = true;
         this.set("nick", attrs.nick);
       }
-      if (this.features.get(Strophe29.NS.OCCUPANTID) && this.get("occupant-id") !== attrs.occupant_id) {
+      if (this.features.get(Strophe31.NS.OCCUPANTID) && this.get("occupant-id") !== attrs.occupant_id) {
         modified = true;
         this.set("occupant_id", attrs.occupant_id);
       }
@@ -8982,11 +9322,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @returns {Boolean}
    */
   isSameUser(jid1, jid2) {
-    const bare_jid1 = Strophe29.getBareJidFromJid(jid1);
-    const bare_jid2 = Strophe29.getBareJidFromJid(jid2);
-    const resource1 = Strophe29.getResourceFromJid(jid1);
-    const resource2 = Strophe29.getResourceFromJid(jid2);
-    if (u11.isSameBareJID(jid1, jid2)) {
+    const bare_jid1 = Strophe31.getBareJidFromJid(jid1);
+    const bare_jid2 = Strophe31.getBareJidFromJid(jid2);
+    const resource1 = Strophe31.getResourceFromJid(jid1);
+    const resource2 = Strophe31.getResourceFromJid(jid2);
+    if (u12.isSameBareJID(jid1, jid2)) {
       if (bare_jid1 === this.get("jid")) {
         return resource1 === resource2;
       } else {
@@ -9044,7 +9384,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    * @param {String} value
    */
   setSubject(value = "") {
-    api_default4.send(stx6`
+    api_default4.send(stx8`
             <message to="${this.get("jid")}" type="groupchat" xmlns="jabber:client">
                 <subject>${value}</subject>
             </message>`);
@@ -9072,24 +9412,37 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     } else {
       from = msg.from;
     }
-    return Strophe29.getResourceFromJid(from) == this.get("nick");
+    return Strophe31.getResourceFromJid(from) == this.get("nick");
+  }
+  /**
+   * Determines whether the incoming message stanza is a MUC reflection
+   * of a message we previously sent. A MUC reflection is the server
+   * echoing back our own message with the same `msgid`.
+   * @param {MUCMessage} message - The existing cached message model
+   * @param {MUCMessageAttributes} attrs - Attributes of the incoming stanza
+   * @returns {boolean}
+   */
+  isMUCReflectedMessage(message, attrs) {
+    return this.isOwnMessage(attrs) && attrs.msgid === message.get("msgid");
   }
   /**
    * @param {MUCMessage} message
    * @param {MUCMessageAttributes} attrs
-   * @return {object}
+   * @return {Promise<object>}
    */
-  getUpdatedMessageAttributes(message, attrs) {
+  async getUpdatedMessageAttributes(message, attrs) {
     const new_attrs = {
-      ...super.getUpdatedMessageAttributes(message, attrs),
-      ...pick3(attrs, ["from_muc", "occupant_id"])
+      ...await super.getUpdatedMessageAttributes(message, attrs),
+      from_muc: attrs.from_muc
     };
-    if (this.isOwnMessage(attrs)) {
+    if (this.isMUCReflectedMessage(message, attrs)) {
       const stanza_id_keys = Object.keys(attrs).filter((k) => k.startsWith("stanza_id"));
-      Object.assign(new_attrs, { ...pick3(attrs, stanza_id_keys) }, { body: attrs.body });
-      if (!message.get("received")) {
-        new_attrs.received = (/* @__PURE__ */ new Date()).toISOString();
-      }
+      return {
+        ...new_attrs,
+        ...pick3(attrs, [...stanza_id_keys, "occupant_id"]),
+        ...message.get("received") ? {} : { received: (/* @__PURE__ */ new Date()).toISOString() },
+        ...attrs.body !== void 0 ? { body: attrs.body } : {}
+      };
     }
     return new_attrs;
   }
@@ -9102,7 +9455,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     /*! TOFIND */
     return true;
     if (!this.isEntered()) {
-      log24.info(`isJoined: not pinging MUC ${this.get("jid")} since we're not entered`);
+      log25.info(`isJoined: not pinging MUC ${this.get("jid")} since we're not entered`);
       return false;
     }
     if (!api_default4.connection.connected()) {
@@ -9112,7 +9465,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
   }
   /**
    * Sends a status update presence (i.e. based on the `<show>` element)
-   * @param {import("../status/types").presence_attrs} attrs
+   * @param {import("../status/types").PresenceAttrs} attrs
    * @param {Element[]|Builder[]|Element|Builder} [child_nodes]
    *  Nodes(s) to be added as child nodes of the `presence` XML element.
    */
@@ -9134,7 +9487,7 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
    */
   async rejoinIfNecessary() {
     if (this.isRAICandidate()) {
-      log24.debug(`rejoinIfNecessary: not rejoining hidden MUC "${this.get("jid")}" since we're using RAI`);
+      log25.debug(`rejoinIfNecessary: not rejoining hidden MUC "${this.get("jid")}" since we're using RAI`);
       return true;
     }
     if (!await this.isJoined()) {
@@ -9403,28 +9756,14 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     return !!attrs.activities.length;
   }
   /**
-   * Returns an already cached message (if it exists) based on the
-   * passed in attributes map.
-   * @param {object} attrs - Attributes representing a received
-   *  message, as returned by {@link parseMUCMessage}
-   * @returns {MUCMessage|BaseMessage}
-   */
-  getDuplicateMessage(attrs) {
-    if (attrs.activities?.length) {
-      return this.messages.findWhere({ type: "mep", msgid: attrs.msgid });
-    } else {
-      return super.getDuplicateMessage(attrs);
-    }
-  }
-  /**
    * Handler for all MUC messages sent to this groupchat. This method
    * shouldn't be called directly, instead {@link MUC#queueMessage}
    * should be called.
    * @param {MUCMessageAttributes|StanzaParseError} attrs_or_error - A promise which resolves to the message attributes.
    */
   async onMessage(attrs_or_error) {
-    if (u11.isErrorObject(attrs_or_error)) {
-      return log24.error(
+    if (u12.isErrorObject(attrs_or_error)) {
+      return log25.error(
         /** @type {Error} */
         attrs_or_error.message
       );
@@ -9436,9 +9775,9 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (attrs.type === "error" && !await this.shouldShowErrorMessage(attrs)) {
       return;
     }
-    const message = this.getDuplicateMessage(attrs);
+    const message = await this.getDuplicateMessage(attrs);
     if (message) {
-      message.get("type") === "groupchat" && this.updateMessage(message, attrs);
+      message.get("type") === "groupchat" && await this.updateMessage(message, attrs);
       return;
     } else if (attrs.receipt_id || attrs.is_marker || this.ignorableCSN(attrs)) {
       return;
@@ -9451,8 +9790,13 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     if (attrs["chat_state"]) {
       this.updateNotifications(attrs.nick, attrs.chat_state);
     }
+    const { handled } = await api_default4.hook("beforeMessageCreated", this, attrs, { handled: false });
+    if (handled)
+      return;
     if (shouldCreateGroupchatMessage(attrs)) {
       const msg = await this.handleCorrection(attrs) || await this.createMessage(attrs);
+      if (msg)
+        await api_default4.hook("afterMessageCreated", this, msg);
       this.removeNotification(attrs.nick, ["composing", "paused"]);
       this.handleUnreadMessage(msg);
     }
@@ -9686,11 +10030,11 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
     const __ = converse_default.__;
     const error = stanza.querySelector("error");
     const error_type = error.getAttribute("type");
-    const reason = sizzle12(`text[xmlns="${Strophe29.NS.STANZAS}"]`, error).pop()?.textContent;
+    const reason = sizzle13(`text[xmlns="${Strophe31.NS.STANZAS}"]`, error).pop()?.textContent;
     if (error_type === "modify") {
       this.handleModifyError(stanza);
     } else if (error_type === "auth") {
-      if (sizzle12(`not-authorized[xmlns="${Strophe29.NS.STANZAS}"]`, error).length) {
+      if (sizzle13(`not-authorized[xmlns="${Strophe31.NS.STANZAS}"]`, error).length) {
         this.save({ "password_validation_message": reason || __("Password incorrect") });
         this.session.save({ "connection_status": ROOMSTATUS.PASSWORD_REQUIRED });
       }
@@ -9711,8 +10055,8 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       } else if (error.querySelector("not-acceptable")) {
         const message = __("Your nickname doesn't conform to this groupchat's policies.");
         this.setDisconnectionState(message, reason);
-      } else if (sizzle12(`gone[xmlns="${Strophe29.NS.STANZAS}"]`, error).length) {
-        const moved_jid = sizzle12(`gone[xmlns="${Strophe29.NS.STANZAS}"]`, error).pop()?.textContent.replace(/^xmpp:/, "").replace(/\?join$/, "");
+      } else if (sizzle13(`gone[xmlns="${Strophe31.NS.STANZAS}"]`, error).length) {
+        const moved_jid = sizzle13(`gone[xmlns="${Strophe31.NS.STANZAS}"]`, error).pop()?.textContent.replace(/^xmpp:/, "").replace(/\?join$/, "");
         this.save({ moved_jid, "destroyed_reason": reason });
         this.session.save({ "connection_status": ROOMSTATUS.DESTROYED });
       } else if (error.querySelector("conflict")) {
@@ -9762,12 +10106,12 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
       this.createInfoMessageFromPresence(code, attrs);
       if (attrs.is_self && NEW_NICK_CODES.includes(code)) {
         this.save("nick", attrs.nick);
-        if (code === "303" && api_default4.settings.get("auto_register_muc_nickname") && await api_default4.disco.supports(Strophe29.NS.MUC_REGISTER, this.get("jid"))) {
+        if (code === "303" && api_default4.settings.get("auto_register_muc_nickname") && await api_default4.disco.supports(Strophe31.NS.MUC_REGISTER, this.get("jid"))) {
           try {
             await this.registerNickname();
           } catch (e) {
-            log24.error(e);
-            log24.error("Error: could not register new nickname");
+            log25.error(e);
+            log25.error("Error: could not register new nickname");
           }
         }
       }
@@ -9862,16 +10206,17 @@ var MUC = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(ChatBox
 var muc_default = MUC;
 
 // plugins/muc/occupant.js
-import { Model as Model15 } from "@converse/skeletor";
-import log25 from "@converse/log";
-var { Strophe: Strophe30, stx: stx7 } = public_default.env;
-var MUCOccupant = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(Model15))) {
+import { Model as Model16 } from "@converse/skeletor";
+import log26 from "@converse/log";
+var { Strophe: Strophe32, stx: stx9 } = public_default.env;
+var MUCOccupant = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel(Model16))) {
   static {
     __name(this, "MUCOccupant");
   }
   /**
    * @typedef {import('../../shared/types').MessageAttributes} MessageAttributes
    * @typedef {import('../../shared/errors').StanzaParseError} StanzaParseError
+   * @typedef {import('./message.js').default} MUCMessage
    */
   async initialize() {
     this.lazy_load_vcard = true;
@@ -9925,8 +10270,9 @@ var MUCOccupant = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel
         /** @type {StanzaParseError} */
         attrs_or_error
       );
-      if (stanza) log25.error(stanza);
-      return log25.error(message2);
+      if (stanza)
+        log26.error(stanza);
+      return log26.error(message2);
     }
     const attrs = (
       /** @type {MessageAttributes} */
@@ -9935,16 +10281,21 @@ var MUCOccupant = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel
     if (attrs.type === "error" && !await this.shouldShowErrorMessage(attrs)) {
       return;
     }
-    const message = this.getDuplicateMessage(attrs);
+    const message = await this.getDuplicateMessage(attrs);
     if (message) {
-      this.updateMessage(message, attrs);
+      await this.updateMessage(message, attrs);
       return;
     } else if (await this.handleRetraction(attrs)) {
       return;
     }
     this.setEditable(attrs, attrs.time);
+    const { handled } = await api_default4.hook("beforeMessageCreated", this, attrs, { handled: false });
+    if (handled)
+      return;
     if (shouldCreateGroupchatMessage(attrs)) {
       const msg = await this.handleCorrection(attrs) || await this.createMessage(attrs);
+      if (msg)
+        await api_default4.hook("afterMessageCreated", this, msg);
       this.handleUnreadMessage(msg);
     }
   }
@@ -10002,7 +10353,7 @@ var MUCOccupant = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel
   async getOutgoingMessageAttributes(attrs) {
     const origin_id = utils_default.getUniqueId();
     const text = attrs?.body;
-    const body = text ? utils_default.shortnamesToUnicode(text) : void 0;
+    const body = text ? utils_default.emojis.shortnamesToUnicode(text) : void 0;
     const muc = this.collection.chatroom;
     const own_occupant = muc.getOwnOccupant();
     attrs = Object.assign(
@@ -10033,7 +10384,7 @@ var MUCOccupant = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel
    */
   async createMessageStanza(message) {
     const stanza = await super.createMessageStanza(message);
-    stanza.cnode(stx7`<x xmlns="${Strophe30.NS.MUC}#user"/>`).root();
+    stanza.cnode(stx9`<x xmlns="${Strophe32.NS.MUC}#user"/>`).root();
     return stanza;
   }
   /**
@@ -10046,9 +10397,9 @@ var MUCOccupant = class extends ModelWithVCard(ModelWithMessages(ColorAwareModel
 var occupant_default = MUCOccupant;
 
 // plugins/muc/occupants.js
-import { Collection as Collection3, Model as Model16 } from "@converse/skeletor";
-import { Strophe as Strophe31 } from "strophe.js";
-var { u: u12 } = public_default.env;
+import { Collection as Collection3, Model as Model17 } from "@converse/skeletor";
+import { Strophe as Strophe33 } from "strophe.js";
+var { u: u13 } = public_default.env;
 var MUCOccupants = class _MUCOccupants extends Collection3 {
   static {
     __name(this, "MUCOccupants");
@@ -10072,11 +10423,11 @@ var MUCOccupants = class _MUCOccupants extends Collection3 {
     return Array.isArray(affs) ? affs : affs ? ["member", "admin", "owner"] : [];
   }
   /**
-   * @param {Model|Attributes} attrs
+   * @param {Model|ModelAttributes} attrs
    * @param {Options} [options]
    */
   create(attrs, options) {
-    if (attrs.id || attrs instanceof Model16) {
+    if (attrs.id || attrs instanceof Model17) {
       return super.create(attrs, options);
     }
     attrs.id = attrs.occupant_id || getUniqueId();
@@ -10107,7 +10458,7 @@ var MUCOccupants = class _MUCOccupants extends Collection3 {
       []
     );
     const known_affiliations = affiliations.filter(
-      (a) => !u12.isErrorObject(aff_lists[affiliations.indexOf(a)])
+      (a) => !u13.isErrorObject(aff_lists[affiliations.indexOf(a)])
     );
     const new_jids = (
       /** @type {MemberListItem[]} */
@@ -10146,13 +10497,15 @@ var MUCOccupants = class _MUCOccupants extends Collection3 {
    * Lookup by occupant_id is done first, then jid, and then nick.
    *
    * @param {import('./types').OccupantData} data
+   * @returns {MUCOccupant}
    */
   findOccupant(data) {
     if (data.occupant_id) {
       return this.get(data.occupant_id);
     }
-    const jid = data.jid && Strophe31.getBareJidFromJid(data.jid);
-    return jid && this.findWhere({ jid }) || data.nick && this.findWhere({ "nick": data.nick });
+    const jid = data.jid && Strophe33.getBareJidFromJid(data.jid);
+    const occupant = jid && this.findWhere({ jid }) || data.nick && this.findWhere({ "nick": data.nick });
+    return occupant;
   }
   /**
    * Get the {@link MUCOccupant} instance which
@@ -10170,9 +10523,9 @@ var MUCOccupants = class _MUCOccupants extends Collection3 {
 var occupants_default = MUCOccupants;
 
 // plugins/chat/model.js
-import { getOpenPromise as getOpenPromise11 } from "@converse/openpromise";
-import log26 from "@converse/log";
-var { Strophe: Strophe32, u: u13 } = public_default.env;
+import { getOpenPromise as getOpenPromise12 } from "@converse/openpromise";
+import log27 from "@converse/log";
+var { Strophe: Strophe34, u: u14 } = public_default.env;
 var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(ColorAwareModel(ChatBoxBase)))) {
   static {
     __name(this, "ChatBox");
@@ -10200,7 +10553,7 @@ var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(Co
   }
   async initialize() {
     super.initialize();
-    this.initialized = getOpenPromise11();
+    this.initialized = getOpenPromise12();
     const jid = this.get("jid");
     this.setPresence(jid);
     await this.setModelContact(jid);
@@ -10223,28 +10576,34 @@ var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(Co
    * @param {MessageAttributes|StanzaParseError} attrs_or_error
    */
   async onMessage(attrs_or_error) {
-    if (u13.isErrorObject(attrs_or_error)) {
+    if (u14.isErrorObject(attrs_or_error)) {
       const { stanza, message: message2 } = (
         /** @type {StanzaParseError} */
         attrs_or_error
       );
-      if (stanza) log26.error(stanza);
-      return log26.error(message2);
+      if (stanza)
+        log27.error(stanza);
+      return log27.error(message2);
     }
     const attrs = (
       /** @type {MessageAttributes} */
       attrs_or_error
     );
-    const message = this.getDuplicateMessage(attrs);
+    const message = await this.getDuplicateMessage(attrs);
     if (message) {
-      this.updateMessage(message, attrs);
+      await this.updateMessage(message, attrs);
     } else if (!this.handleReceipt(attrs) && !this.handleChatMarker(attrs) && !await this.handleRetraction(attrs)) {
       this.setEditable(attrs, attrs.time);
       if (attrs["chat_state"] && attrs.sender === "them") {
         this.notifications.set("chat_state", attrs.chat_state);
       }
-      if (u13.shouldCreateMessage(attrs)) {
+      const { handled } = await api_default4.hook("beforeMessageCreated", this, attrs, { handled: false });
+      if (handled)
+        return;
+      if (u14.shouldCreateMessage(attrs)) {
         const msg = await this.handleCorrection(attrs) || await this.createMessage(attrs);
+        if (msg)
+          await api_default4.hook("afterMessageCreated", this, msg);
         this.notifications.set({ "chat_state": null });
         this.handleUnreadMessage(msg);
       }
@@ -10282,7 +10641,8 @@ var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(Co
   getDisplayName() {
     if (this.contact) {
       const display_name = this.contact.getDisplayName({ no_jid: true });
-      if (display_name) return display_name;
+      if (display_name)
+        return display_name;
     }
     if (this.vcard) {
       return this.vcard.getDisplayName();
@@ -10295,13 +10655,13 @@ var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(Co
    * @param {string} jid2
    */
   isSameUser(jid1, jid2) {
-    return u13.isSameBareJID(jid1, jid2);
+    return u14.isSameBareJID(jid1, jid2);
   }
   /**
    * @param {MessageAttributes} attrs
    */
   handleChatMarker(attrs) {
-    const to_bare_jid = Strophe32.getBareJidFromJid(attrs.to);
+    const to_bare_jid = Strophe34.getBareJidFromJid(attrs.to);
     if (to_bare_jid !== converse_default.session.get("bare_jid")) {
       return false;
     }
@@ -10325,9 +10685,11 @@ var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(Co
    */
   async getOutgoingMessageAttributes(attrs) {
     const is_spoiler = !!this.get("composing_spoiler");
-    const origin_id = u13.getUniqueId();
+    const origin_id = u14.getUniqueId();
     const text = attrs?.body;
-    const body = text ? u13.shortnamesToUnicode(text) : void 0;
+    const body = text ? u14.emojis.shortnamesToUnicode(text) : void 0;
+    const reply_to_id = this.get("reply_to_id");
+    const reply_to = this.get("reply_to");
     attrs = Object.assign(
       {},
       attrs,
@@ -10342,12 +10704,17 @@ var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(Co
         msgid: origin_id,
         nick: this.get("nickname"),
         origin_id,
+        reply_to_id,
+        reply_to,
         sender: "me",
         time: (/* @__PURE__ */ new Date()).toISOString(),
         type: this.get("message_type")
       },
-      await u13.getMediaURLsMetadata(text)
+      await u14.getMediaURLsMetadata(text)
     );
+    if (reply_to_id) {
+      this.save({ reply_to_id: void 0, reply_to: void 0 });
+    }
     attrs = await api_default4.hook("getOutgoingMessageAttributes", this, attrs);
     return attrs;
   }
@@ -10365,15 +10732,15 @@ var ChatBox = class extends ModelWithVCard(ModelWithMessages(ModelWithContact(Co
 var model_default2 = ChatBox;
 
 // plugins/chat/message.js
-import { Strophe as Strophe33 } from "strophe.js";
-import { getOpenPromise as getOpenPromise12 } from "@converse/openpromise";
+import { Strophe as Strophe35 } from "strophe.js";
+import { getOpenPromise as getOpenPromise13 } from "@converse/openpromise";
 var Message = class extends message_default {
   static {
     __name(this, "Message");
   }
   async initialize() {
     super.initialize();
-    this.initialized = getOpenPromise12();
+    this.initialized = getOpenPromise13();
     this.on("change:type", () => this.setContact());
     await this.setContact();
     await api_default4.trigger("messageInitialized", this, { synchronous: true });
@@ -10381,7 +10748,7 @@ var Message = class extends message_default {
   }
   setContact() {
     if (["chat", "normal"].includes(this.get("type"))) {
-      return this.setModelContact(Strophe33.getBareJidFromJid(this.get("from")));
+      return this.setModelContact(Strophe35.getBareJidFromJid(this.get("from")));
     }
   }
   getDisplayName() {
@@ -10413,7 +10780,7 @@ var Messages = class extends Collection4 {
 var messages_default2 = Messages;
 
 // plugins/chat/api.js
-import log27 from "@converse/log";
+import log28 from "@converse/log";
 var api_default6 = {
   /**
    * The "chats" namespace (used for one-on-one chats)
@@ -10436,7 +10803,7 @@ var api_default6 = {
         }
         const chatbox = api_default4.chats.get(jids, attrs, true);
         if (!chatbox) {
-          log27.error("Could not open chatbox for JID: " + jids);
+          log28.error("Could not open chatbox for JID: " + jids);
           return;
         }
         return chatbox;
@@ -10448,7 +10815,7 @@ var api_default6 = {
           return api_default4.chats.get(jid, attrs, true).maybeShow();
         }));
       }
-      log27.error("chats.create: You need to provide at least one JID");
+      log28.error("chats.create: You need to provide at least one JID");
       return null;
     },
     /**
@@ -10504,7 +10871,7 @@ var api_default6 = {
         );
       }
       const err_msg = "chats.open: You need to provide at least one JID";
-      log27.error(err_msg);
+      log28.error(err_msg);
       throw new Error(err_msg);
     },
     /**
@@ -10546,7 +10913,7 @@ var api_default6 = {
       __name(_get, "_get");
       if (jids === void 0) {
         const chats = await api_default4.chatboxes.get();
-        return chats.filter((c) => c.get("type") === PRIVATE_CHAT_TYPE);
+        return chats?.filter((c) => c.get("type") === PRIVATE_CHAT_TYPE) ?? [];
       } else if (typeof jids === "string") {
         return _get(jids);
       }
@@ -10556,6 +10923,7 @@ var api_default6 = {
 };
 
 // plugins/chat/plugin.js
+var { Strophe: Strophe36 } = public_default.env;
 public_default.plugins.add("converse-chat", {
   dependencies: ["converse-chatboxes", "converse-disco"],
   initialize() {
@@ -10582,16 +10950,19 @@ public_default.plugins.add("converse-chat", {
     api_default4.listen.on("presencesInitialized", registerMessageHandlers);
     api_default4.listen.on("connected", () => enableCarbons());
     api_default4.listen.on("reconnected", () => enableCarbons());
+    api_default4.listen.on("addClientFeatures", () => {
+      api_default4.disco.own.features.add(Strophe36.NS.REPLY);
+    });
   }
 });
 
 // plugins/disco/entity.js
-import { Collection as Collection5, Model as Model17 } from "@converse/skeletor";
-import { getOpenPromise as getOpenPromise13 } from "@converse/openpromise";
-import log28 from "@converse/log";
-import sizzle13 from "sizzle";
-var { Strophe: Strophe34, u: u14 } = public_default.env;
-var DiscoEntity = class extends Model17 {
+import { Collection as Collection5, Model as Model18 } from "@converse/skeletor";
+import { getOpenPromise as getOpenPromise14 } from "@converse/openpromise";
+import log29 from "@converse/log";
+import sizzle14 from "sizzle";
+var { Strophe: Strophe37, u: u15 } = public_default.env;
+var DiscoEntity = class extends Model18 {
   static {
     __name(this, "DiscoEntity");
   }
@@ -10600,8 +10971,8 @@ var DiscoEntity = class extends Model17 {
   }
   initialize(_, options) {
     super.initialize();
-    this.waitUntilFeaturesDiscovered = getOpenPromise13();
-    this.waitUntilItemsFetched = getOpenPromise13();
+    this.waitUntilFeaturesDiscovered = getOpenPromise14();
+    this.waitUntilItemsFetched = getOpenPromise14();
     this.dataforms = new Collection5();
     let id = `converse.dataforms-${this.get("jid")}`;
     this.dataforms.browserStorage = createStore(id, "session");
@@ -10668,11 +11039,11 @@ var DiscoEntity = class extends Model17 {
         await new Promise(
           (resolve) => this.features.fetch({
             add: true,
-            success: /* @__PURE__ */ __name(() => {
+            success: () => {
               this.waitUntilFeaturesDiscovered.resolve(this);
               this.trigger("featuresDiscovered");
               resolve();
-            }, "success"),
+            },
             error: resolve
           })
         );
@@ -10702,19 +11073,19 @@ var DiscoEntity = class extends Model17 {
     } catch (iq) {
       /*! TOFIND */
       return;
-      if (u14.isElement(iq)) {
+      if (u15.isElement(iq)) {
         const e = await parseErrorStanza(iq);
         if (e.message !== "item-not-found") {
-          log28.error(`Error querying disco#info for ${this.get("jid")}: ${e.message}`);
+          log29.error(`Error querying disco#info for ${this.get("jid")}: ${e.message}`);
         }
         this.save({ error: e.message });
         this.waitUntilFeaturesDiscovered.resolve(e);
         this.waitUntilItemsFetched.resolve(e);
       } else {
         if (iq === null) {
-          log28.error(`Timeout for disco#info query for ${this.get("jid")}`);
+          log29.error(`Timeout for disco#info query for ${this.get("jid")}`);
         } else {
-          log28.error(`Error querying disco#info for ${this.get("jid")}: ${iq}`);
+          log29.error(`Error querying disco#info for ${this.get("jid")}: ${iq}`);
         }
         this.waitUntilFeaturesDiscovered.resolve(iq);
         this.waitUntilItemsFetched.resolve(iq);
@@ -10727,7 +11098,7 @@ var DiscoEntity = class extends Model17 {
    * @param {Element} stanza
    */
   onDiscoItems(stanza) {
-    const item_els = sizzle13(`query[xmlns="${Strophe34.NS.DISCO_ITEMS}"] item`, stanza);
+    const item_els = sizzle14(`query[xmlns="${Strophe37.NS.DISCO_ITEMS}"] item`, stanza);
     const item_jids = [];
     item_els.forEach((item) => {
       if (item.getAttribute("node")) {
@@ -10767,9 +11138,9 @@ var DiscoEntity = class extends Model17 {
         name: identity.getAttribute("name")
       });
     });
-    sizzle13(`x[type="result"][xmlns="${Strophe34.NS.XFORM}"]`, stanza).forEach((form) => {
+    sizzle14(`x[type="result"][xmlns="${Strophe37.NS.XFORM}"]`, stanza).forEach((form) => {
       const data = {};
-      sizzle13("field", form).forEach((field) => {
+      sizzle14("field", form).forEach((field) => {
         data[field.getAttribute("var")] = {
           "value": field.querySelector("value")?.textContent,
           "type": field.getAttribute("type")
@@ -10777,7 +11148,7 @@ var DiscoEntity = class extends Model17 {
       });
       this.dataforms.create(data);
     });
-    if (stanza.querySelector(`feature[var="${Strophe34.NS.DISCO_ITEMS}"]`)) {
+    if (stanza.querySelector(`feature[var="${Strophe37.NS.DISCO_ITEMS}"]`)) {
       await this.queryForItems();
     }
     this.waitUntilItemsFetched.resolve();
@@ -10787,7 +11158,7 @@ var DiscoEntity = class extends Model17 {
         "from": stanza.getAttribute("from")
       });
     });
-    sizzle13('x[type="result"][xmlns="jabber:x:data"] field', stanza).forEach((field) => {
+    sizzle14('x[type="result"][xmlns="jabber:x:data"] field', stanza).forEach((field) => {
       this.fields.create({
         "var": field.getAttribute("var"),
         "value": field.querySelector("value")?.textContent,
@@ -10801,7 +11172,7 @@ var DiscoEntity = class extends Model17 {
 var entity_default = DiscoEntity;
 
 // plugins/disco/entities.js
-import log29 from "@converse/log";
+import log30 from "@converse/log";
 import { Collection as Collection6 } from "@converse/skeletor";
 var DiscoEntities = class extends Collection6 {
   static {
@@ -10817,7 +11188,7 @@ var DiscoEntities = class extends Collection6 {
         add: true,
         success: resolve,
         error(_m, e) {
-          log29.error(e);
+          log30.error(e);
           reject(new Error("Could not fetch disco entities"));
         }
       });
@@ -10827,9 +11198,9 @@ var DiscoEntities = class extends Collection6 {
 var entities_default = DiscoEntities;
 
 // plugins/disco/api.js
-import { getOpenPromise as getOpenPromise14 } from "@converse/openpromise";
-import log30 from "@converse/log";
-var { Strophe: Strophe35, $iq: $iq5 } = public_default.env;
+import { getOpenPromise as getOpenPromise15 } from "@converse/openpromise";
+import log31 from "@converse/log";
+var { Stanza: Stanza7, Strophe: Strophe38, stx: stx10 } = public_default.env;
 var api_default7 = {
   /**
    * @typedef {import('./entities').default} DiscoEntities
@@ -10854,8 +11225,8 @@ var api_default7 = {
     stream: {
       /**
        * @method api.disco.stream.getFeature
-       * @param { String } name The feature name
-       * @param { String } xmlns The XML namespace
+       * @param {String} name The feature name
+       * @param {String} xmlns The XML namespace
        * @example _converse.api.disco.stream.getFeature('ver', 'urn:xmpp:features:rosterver')
        */
       async getFeature(name, xmlns) {
@@ -10869,10 +11240,10 @@ var api_default7 = {
         }
         if (stream_features === void 0 && !api_default4.connection.connected()) {
           const msg = `Tried to get feature ${name} ${xmlns} but stream_features has been torn down`;
-          log30.warn(msg);
+          log31.warn(msg);
           return;
         }
-        return stream_features.findWhere({ "name": name, "xmlns": xmlns });
+        return stream_features.findWhere({ name, xmlns });
       }
     },
     /**
@@ -10937,7 +11308,7 @@ var api_default7 = {
         /**
          * Lets you register new disco features for this client (i.e. instance of Converse)
          * @method api.disco.own.features.add
-         * @param { String } name - e.g. http://jabber.org/protocol/caps
+         * @param {String} name - e.g. http://jabber.org/protocol/caps
          * @example _converse.api.disco.own.features.add("http://jabber.org/protocol/caps");
          */
         add(name) {
@@ -10987,15 +11358,15 @@ var api_default7 = {
      * @returns {promise} Promise which resolves once we have a result from the server.
      */
     info(jid, node, options) {
-      const attrs = { xmlns: Strophe35.NS.DISCO_INFO };
-      if (node) {
-        attrs.node = node;
-      }
-      const info = $iq5({
-        "from": api_default4.connection.get().jid,
-        "to": jid,
-        "type": "get"
-      }).c("query", attrs);
+      const info = stx10`
+                <iq from="${api_default4.connection.get().jid}"
+                    to="${jid}"
+                    type="get"
+                    xmlns="jabber:client">
+                    <query xmlns="${Strophe38.NS.DISCO_INFO}"
+                           ${node ? Stanza7.unsafeXML(`node="${node}"`) : ""}>
+                    </query>
+                </iq>`;
       return api_default4.sendIQ(info, options?.timeout);
     },
     /**
@@ -11007,16 +11378,16 @@ var api_default7 = {
      * @returns {promise} Promise which resolves once we have a result from the server.
      */
     items(jid, node) {
-      const attrs = { xmlns: Strophe35.NS.DISCO_ITEMS };
-      if (node) {
-        attrs.node = node;
-      }
       return api_default4.sendIQ(
-        $iq5({
-          "from": api_default4.connection.get().jid,
-          "to": jid,
-          "type": "get"
-        }).c("query", attrs)
+        stx10`
+                    <iq from="${api_default4.connection.get().jid}"
+                        to="${jid}"
+                        type="get"
+                        xmlns="jabber:client">
+                        <query xmlns="${Strophe38.NS.DISCO_ITEMS}"
+                               ${node ? Stanza7.unsafeXML(`node="${node}"`) : ""}>
+                        </query>
+                    </iq>`
       );
     },
     /**
@@ -11040,7 +11411,8 @@ var api_default7 = {
           /** @type {DiscoEntities} */
           converse_default.state.disco_entities
         );
-        if (!disco_entities) return [];
+        if (!disco_entities)
+          return [];
         const candidates = [];
         if (jid) {
           const entity = await api_default4.disco.entities.get(jid, true);
@@ -11051,8 +11423,9 @@ var api_default7 = {
         } else {
           const bare_jid = converse_default.session.get("bare_jid");
           const bare_entity = await api_default4.disco.entities.get(bare_jid, true);
-          if (bare_entity) candidates.push(bare_entity);
-          const domain = Strophe35.getDomainFromJid(bare_jid);
+          if (bare_entity)
+            candidates.push(bare_entity);
+          const domain = Strophe38.getDomainFromJid(bare_jid);
           const domain_entity = await api_default4.disco.entities.get(domain, true);
           if (domain_entity) {
             const items = await api_default4.disco.entities.items(domain);
@@ -11086,12 +11459,15 @@ var api_default7 = {
           return disco_entities;
         }
         if (disco_entities === void 0) {
-          log30.warn(`Tried to look up entity ${jid} but disco_entities has been torn down`);
+          log31.warn(`Tried to look up entity ${jid} but disco_entities has been torn down`);
           return;
         }
         const entity = disco_entities.get(jid);
         if (entity || !create) {
-          return entity;
+          return (
+            /** @type {DiscoEntity} */
+            entity
+          );
         }
         return api_default4.disco.entities.create({ jid });
       },
@@ -11165,10 +11541,11 @@ var api_default7 = {
        * api.disco.features.get(Strophe.NS.MAM, _converse.bare_jid);
        */
       async get(feature, jid) {
-        if (!jid) throw new TypeError("api.disco.features.get: You need to provide an entity JID");
+        if (!jid)
+          throw new TypeError("api.disco.features.get: You need to provide an entity JID");
         const entity = await api_default4.disco.entities.get(jid, true);
         if (converse_default.state.disco_entities === void 0 && !api_default4.connection.connected()) {
-          log30.warn(
+          log31.warn(
             `Tried to get feature ${feature} for ${jid} but _converse.disco_entities has been torn down`
           );
           return [];
@@ -11194,14 +11571,15 @@ var api_default7 = {
        *      api.disco.features.has(Strophe.NS.MAM, _converse.bare_jid);
        */
       async has(feature, jid) {
-        if (!jid) throw new TypeError("api.disco.feature.has: You need to provide an entity JID");
+        if (!jid)
+          throw new TypeError("api.disco.feature.has: You need to provide an entity JID");
         const entity = await api_default4.disco.entities.get(jid, true);
         if (!entity) {
-          log30.warn(`api.disco.has: could not get entity for ${jid}`);
+          log31.warn(`api.disco.has: could not get entity for ${jid}`);
           return false;
         }
         if (converse_default.state.disco_entities === void 0 && !api_default4.connection.connected()) {
-          log30.warn(`Tried to check if ${jid} supports feature ${feature}`);
+          log31.warn(`Tried to check if ${jid} supports feature ${feature}`);
           return false;
         }
         if (await entity.getFeature(feature)) {
@@ -11234,7 +11612,7 @@ var api_default7 = {
       try {
         return api_default4.disco.features.has(feature, jid);
       } catch (e) {
-        log30.error(e);
+        log31.error(e);
         return false;
       }
     },
@@ -11249,7 +11627,8 @@ var api_default7 = {
      * await api.disco.refresh('room@conference.example.org');
      */
     async refresh(jid, options) {
-      if (!jid) throw new TypeError("api.disco.refresh: You need to provide an entity JID");
+      if (!jid)
+        throw new TypeError("api.disco.refresh: You need to provide an entity JID");
       await api_default4.waitUntil("discoInitialized");
       let entity = await api_default4.disco.entities.get(jid);
       if (entity) {
@@ -11257,10 +11636,10 @@ var api_default7 = {
         entity.fields.reset();
         entity.identities.reset();
         if (!entity.waitUntilFeaturesDiscovered.isPending) {
-          entity.waitUntilFeaturesDiscovered = getOpenPromise14();
+          entity.waitUntilFeaturesDiscovered = getOpenPromise15();
         }
         if (!entity.waitUntilItemsFetched.isPending) {
-          entity.waitUntilItemsFetched = getOpenPromise14();
+          entity.waitUntilItemsFetched = getOpenPromise15();
         }
         entity.queryInfo(options);
       } else {
@@ -11278,7 +11657,8 @@ var api_default7 = {
      * const features = await api.disco.getFeatures('room@conference.example.org');
      */
     async getFeatures(jid) {
-      if (!jid) throw new TypeError("api.disco.getFeatures: You need to provide an entity JID");
+      if (!jid)
+        throw new TypeError("api.disco.getFeatures: You need to provide an entity JID");
       await api_default4.waitUntil("discoInitialized");
       let entity = await api_default4.disco.entities.get(jid, true);
       entity = await entity.waitUntilFeaturesDiscovered;
@@ -11296,7 +11676,8 @@ var api_default7 = {
      * const fields = await api.disco.getFields('room@conference.example.org');
      */
     async getFields(jid) {
-      if (!jid) throw new TypeError("api.disco.getFields: You need to provide an entity JID");
+      if (!jid)
+        throw new TypeError("api.disco.getFields: You need to provide an entity JID");
       await api_default4.waitUntil("discoInitialized");
       let entity = await api_default4.disco.entities.get(jid, true);
       entity = await entity.waitUntilFeaturesDiscovered;
@@ -11337,7 +11718,7 @@ var api_default7 = {
       const e = await api_default4.disco.entities.get(jid, true);
       if (e === void 0 && !api_default4.connection.connected()) {
         const msg = `Tried to look up category ${category} for ${jid} but _converse.disco_entities has been torn down`;
-        log30.warn(msg);
+        log31.warn(msg);
         return;
       }
       return e.getIdentity(category, type);
@@ -11347,57 +11728,46 @@ var api_default7 = {
 
 // plugins/disco/utils.js
 import { Collection as Collection7 } from "@converse/skeletor";
-var { Strophe: Strophe36, $iq: $iq6 } = public_default.env;
+var { Strophe: Strophe39, Stanza: Stanza8, stx: stx11 } = public_default.env;
 function onDiscoInfoRequest(stanza) {
   const node = stanza.getElementsByTagName("query")[0].getAttribute("node");
-  const attrs = { xmlns: Strophe36.NS.DISCO_INFO };
-  if (node) {
-    attrs.node = node;
-  }
-  const iqresult = $iq6({ "type": "result", "id": stanza.getAttribute("id") });
   const from = stanza.getAttribute("from");
-  if (from !== null) {
-    iqresult.attrs({ "to": from });
-  }
-  iqresult.c("query", attrs);
-  converse_default.state.disco._identities.forEach((identity) => {
-    const attrs2 = {
-      "category": identity.category,
-      "type": identity.type
-    };
-    if (identity.name) {
-      attrs2.name = identity.name;
-    }
-    if (identity.lang) {
-      attrs2["xml:lang"] = identity.lang;
-    }
-    iqresult.c("identity", attrs2).up();
-  });
-  converse_default.state.disco._features.forEach((f) => iqresult.c("feature", { "var": f }).up());
-  api_default4.send(iqresult.tree());
+  const id = stanza.getAttribute("id");
+  const result = stx11`
+        <iq type="result"
+            id="${id}"
+            ${from ? Stanza8.unsafeXML(`to="${from}"`) : ""}
+            xmlns="jabber:client">
+            <query xmlns="${Strophe39.NS.DISCO_INFO}"
+                   ${node ? Stanza8.unsafeXML(`node="${node}"`) : ""}>
+                ${converse_default.state.disco._identities.map((identity) => {
+    return stx11`
+                        <identity category="${identity.category}"
+                            type="${identity.type}"
+                            ${identity.name ? Stanza8.unsafeXML(`name="${identity.name}"`) : ""}
+                            ${identity.lang ? Stanza8.unsafeXML(`xml:lang="${identity.lang}"`) : ""}>
+                        </identity>`;
+  })}
+                ${converse_default.state.disco._features.map((f) => stx11`<feature var="${f}"></feature>`)}
+            </query>
+        </iq>`;
+  api_default4.send(result);
   return true;
 }
 __name(onDiscoInfoRequest, "onDiscoInfoRequest");
 function addClientFeatures() {
   api_default4.disco.own.identities.add("client", "web", "Converse");
-  api_default4.disco.own.features.add(Strophe36.NS.CHATSTATES);
-  api_default4.disco.own.features.add(Strophe36.NS.DISCO_INFO);
-  api_default4.disco.own.features.add(Strophe36.NS.ROSTERX);
-  api_default4.disco.own.features.add(Strophe36.NS.CARBONS);
+  api_default4.disco.own.features.add(Strophe39.NS.CHATSTATES);
+  api_default4.disco.own.features.add(Strophe39.NS.DISCO_INFO);
+  api_default4.disco.own.features.add(Strophe39.NS.ROSTERX);
+  api_default4.disco.own.features.add(Strophe39.NS.CARBONS);
   api_default4.trigger("addClientFeatures");
   return this;
 }
 __name(addClientFeatures, "addClientFeatures");
 async function initializeDisco() {
   addClientFeatures();
-  api_default4.connection.get().addHandler(
-    (stanza) => onDiscoInfoRequest(stanza),
-    Strophe36.NS.DISCO_INFO,
-    "iq",
-    "get",
-    null,
-    null
-  );
+  api_default4.connection.get().addHandler((stanza) => onDiscoInfoRequest(stanza), Strophe39.NS.DISCO_INFO, "iq", "get", null, null);
   const disco_entities = new converse_default.exports.DiscoEntities();
   Object.assign(converse_default, { disco_entities });
   Object.assign(converse_default.state, { disco_entities });
@@ -11457,7 +11827,7 @@ __name(clearSession2, "clearSession");
  * @license Mozilla Public License (MPLv2)
  * @description Converse plugin which add support for XEP-0030: Service Discovery
  */
-var { Strophe: Strophe37 } = public_default.env;
+var { Strophe: Strophe40 } = public_default.env;
 public_default.plugins.add("converse-disco", {
   initialize() {
     Object.assign(api_default4, api_default7);
@@ -11474,7 +11844,7 @@ public_default.plugins.add("converse-disco", {
     Object.assign(converse_default.state, { disco });
     api_default4.listen.on("userSessionInitialized", async () => {
       initStreamFeatures();
-      if (converse_default.state.connfeedback.get("connection_status") === Strophe37.Status.ATTACHED) {
+      if (converse_default.state.connfeedback.get("connection_status") === Strophe40.Status.ATTACHED) {
         await new Promise((success, error) => converse_default.state.stream_features.fetch({ success, error }));
         notifyStreamFeaturesAdded();
       }
@@ -11508,7 +11878,7 @@ var api_default8 = {
    */
   affiliations: {
     /**
-     * Set the given affliation for the given JIDs in the specified MUCs
+     * Set the given affiliation for the given JIDs in the specified MUCs
      * @typedef {Object} User
      * @property {string} User.jid - The JID of the user whose affiliation will change
      * @property {Array} User.affiliation - The new affiliation for this user
@@ -11569,14 +11939,14 @@ public_default.MUC = { INFO_CODES };
 public_default.MUC_NICK_CHANGED_CODE = MUC_NICK_CHANGED_CODE;
 public_default.ROOM_FEATURES = ROOM_FEATURES;
 public_default.ROOMSTATUS = ROOMSTATUS;
-var { Strophe: Strophe38 } = public_default.env;
-Strophe38.addNamespace("MUC_ADMIN", Strophe38.NS.MUC + "#admin");
-Strophe38.addNamespace("MUC_OWNER", Strophe38.NS.MUC + "#owner");
-Strophe38.addNamespace("MUC_REGISTER", "jabber:iq:register");
-Strophe38.addNamespace("MUC_ROOMCONF", Strophe38.NS.MUC + "#roomconfig");
-Strophe38.addNamespace("MUC_USER", Strophe38.NS.MUC + "#user");
-Strophe38.addNamespace("MUC_HATS", "urn:xmpp:hats:0");
-Strophe38.addNamespace("CONFINFO", "urn:ietf:params:xml:ns:conference-info");
+var { Strophe: Strophe41 } = public_default.env;
+Strophe41.addNamespace("MUC_ADMIN", Strophe41.NS.MUC + "#admin");
+Strophe41.addNamespace("MUC_OWNER", Strophe41.NS.MUC + "#owner");
+Strophe41.addNamespace("MUC_REGISTER", "jabber:iq:register");
+Strophe41.addNamespace("MUC_ROOMCONF", Strophe41.NS.MUC + "#roomconfig");
+Strophe41.addNamespace("MUC_USER", Strophe41.NS.MUC + "#user");
+Strophe41.addNamespace("MUC_HATS", "urn:xmpp:hats:0");
+Strophe41.addNamespace("CONFINFO", "urn:ietf:params:xml:ns:conference-info");
 public_default.plugins.add("converse-muc", {
   dependencies: ["converse-chatboxes", "converse-chat", "converse-disco"],
   initialize() {
@@ -11638,7 +12008,9 @@ public_default.plugins.add("converse-muc", {
       "303": ___("Your nickname has been changed to %1$s"),
       "307": __("You have been kicked from this groupchat"),
       "321": __("You have been removed from this groupchat because of an affiliation change"),
-      "322": __("You have been removed from this groupchat because it has changed to members-only and you're not a member"),
+      "322": __(
+        "You have been removed from this groupchat because it has changed to members-only and you're not a member"
+      ),
       "332": __("You have been removed from this groupchat because the service hosting it is being shut down"),
       "333": __("You have exited this groupchat due to a technical problem")
     };
@@ -11672,7 +12044,8 @@ public_default.plugins.add("converse-muc", {
       api_default4.listen.on("connected", registerDirectInvitationHandler);
       api_default4.listen.on("reconnected", registerDirectInvitationHandler);
     }
-    api_default4.listen.on("addClientFeatures", () => api_default4.disco.own.features.add(`${Strophe38.NS.CONFINFO}+notify`));
+    api_default4.listen.on("getDuplicateMessageQueries", getMUCDuplicateMessageQueries);
+    api_default4.listen.on("addClientFeatures", () => api_default4.disco.own.features.add(`${Strophe41.NS.CONFINFO}+notify`));
     api_default4.listen.on("addClientFeatures", onAddClientFeatures);
     api_default4.listen.on("beforeResourceBinding", onBeforeResourceBinding);
     api_default4.listen.on("beforeTearDown", onBeforeTearDown);
@@ -11686,8 +12059,39 @@ public_default.plugins.add("converse-muc", {
 // plugins/muc/index.js
 Object.assign(utils_default, { muc: { isChatRoom, setAffiliation, getDefaultMUCService } });
 
+// plugins/bookmarks/utils.js
+import log32 from "@converse/log";
+var { u: u16 } = public_default.env;
+function getStorageKeys() {
+  const { session } = converse_default;
+  const storage_key = `converse.room-bookmarks.${session.get("bare_jid")}`;
+  const fetched_flag_key = `${storage_key}-fetched`;
+  return { storage_key, fetched_flag_key };
+}
+__name(getStorageKeys, "getStorageKeys");
+function getNicknameFromBookmark(jid) {
+  if (!api_default4.settings.get("allow_bookmarks")) {
+    return null;
+  }
+  return converse_default.state.bookmarks?.get(jid)?.get("nick");
+}
+__name(getNicknameFromBookmark, "getNicknameFromBookmark");
+function handleBookmarksPush(message) {
+  api_default4.waitUntil("bookmarksInitialized").then(() => converse_default.state.bookmarks.setBookmarksFromStanza(message)).catch(
+    /** @param {Error} e */
+    (e) => log32.fatal(e)
+  );
+  return true;
+}
+__name(handleBookmarksPush, "handleBookmarksPush");
+Object.assign(u16, {
+  bookmarks: {
+    getStorageKeys
+  }
+});
+
 // plugins/bookmarks/collection.js
-var { Strophe: Strophe39, stx: stx8 } = public_default.env;
+var { Strophe: Strophe42, stx: stx12 } = public_default.env;
 var Bookmarks = class extends Collection8 {
   static {
     __name(this, "Bookmarks");
@@ -11696,37 +12100,38 @@ var Bookmarks = class extends Collection8 {
     return "jid";
   }
   constructor() {
-    super([], { comparator: /* @__PURE__ */ __name((b) => b.getDisplayName().toLowerCase(), "comparator") });
+    super([], { comparator: (b) => b.getDisplayName().toLowerCase() });
     this.model = model_default;
   }
   async initialize() {
     this.on(
       "add",
-      (bm) => this.openBookmarkedRoom(bm).then((bm2) => this.markRoomAsBookmarked(bm2)).catch((e) => log31.fatal(e))
+      (bm) => this.openBookmarkedRoom(bm).then((bm2) => this.markRoomAsBookmarked(bm2)).catch((e) => log33.fatal(e))
     );
-    this.on("remove", this.leaveRoom, this);
     this.on("change:autojoin", this.onAutoJoinChanged, this);
     this.on(
       "remove",
-      /** @param {Bookmark} bookmark */
-      (_, bookmark) => this.sendBookmarkStanza(bookmark),
-      this
+      /** @param { Bookmark } bookmark }*/
+      (bookmark) => {
+        this.sendRemoveBookmarkStanza(bookmark);
+        this.leaveRoom(bookmark);
+      }
     );
-    const { session } = converse_default;
-    const cache_key = `converse.room-bookmarks${session.get("bare_jid")}`;
-    this.fetched_flag = cache_key + "fetched";
-    initStorage(this, cache_key);
+    const { storage_key, fetched_flag_key } = getStorageKeys();
+    this.fetched_flag = fetched_flag_key;
+    initStorage(this, storage_key);
     await this.fetchBookmarks();
     api_default4.trigger("bookmarksInitialized", this);
   }
   static async checkBookmarksSupport() {
     const bare_jid = converse_default.session.get("bare_jid");
-    if (!bare_jid) return false;
+    if (!bare_jid)
+      return false;
     const identity = await api_default4.disco.getIdentity("pubsub", "pep", bare_jid);
     if (api_default4.settings.get("allow_public_bookmarks")) {
       return !!identity;
     } else {
-      return api_default4.disco.supports(Strophe39.NS.PUBSUB + "#publish-options", bare_jid);
+      return api_default4.disco.supports(Strophe42.NS.PUBSUB + "#publish-options", bare_jid);
     }
   }
   /**
@@ -11743,11 +12148,11 @@ var Bookmarks = class extends Collection8 {
     return bookmark;
   }
   fetchBookmarks() {
-    const deferred = getOpenPromise15();
-    if (window.sessionStorage.getItem(this.fetched_flag)) {
+    const deferred = getOpenPromise16();
+    if (converse_default.state.session.get(this.fetched_flag)) {
       this.fetch({
-        success: /* @__PURE__ */ __name(() => deferred.resolve(), "success"),
-        error: /* @__PURE__ */ __name(() => deferred.resolve(), "error")
+        success: () => deferred.resolve(),
+        error: () => deferred.resolve()
       });
     } else {
       this.fetchBookmarksFromServer(deferred);
@@ -11757,10 +12162,11 @@ var Bookmarks = class extends Collection8 {
   /**
    * @param {import('./types').BookmarkAttrs} attrs
    * @param {boolean} [create=true]
-   * @param {object} [options]
+   * @param {import('@converse/skeletor').FetchOrCreateOptions} [options]
    */
-  setBookmark(attrs, create = true, options = {}) {
-    if (!attrs.jid) return log31.warn("No JID provided for setBookmark");
+  async setBookmark(attrs, create = true, options = {}) {
+    if (!attrs.jid)
+      return log33.warn("No JID provided for setBookmark");
     let send_stanza = false;
     let bookmark = this.get(attrs.jid);
     if (bookmark) {
@@ -11772,39 +12178,64 @@ var Bookmarks = class extends Collection8 {
         send_stanza = true;
       }
     } else if (create) {
-      bookmark = this.create(attrs, options);
+      bookmark = await this.create(attrs, options);
       send_stanza = true;
     }
-    if (send_stanza) {
+    if (bookmark && send_stanza) {
       this.sendBookmarkStanza(bookmark).catch((iq) => this.onBookmarkError(iq));
     }
   }
   /**
-   * @param {'urn:xmpp:bookmarks:1'|'storage:bookmarks'} node
    * @param {Bookmark} bookmark
+   * @returns {Promise<void|Element>}
+   */
+  async sendRemoveBookmarkStanza(bookmark) {
+    const bare_jid = converse_default.session.get("bare_jid");
+    const node = await api_default4.disco.supports(`${Strophe42.NS.BOOKMARKS2}#compat`, bare_jid) ? Strophe42.NS.BOOKMARKS2 : Strophe42.NS.BOOKMARKS;
+    if (node === Strophe42.NS.BOOKMARKS2) {
+      const stanza = stx12`
+                <iq from="${bare_jid}"
+                    to="${bare_jid}"
+                    type="set"
+                    xmlns="jabber:client">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <retract node="${node}" notify="true">
+                        <item id="${bookmark.get("jid")}"/>
+                    </retract>
+                </pubsub>
+                </iq>`;
+      return api_default4.sendIQ(stanza);
+    }
+    return this.sendBookmarkStanza().catch((iq) => this.onBookmarkError(iq));
+  }
+  /**
+   * @param {'urn:xmpp:bookmarks:1'|'storage:bookmarks'} node
+   * @param {Bookmark} [bookmark]
    * @returns {Stanza|Stanza[]}
    */
   getPublishedItems(node, bookmark) {
-    if (node === Strophe39.NS.BOOKMARKS2) {
+    if (node === Strophe42.NS.BOOKMARKS2) {
+      if (!bookmark)
+        throw new Error("getPublishedItems: missing bookmark");
       const extensions = bookmark.get("extensions") ?? [];
-      return stx8`<item id="${bookmark.get("jid")}">
-                        <conference xmlns="${Strophe39.NS.BOOKMARKS2}"
+      return stx12`<item id="${bookmark.get("jid")}">
+                        <conference xmlns="${Strophe42.NS.BOOKMARKS2}"
                                 name="${bookmark.get("name") || nothing2}"
                                 autojoin="${bookmark.get("autojoin")}">
-                            ${bookmark.get("nick") ? stx8`<nick>${bookmark.get("nick")}</nick>` : ""}
-                            ${bookmark.get("password") ? stx8`<password>${bookmark.get("password")}</password>` : ""}
-                        ${extensions.length ? stx8`<extensions>${extensions.map((e) => Stanza5.fromString(e))}</extensions>` : ""}
+                            ${bookmark.get("nick") ? stx12`<nick>${bookmark.get("nick")}</nick>` : ""}
+                            ${bookmark.get("password") ? stx12`<password>${bookmark.get("password")}</password>` : ""}
+                        ${extensions.length ? stx12`<extensions>${extensions.map((e) => Stanza9.fromString(e))}</extensions>` : ""}
                         </conference>
                     </item>`;
     } else {
-      return stx8`<item id="current">
-                <storage xmlns="${Strophe39.NS.BOOKMARKS}">
+      return stx12`<item id="current">
+                <storage xmlns="${Strophe42.NS.BOOKMARKS}">
                 ${this.map(
         /** @param {MUC} model */
-        (model) => stx8`<conference name="${model.get("name")}" autojoin="${model.get("autojoin")}"
+        (model) => stx12`<conference name="${model.get("name")}" autojoin="${model.get("autojoin")}"
                         jid="${model.get("jid")}">
-                        ${model.get("nick") ? stx8`<nick>${model.get("nick")}</nick>` : ""}
-                        ${model.get("password") ? stx8`<password>${model.get("password")}</password>` : ""}
+                        ${model.get("nick") ? stx12`<nick>${model.get("nick")}</nick>` : ""}
+                        ${model.get("password") ? stx12`<password>${model.get("password")}</password>` : ""}
                     </conference>`
       )}
                 </storage>
@@ -11812,13 +12243,13 @@ var Bookmarks = class extends Collection8 {
     }
   }
   /**
-   * @param {Bookmark} bookmark
+   * @param {Bookmark} [bookmark]
    * @returns {Promise<void|Element>}
    */
   async sendBookmarkStanza(bookmark) {
     const bare_jid = converse_default.session.get("bare_jid");
-    const node = await api_default4.disco.supports(`${Strophe39.NS.BOOKMARKS2}#compat`, bare_jid) ? Strophe39.NS.BOOKMARKS2 : Strophe39.NS.BOOKMARKS;
-    const supports_max = await api_default4.disco.supports(`${Strophe39.NS.PUBSUB}#config-node-max`, bare_jid);
+    const node = await api_default4.disco.supports(`${Strophe42.NS.BOOKMARKS2}#compat`, bare_jid) ? Strophe42.NS.BOOKMARKS2 : Strophe42.NS.BOOKMARKS;
+    const supports_max = await api_default4.disco.supports(`${Strophe42.NS.PUBSUB}#config-node-max`, bare_jid);
     return api_default4.pubsub.publish(null, node, this.getPublishedItems(node, bookmark), {
       persist_items: true,
       max_items: supports_max ? "max" : 9999,
@@ -11830,18 +12261,18 @@ var Bookmarks = class extends Collection8 {
    * @param {Element} iq
    */
   onBookmarkError(iq) {
-    log31.error("Error while trying to add bookmark");
-    log31.error(iq);
+    log33.error("Error while trying to update bookmarks");
+    log33.error(iq);
   }
   /**
    * @param {Promise} deferred
    */
   async fetchBookmarksFromServer(deferred) {
     const bare_jid = converse_default.session.get("bare_jid");
-    const ns = await api_default4.disco.supports(`${Strophe39.NS.BOOKMARKS2}#compat`, bare_jid) ? Strophe39.NS.BOOKMARKS2 : Strophe39.NS.BOOKMARKS;
-    const stanza = stx8`
+    const ns = await api_default4.disco.supports(`${Strophe42.NS.BOOKMARKS2}#compat`, bare_jid) ? Strophe42.NS.BOOKMARKS2 : Strophe42.NS.BOOKMARKS;
+    const stanza = stx12`
             <iq type="get" from="${api_default4.connection.get().jid}" xmlns="jabber:client">
-                <pubsub xmlns="${Strophe39.NS.PUBSUB}">
+                <pubsub xmlns="${Strophe42.NS.PUBSUB}">
                     <items node="${ns}"/>
                 </pubsub>
             </iq>`;
@@ -11897,7 +12328,7 @@ var Bookmarks = class extends Collection8 {
    */
   async onBookmarksReceived(deferred, iq) {
     await this.setBookmarksFromStanza(iq);
-    window.sessionStorage.setItem(this.fetched_flag, "true");
+    converse_default.state.session.set(this.fetched_flag, true);
     if (deferred !== void 0) {
       return deferred.resolve();
     }
@@ -11909,7 +12340,7 @@ var Bookmarks = class extends Collection8 {
   async onBookmarksReceivedError(deferred, iq) {
     if (iq === null) {
       const { __ } = converse_default;
-      log31.error("Error: timeout while fetching bookmarks");
+      log33.error("Error: timeout while fetching bookmarks");
       api_default4.alert("error", __("Timeout Error"), [
         __(
           "The server did not return your bookmarks within the allowed time. You can reload the page to request them again."
@@ -11920,11 +12351,12 @@ var Bookmarks = class extends Collection8 {
       const { errors } = public_default.env;
       const e = await parseErrorStanza(iq);
       if (e instanceof errors.ItemNotFoundError) {
-        window.sessionStorage.setItem(this.fetched_flag, "true");
+        converse_default.state.session.set(this.fetched_flag, true);
         deferred?.resolve();
       } else {
-        log31.error("Error while fetching bookmarks");
-        if (iq) log31.error(iq);
+        log33.error("Error while fetching bookmarks");
+        if (iq)
+          log33.error(iq);
         deferred?.reject(new Error("Could not fetch bookmarks"));
       }
     }
@@ -11938,36 +12370,8 @@ var Bookmarks = class extends Collection8 {
 };
 var collection_default = Bookmarks;
 
-// plugins/bookmarks/utils.js
-import log32 from "@converse/log";
-async function initBookmarks() {
-  if (!api_default4.settings.get("allow_bookmarks")) {
-    return;
-  }
-  if (await collection_default.checkBookmarksSupport()) {
-    converse_default.state.bookmarks = new converse_default.exports.Bookmarks();
-    Object.assign(converse_default, { bookmarks: converse_default.state.bookmarks });
-  }
-}
-__name(initBookmarks, "initBookmarks");
-function getNicknameFromBookmark(jid) {
-  if (!api_default4.settings.get("allow_bookmarks")) {
-    return null;
-  }
-  return converse_default.state.bookmarks?.get(jid)?.get("nick");
-}
-__name(getNicknameFromBookmark, "getNicknameFromBookmark");
-function handleBookmarksPush(message) {
-  api_default4.waitUntil("bookmarksInitialized").then(() => converse_default.state.bookmarks.setBookmarksFromStanza(message)).catch(
-    /** @param {Error} e */
-    (e) => log32.fatal(e)
-  );
-  return true;
-}
-__name(handleBookmarksPush, "handleBookmarksPush");
-
 // plugins/bookmarks/plugin.js
-import log33 from "@converse/log";
+import log34 from "@converse/log";
 
 // plugins/bookmarks/api.js
 var { waitUntil: waitUntil5 } = promise_default;
@@ -12004,9 +12408,9 @@ var api_default9 = bookmarks_api;
  * @copyright 2025, the Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { Strophe: Strophe40 } = public_default.env;
-Strophe40.addNamespace("BOOKMARKS", "storage:bookmarks");
-Strophe40.addNamespace("BOOKMARKS2", "urn:xmpp:bookmarks:1");
+var { Strophe: Strophe43 } = public_default.env;
+Strophe43.addNamespace("BOOKMARKS", "storage:bookmarks");
+Strophe43.addNamespace("BOOKMARKS2", "urn:xmpp:bookmarks:1");
 public_default.plugins.add("converse-bookmarks", {
   dependencies: ["converse-chatboxes", "converse-muc"],
   initialize() {
@@ -12042,7 +12446,8 @@ public_default.plugins.add("converse-bookmarks", {
           api_default4.bookmarks.get(attrs.muc_jid).then(
             /** @param {Bookmark} bookmark */
             (bookmark) => {
-              if (!bookmark) log33.warn("parseMUCPresence: no bookmark returned");
+              if (!bookmark)
+                log34.warn("parseMUCPresence: no bookmark returned");
               const { nick, muc_jid: jid } = attrs;
               api_default4.bookmarks.set({
                 jid,
@@ -12102,40 +12507,46 @@ public_default.plugins.add("converse-bookmarks", {
     );
     api_default4.listen.on("addClientFeatures", () => {
       if (api_default4.settings.get("allow_bookmarks")) {
-        api_default4.disco.own.features.add(Strophe40.NS.BOOKMARKS + "+notify");
+        api_default4.disco.own.features.add(Strophe43.NS.BOOKMARKS + "+notify");
       }
     });
     api_default4.listen.on("clearSession", () => {
       const { state } = converse_default;
       if (state.bookmarks) {
-        state.bookmarks.clearStore({ "silent": true });
-        window.sessionStorage.removeItem(state.bookmarks.fetched_flag);
+        state.bookmarks.clearStore({ silent: true });
+        const { fetched_flag_key } = getStorageKeys();
+        converse_default.state.session.set(fetched_flag_key, void 0);
         delete state.bookmarks;
       }
     });
     api_default4.listen.on("connected", async () => {
+      if (!api_default4.settings.get("allow_bookmarks"))
+        return;
       const bare_jid = converse_default.session.get("bare_jid");
       const connection2 = api_default4.connection.get();
-      connection2.addHandler(handleBookmarksPush, Strophe40.NS.BOOKMARKS, "message", "headline", null, bare_jid);
-      connection2.addHandler(handleBookmarksPush, Strophe40.NS.BOOKMARKS2, "message", "headline", null, bare_jid);
+      connection2.addHandler(handleBookmarksPush, Strophe43.NS.BOOKMARKS, "message", "headline", null, bare_jid);
+      connection2.addHandler(handleBookmarksPush, Strophe43.NS.BOOKMARKS2, "message", "headline", null, bare_jid);
       await Promise.all([api_default4.waitUntil("chatBoxesFetched")]);
-      initBookmarks();
+      if (await collection_default.checkBookmarksSupport()) {
+        converse_default.state.bookmarks = new converse_default.exports.Bookmarks();
+        Object.assign(converse_default, { bookmarks: converse_default.state.bookmarks });
+      }
     });
   }
 });
 
 // plugins/blocklist/plugin.js
-import log36 from "@converse/log";
+import log37 from "@converse/log";
 
 // plugins/blocklist/collection.js
-import { getOpenPromise as getOpenPromise16 } from "@converse/openpromise";
+import { getOpenPromise as getOpenPromise17 } from "@converse/openpromise";
 import { Collection as Collection9 } from "@converse/skeletor";
-import log34 from "@converse/log";
+import log35 from "@converse/log";
 
 // plugins/blocklist/model.js
-import { Model as Model18 } from "@converse/skeletor";
-var { Strophe: Strophe41 } = public_default.env;
-var BlockedEntity = class extends Model18 {
+import { Model as Model19 } from "@converse/skeletor";
+var { Strophe: Strophe44 } = public_default.env;
+var BlockedEntity = class extends Model19 {
   static {
     __name(this, "BlockedEntity");
   }
@@ -12143,13 +12554,13 @@ var BlockedEntity = class extends Model18 {
     return "jid";
   }
   getDisplayName() {
-    return Strophe41.xmlunescape(this.get("name"));
+    return Strophe44.xmlunescape(this.get("name"));
   }
 };
 var model_default3 = BlockedEntity;
 
 // plugins/blocklist/collection.js
-var { stx: stx9, u: u15 } = public_default.env;
+var { stx: stx13, u: u17 } = public_default.env;
 var Blocklist = class extends Collection9 {
   static {
     __name(this, "Blocklist");
@@ -12183,11 +12594,11 @@ var Blocklist = class extends Collection9 {
     }
   }
   fetchBlocklist() {
-    const deferred = getOpenPromise16();
-    if (window.sessionStorage.getItem(this.fetched_flag)) {
+    const deferred = getOpenPromise17();
+    if (converse_default.state.session.get(this.fetched_flag)) {
       this.fetch({
-        success: /* @__PURE__ */ __name(() => deferred.resolve(), "success"),
-        error: /* @__PURE__ */ __name(() => deferred.resolve(), "error")
+        success: () => deferred.resolve(),
+        error: () => deferred.resolve()
       });
     } else {
       this.fetchBlocklistFromServer(deferred);
@@ -12198,13 +12609,13 @@ var Blocklist = class extends Collection9 {
    * @param {Object} deferred
    */
   async fetchBlocklistFromServer(deferred) {
-    const stanza = stx9`<iq xmlns="jabber:client"
+    const stanza = stx13`<iq xmlns="jabber:client"
             type="get"
-            id="${u15.getUniqueId()}"><blocklist xmlns="urn:xmpp:blocking"/></iq>`;
+            id="${u17.getUniqueId()}"><blocklist xmlns="urn:xmpp:blocking"/></iq>`;
     try {
       this.onBlocklistReceived(deferred, await api_default4.sendIQ(stanza));
     } catch (e) {
-      log34.error(e);
+      log35.error(e);
       deferred.resolve();
       return;
     }
@@ -12219,7 +12630,7 @@ var Blocklist = class extends Collection9 {
       const blocked = this.get(jid);
       blocked ? blocked.save({ jid }) : this.create({ jid });
     });
-    window.sessionStorage.setItem(this.fetched_flag, "true");
+    converse_default.state.session.set(this.fetched_flag, true);
     if (deferred !== void 0) {
       return deferred.resolve();
     }
@@ -12228,13 +12639,13 @@ var Blocklist = class extends Collection9 {
 var collection_default2 = Blocklist;
 
 // plugins/blocklist/utils.js
-var { Strophe: Strophe42, stx: stx10, u: u16 } = public_default.env;
+var { Strophe: Strophe45, stx: stx14, u: u18 } = public_default.env;
 async function sendUnblockStanza(jid) {
   const jids = Array.isArray(jid) ? jid : [jid];
-  const stanza = stx10`
-        <iq xmlns="jabber:client" type="set" id="${u16.getUniqueId()}">
-            <unblock xmlns="${Strophe42.NS.BLOCKING}">
-                ${jids.map((id) => stx10`<item jid="${id}"/>`)}
+  const stanza = stx14`
+        <iq xmlns="jabber:client" type="set" id="${u18.getUniqueId()}">
+            <unblock xmlns="${Strophe45.NS.BLOCKING}">
+                ${jids.map((id) => stx14`<item jid="${id}"/>`)}
             </unblock>
         </iq>`;
   await send_default.sendIQ(stanza);
@@ -12242,10 +12653,10 @@ async function sendUnblockStanza(jid) {
 __name(sendUnblockStanza, "sendUnblockStanza");
 async function sendBlockStanza(jid) {
   const jids = Array.isArray(jid) ? jid : [jid];
-  const stanza = stx10`
-        <iq xmlns="jabber:client" type="set" id="${u16.getUniqueId()}">
-            <block xmlns="${Strophe42.NS.BLOCKING}">
-                ${jids.map((id) => stx10`<item jid="${id}"/>`)}
+  const stanza = stx14`
+        <iq xmlns="jabber:client" type="set" id="${u18.getUniqueId()}">
+            <block xmlns="${Strophe45.NS.BLOCKING}">
+                ${jids.map((id) => stx14`<item jid="${id}"/>`)}
             </block>
         </iq>`;
   await send_default.sendIQ(stanza);
@@ -12271,7 +12682,8 @@ var blocklist = {
   async add(jid, send_stanza = true) {
     const blocklist2 = await waitUntil6("blocklistInitialized");
     const jids = Array.isArray(jid) ? jid : [jid];
-    if (send_stanza) await sendBlockStanza(jids);
+    if (send_stanza)
+      await sendBlockStanza(jids);
     jids.forEach((jid2) => blocklist2.create({ jid: jid2 }));
     return blocklist2;
   },
@@ -12284,7 +12696,8 @@ var blocklist = {
   async remove(jid, send_stanza = true) {
     const blocklist2 = await waitUntil6("blocklistInitialized");
     const jids = Array.isArray(jid) ? jid : [jid];
-    if (send_stanza) await sendUnblockStanza(jids);
+    if (send_stanza)
+      await sendUnblockStanza(jids);
     jids.forEach((jid2) => blocklist2.get(jid2)?.destroy());
     blocklist2.remove(jids);
     return blocklist2;
@@ -12294,12 +12707,12 @@ var blocklist_api = { blocklist };
 var api_default10 = blocklist_api;
 
 // plugins/roster/utils.js
-import log35 from "@converse/log";
-import { Model as Model20 } from "@converse/skeletor";
+import log36 from "@converse/log";
+import { Model as Model21 } from "@converse/skeletor";
 
 // plugins/roster/filter.js
-import { Model as Model19 } from "@converse/skeletor";
-var RosterFilter = class extends Model19 {
+import { Model as Model20 } from "@converse/skeletor";
+var RosterFilter = class extends Model20 {
   static {
     __name(this, "RosterFilter");
   }
@@ -12314,7 +12727,7 @@ var RosterFilter = class extends Model19 {
 };
 
 // plugins/roster/utils.js
-var { $pres: $pres2 } = public_default.env;
+var { stx: stx15 } = public_default.env;
 function initRoster() {
   const roster = new converse_default.exports.RosterContacts();
   Object.assign(converse_default, { roster });
@@ -12329,7 +12742,7 @@ function initRoster() {
   initStorage(roster_filter, roster_filter.id);
   roster_filter.fetch();
   id = `converse-roster-model-${bare_jid}`;
-  roster.data = new Model20();
+  roster.data = new Model21();
   roster.data.id = id;
   initStorage(roster.data, id);
   roster.data.fetch();
@@ -12349,7 +12762,7 @@ async function populateRoster(ignore_cache = false) {
     await roster.fetchRosterContacts();
     api_default4.trigger("rosterContactsFetched", roster);
   } catch (reason) {
-    log35.error(reason);
+    log36.error(reason);
   } finally {
     if (connection2.send_initial_presence) {
       api_default4.user.presence.send();
@@ -12358,15 +12771,6 @@ async function populateRoster(ignore_cache = false) {
   }
 }
 __name(populateRoster, "populateRoster");
-function updateUnreadCounter(chatbox) {
-  const roster = (
-    /** @type {RosterContacts} */
-    converse_default.state.roster
-  );
-  const contact = roster?.get(chatbox.get("jid"));
-  contact?.save({ num_unread: chatbox.get("num_unread") });
-}
-__name(updateUnreadCounter, "updateUnreadCounter");
 var presence_ref2;
 function registerPresenceHandler2() {
   unregisterPresenceHandler2();
@@ -12445,32 +12849,22 @@ async function onStatusInitialized2(reconnecting) {
   api_default4.trigger("presencesInitialized", reconnecting);
 }
 __name(onStatusInitialized2, "onStatusInitialized");
-function onChatBoxesInitialized() {
-  const { chatboxes } = converse_default.state;
-  chatboxes.on("change:num_unread", updateUnreadCounter);
-  chatboxes.on("add", (chatbox) => {
-    if (chatbox.get("type") === PRIVATE_CHAT_TYPE) {
-      chatbox.setModelContact(chatbox.get("jid"));
-    }
-  });
-}
-__name(onChatBoxesInitialized, "onChatBoxesInitialized");
 function onRosterContactsFetched() {
   const roster = (
     /** @type {RosterContacts} */
     converse_default.state.roster
   );
   roster.on("add", (contact) => {
-    const chatbox = converse_default.state.chatboxes.findWhere({ "jid": contact.get("jid") });
+    const chatbox = converse_default.state.chatboxes.findWhere({ jid: contact.get("jid") });
     chatbox?.setModelContact(contact.get("jid"));
   });
 }
 __name(onRosterContactsFetched, "onRosterContactsFetched");
 function rejectPresenceSubscription(jid, message) {
-  const pres = $pres2({ to: jid, type: "unsubscribed" });
-  if (message && message !== "") {
-    pres.c("status").t(message);
-  }
+  const pres = stx15`
+        <presence to="${jid}" type="unsubscribed" xmlns="jabber:client">
+            ${message ? stx15`<status>${message}</status>` : ""}
+        </presence>`;
   api_default4.send(pres);
 }
 __name(rejectPresenceSubscription, "rejectPresenceSubscription");
@@ -12486,8 +12880,8 @@ __name(isUnsavedContact, "isUnsavedContact");
  * @license Mozilla Public License (MPLv2)
  * @description Adds support for XEP-0191 Blocking Command
  */
-var { Strophe: Strophe43, sizzle: sizzle14 } = public_default.env;
-Strophe43.addNamespace("BLOCKING", "urn:xmpp:blocking");
+var { Strophe: Strophe46, sizzle: sizzle15 } = public_default.env;
+Strophe46.addNamespace("BLOCKING", "urn:xmpp:blocking");
 public_default.plugins.add("converse-blocklist", {
   /**
    * @typedef {import('../roster/contact').default} RosterContact
@@ -12504,7 +12898,7 @@ public_default.plugins.add("converse-blocklist", {
       /** @param {RosterContacts} roster */
       async (roster) => {
         const domain = converse_default.session.get("domain");
-        const blocking_supported = await api_default4.disco.supports(Strophe43.NS.BLOCKING, domain);
+        const blocking_supported = await api_default4.disco.supports(Strophe46.NS.BLOCKING, domain);
         if (blocking_supported) {
           const blocklist2 = await api_default4.blocklist.get();
           const requesting_contacts = roster.filter(
@@ -12526,11 +12920,12 @@ public_default.plugins.add("converse-blocklist", {
     api_default4.listen.on(
       "getErrorAttributesForMessage",
       /**
-       * @param {import('shared/types').MessageAttributes} attrs
-       * @param {import('shared/types').MessageErrorAttributes} new_attrs
+       * @param {import('../chat/model.js').default} _message
+       * @param {import('../../shared/types').MessageErrorAttributes} new_attrs
+       * @param {import('../../shared/types').MessageAttributes} attrs
        */
-      (attrs, new_attrs) => {
-        if (attrs.errors.find((e) => e.name === "blocked" && e.xmlns === `${Strophe43.NS.BLOCKING}:errors`)) {
+      (_message, new_attrs, attrs) => {
+        if (attrs.errors.find((e) => e.name === "blocked" && e.xmlns === `${Strophe46.NS.BLOCKING}:errors`)) {
           const { __ } = converse_default;
           new_attrs.error = __("You are blocked from sending messages.");
         }
@@ -12544,23 +12939,25 @@ public_default.plugins.add("converse-blocklist", {
         (stanza) => {
           const bare_jid = converse_default.session.get("bare_jid");
           const from = stanza.getAttribute("from");
-          if (Strophe43.getBareJidFromJid(from ?? bare_jid) != bare_jid) {
-            log36.warn(`Received a blocklist push stanza from a suspicious JID ${from}`);
+          if (Strophe46.getBareJidFromJid(from ?? bare_jid) != bare_jid) {
+            log37.warn(`Received a blocklist push stanza from a suspicious JID ${from}`);
             return true;
           }
-          const add_jids = sizzle14(`block[xmlns="${Strophe43.NS.BLOCKING}"] item`, stanza).map(
+          const add_jids = sizzle15(`block[xmlns="${Strophe46.NS.BLOCKING}"] item`, stanza).map(
             /** @param {Element} item */
             (item) => item.getAttribute("jid")
           );
-          if (add_jids.length) api_default4.blocklist.add(add_jids, false);
-          const remove_jids = sizzle14(`unblock[xmlns="${Strophe43.NS.BLOCKING}"] item`, stanza).map(
+          if (add_jids.length)
+            api_default4.blocklist.add(add_jids, false);
+          const remove_jids = sizzle15(`unblock[xmlns="${Strophe46.NS.BLOCKING}"] item`, stanza).map(
             /** @param {Element} item */
             (item) => item.getAttribute("jid")
           );
-          if (remove_jids.length) api_default4.blocklist.remove(remove_jids, false);
+          if (remove_jids.length)
+            api_default4.blocklist.remove(remove_jids, false);
           return true;
         },
-        Strophe43.NS.BLOCKING,
+        Strophe46.NS.BLOCKING,
         "iq",
         "set"
       );
@@ -12569,13 +12966,13 @@ public_default.plugins.add("converse-blocklist", {
       const { state } = converse_default;
       if (state.blocklist) {
         state.blocklist.clearStore({ "silent": true });
-        window.sessionStorage.removeItem(state.blocklist.fetched_flag);
+        state.session.set(state.blocklist.fetched_flag, void 0);
         delete state.blocklist;
       }
     });
     api_default4.listen.on("discoInitialized", async () => {
       const domain = converse_default.session.get("domain");
-      if (await api_default4.disco.supports(Strophe43.NS.BLOCKING, domain)) {
+      if (await api_default4.disco.supports(Strophe46.NS.BLOCKING, domain)) {
         converse_default.state.blocklist = new converse_default.exports.Blocklist();
       }
     });
@@ -12583,7 +12980,7 @@ public_default.plugins.add("converse-blocklist", {
 });
 
 // plugins/bosh/index.js
-import { Strophe as Strophe45 } from "strophe.js";
+import { Strophe as Strophe48 } from "strophe.js";
 
 // plugins/bosh/api.js
 var api_default11 = {
@@ -12601,7 +12998,8 @@ var api_default11 = {
      */
     get(id) {
       const connection2 = api_default4.connection.get();
-      if (!connection2) return null;
+      if (!connection2)
+        return null;
       if (id.toLowerCase() === "rid") {
         return connection2.rid || connection2._proto.rid;
       } else if (id.toLowerCase() === "sid") {
@@ -12612,16 +13010,17 @@ var api_default11 = {
 };
 
 // plugins/bosh/utils.js
-import log37 from "@converse/log";
-import { Strophe as Strophe44 } from "strophe.js";
-import { Model as Model21 } from "@converse/skeletor";
+import log38 from "@converse/log";
+import { Strophe as Strophe47 } from "strophe.js";
+import { Model as Model22 } from "@converse/skeletor";
 var BOSH_SESSION_ID = "converse.bosh-session";
 var bosh_session;
 async function initBOSHSession() {
   const id = BOSH_SESSION_ID;
   if (!bosh_session) {
-    bosh_session = new Model21({ id });
-    bosh_session.browserStorage = createStore(id, "session");
+    bosh_session = new Model22({ id });
+    bosh_session.browserStorage = /** @type {any} */
+    createStore(id, "session");
     await new Promise((resolve) => bosh_session.fetch({ "success": resolve, "error": resolve }));
   }
   let jid = converse_default.session.get("jid");
@@ -12650,13 +13049,7 @@ function startNewPreboundBOSHSession() {
     if (xhr.status >= 200 && xhr.status < 400) {
       const data = JSON.parse(xhr.responseText);
       const jid = await setUserJID(data.jid);
-      connection2.attach(
-        jid,
-        data.sid,
-        data.rid,
-        connection2.onConnectStatusChanged,
-        BOSH_WAIT
-      );
+      connection2.attach(jid, data.sid, data.rid, connection2.onConnectStatusChanged, BOSH_WAIT);
     } else {
       xhr.onerror(event);
     }
@@ -12669,7 +13062,8 @@ function startNewPreboundBOSHSession() {
 }
 __name(startNewPreboundBOSHSession, "startNewPreboundBOSHSession");
 async function attemptPrebind(_, payload) {
-  if (payload.success) return payload;
+  if (payload.success)
+    return payload;
   const { automatic } = payload;
   if (await restoreBOSHSession()) {
     return { ...payload, success: true };
@@ -12700,12 +13094,12 @@ __name(clearSession3, "clearSession");
 async function restoreBOSHSession() {
   const jid = (await initBOSHSession()).get("jid");
   const connection2 = api_default4.connection.get();
-  if (jid && connection2._proto instanceof Strophe44.Bosh) {
+  if (jid && connection2._proto instanceof Strophe47.Bosh) {
     try {
       connection2.restore(jid, connection2.onConnectStatusChanged);
       return true;
     } catch (e) {
-      !isTestEnv() && log37.warn("Could not restore session for jid: " + jid + " Error message: " + e.message);
+      !isTestEnv() && log38.warn("Could not restore session for jid: " + jid + " Error message: " + e.message);
       return false;
     }
   }
@@ -12734,13 +13128,13 @@ public_default.plugins.add("converse-bosh", {
     api_default4.listen.on("login", attemptPrebind);
     api_default4.listen.on(
       "addClientFeatures",
-      () => api_default4.disco.own.features.add(Strophe45.NS.BOSH)
+      () => api_default4.disco.own.features.add(Strophe48.NS.BOSH)
     );
   }
 });
 
 // plugins/caps/utils.js
-var { Strophe: Strophe46, stx: stx11 } = public_default.env;
+var { Strophe: Strophe49, stx: stx16 } = public_default.env;
 function propertySort(array, property) {
   return array.sort((a, b) => {
     return a[property] > b[property] ? -1 : 1;
@@ -12763,8 +13157,8 @@ async function generateVerificationString() {
 }
 __name(generateVerificationString, "generateVerificationString");
 async function addCapsNode(stanza) {
-  const node = stx11`<c
-        xmlns="${Strophe46.NS.CAPS}"
+  const node = stx16`<c
+        xmlns="${Strophe49.NS.CAPS}"
         hash="sha-1"
         node="https://conversejs.org"
         ver="${await generateVerificationString()}"></c>`;
@@ -12778,8 +13172,8 @@ __name(addCapsNode, "addCapsNode");
  * @copyright 2022, the Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { Strophe: Strophe47 } = public_default.env;
-Strophe47.addNamespace("CAPS", "http://jabber.org/protocol/caps");
+var { Strophe: Strophe50 } = public_default.env;
+Strophe50.addNamespace("CAPS", "http://jabber.org/protocol/caps");
 public_default.plugins.add("converse-caps", {
   dependencies: ["converse-status"],
   initialize() {
@@ -12795,7 +13189,7 @@ var ChatBoxes = class extends Collection10 {
     __name(this, "ChatBoxes");
   }
   /**
-   * @param {Model[]} models
+   * @param {ChatBoxBase[]} models
    * @param {object} options
    */
   constructor(models, options) {
@@ -12812,17 +13206,18 @@ var ChatBoxes = class extends Collection10 {
    * @param {boolean} reconnecting
    */
   onConnected(reconnecting) {
-    if (reconnecting) return;
+    if (reconnecting)
+      return;
     const bare_jid = converse_default.session.get("bare_jid");
     initStorage(this, `converse.chatboxes-${bare_jid}`);
     this.fetch({
       add: true,
-      success: /* @__PURE__ */ __name((c) => this.onChatBoxesFetched(c), "success")
+      success: (c) => this.onChatBoxesFetched(c)
     });
   }
   /**
    * @param {import('./types').CreateModelAttributes} attrs
-   * @param {import('@converse/skeletor/src/types/model.js').ModelOptions} options
+   * @param {import('@converse/skeletor/dist/skeletor.d').ModelOptions} options
    */
   createModel(attrs, options) {
     if (!attrs.type) {
@@ -12839,7 +13234,7 @@ var chatboxes_default = ChatBoxes;
  * @copyright 2022, the Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { Strophe: Strophe48 } = public_default.env;
+var { Strophe: Strophe51 } = public_default.env;
 public_default.plugins.add("converse-chatboxes", {
   dependencies: ["converse-emoji", "converse-roster", "converse-vcard"],
   initialize() {
@@ -12852,9 +13247,9 @@ public_default.plugins.add("converse-chatboxes", {
     Object.assign(converse_default, { ChatBoxes: chatboxes_default });
     Object.assign(converse_default.exports, { ChatBoxes: chatboxes_default });
     api_default4.listen.on("addClientFeatures", () => {
-      api_default4.disco.own.features.add(Strophe48.NS.MESSAGE_CORRECT);
-      api_default4.disco.own.features.add(Strophe48.NS.HTTPUPLOAD);
-      api_default4.disco.own.features.add(Strophe48.NS.OUTOFBAND);
+      api_default4.disco.own.features.add(Strophe51.NS.MESSAGE_CORRECT);
+      api_default4.disco.own.features.add(Strophe51.NS.HTTPUPLOAD);
+      api_default4.disco.own.features.add(Strophe51.NS.OUTOFBAND);
     });
     let chatboxes;
     api_default4.listen.on("pluginsInitialized", () => {
@@ -12875,18 +13270,18 @@ public_default.plugins.add("converse-chatboxes", {
 });
 
 // plugins/adhoc/api.js
-import log38 from "@converse/log";
+import log39 from "@converse/log";
 
 // plugins/adhoc/utils.js
-import sizzle15 from "sizzle";
-var { Strophe: Strophe49, u: u17 } = public_default.env;
+import sizzle16 from "sizzle";
+var { Strophe: Strophe52, u: u19 } = public_default.env;
 function parseForCommands(stanza) {
-  const items = sizzle15(`query[xmlns="${Strophe49.NS.DISCO_ITEMS}"][node="${Strophe49.NS.ADHOC}"] item`, stanza);
-  return items.map(u17.getAttributes);
+  const items = sizzle16(`query[xmlns="${Strophe52.NS.DISCO_ITEMS}"][node="${Strophe52.NS.ADHOC}"] item`, stanza);
+  return items.map(u19.getAttributes);
 }
 __name(parseForCommands, "parseForCommands");
 function parseCommandResult(iq) {
-  const cmd_el = sizzle15(`command[xmlns="${Strophe49.NS.ADHOC}"]`, iq).pop();
+  const cmd_el = sizzle16(`command[xmlns="${Strophe52.NS.ADHOC}"]`, iq).pop();
   const note = cmd_el.querySelector("note");
   return {
     ...parseXForm(iq),
@@ -12904,7 +13299,7 @@ function parseCommandResult(iq) {
 __name(parseCommandResult, "parseCommandResult");
 
 // plugins/adhoc/api.js
-var { Strophe: Strophe50, $iq: $iq7, u: u18, stx: stx12 } = public_default.env;
+var { Strophe: Strophe53, u: u20, stx: stx17 } = public_default.env;
 var api_default12 = {
   /**
    * @typedef {import('./types').AdHocCommandResult} AdHocCommandResult
@@ -12924,13 +13319,13 @@ var api_default12 = {
      */
     async getCommands(to_jid) {
       try {
-        return parseForCommands(await api_default4.disco.items(to_jid, Strophe50.NS.ADHOC));
+        return parseForCommands(await api_default4.disco.items(to_jid, Strophe53.NS.ADHOC));
       } catch (e) {
         if (e === null) {
-          log38.error(`Error: timeout while fetching ad-hoc commands for ${to_jid}`);
+          log39.error(`Error: timeout while fetching ad-hoc commands for ${to_jid}`);
         } else {
-          log38.error(`Error while fetching ad-hoc commands for ${to_jid}`);
-          log38.error(e);
+          log39.error(`Error while fetching ad-hoc commands for ${to_jid}`);
+          log39.error(e);
         }
         return [];
       }
@@ -12942,14 +13337,10 @@ var api_default12 = {
      * @returns {Promise<AdHocCommandResult>}
      */
     async fetchCommandForm(jid, node) {
-      const stanza = $iq7({
-        type: "set",
-        to: jid
-      }).c("command", {
-        xmlns: Strophe50.NS.ADHOC,
-        action: "execute",
-        node
-      });
+      const stanza = stx17`
+                <iq type="set" to="${jid}" xmlns="jabber:client">
+                    <command xmlns="${Strophe53.NS.ADHOC}" action="execute" node="${node}"></command>
+                </iq>`;
       return parseCommandResult(await api_default4.sendIQ(stanza));
     },
     /**
@@ -12961,31 +13352,34 @@ var api_default12 = {
      * @param {Array<{ [k:string]: string }>} inputs
      */
     async runCommand(jid, sessionid, node, action, inputs) {
-      const iq = stx12`<iq type="set" to="${jid}" xmlns="jabber:client">
-                    <command sessionid="${sessionid}" node="${node}" action="${action}" xmlns="${Strophe50.NS.ADHOC}">
-                        ${!["cancel", "prev"].includes(action) ? stx12`
-                            <x xmlns="${Strophe50.NS.XFORM}" type="submit">
-                                ${inputs.map(({ name, value }) => stx12`<field var="${name}"><value>${value}</value></field>`)}
+      const iq = stx17`<iq type="set" to="${jid}" xmlns="jabber:client">
+                    <command sessionid="${sessionid}" node="${node}" action="${action}" xmlns="${Strophe53.NS.ADHOC}">
+                        ${!["cancel", "prev"].includes(action) ? stx17`
+                            <x xmlns="${Strophe53.NS.XFORM}" type="submit">
+                                ${inputs.map(({ name, value }) => stx17`<field var="${name}">
+                                    ${Array.isArray(value) ? value.map((v) => stx17`<value>${v}</value>`) : stx17`<value>${value}</value>`}
+                                </field>`)}
                             </x>` : ""}
                     </command>
                 </iq>`;
       const result = await api_default4.sendIQ(iq, null, false);
       if (result === null) {
-        log38.warn(`A timeout occurred while trying to run an ad-hoc command`);
+        log39.warn(`A timeout occurred while trying to run an ad-hoc command`);
         const { __ } = converse_default;
         return {
           status: "error",
           note: __("A timeout occurred")
         };
-      } else if (u18.isErrorStanza(result)) {
-        log38.error("Error while trying to execute an ad-hoc command");
-        log38.error(result);
+      } else if (u20.isErrorStanza(result)) {
+        log39.error("Error while trying to execute an ad-hoc command");
+        log39.error(result);
       }
       const command = result.querySelector("command");
       const status = command?.getAttribute("status");
+      const resultData = command?.querySelector("x[type=result]");
       return {
         status,
-        ...status === "executing" ? parseCommandResult(result) : {},
+        ...status === "executing" || status === "completed" && resultData ? parseCommandResult(result) : {},
         note: result.querySelector("note")?.textContent
       };
     }
@@ -12993,8 +13387,8 @@ var api_default12 = {
 };
 
 // plugins/adhoc/index.js
-var { Strophe: Strophe51 } = public_default.env;
-Strophe51.addNamespace("ADHOC", "http://jabber.org/protocol/commands");
+var { Strophe: Strophe54 } = public_default.env;
+Strophe54.addNamespace("ADHOC", "http://jabber.org/protocol/commands");
 public_default.plugins.add("converse-adhoc", {
   dependencies: ["converse-disco"],
   initialize() {
@@ -13076,7 +13470,7 @@ var api_default13 = {
       __name(_get, "_get");
       if (jids === void 0) {
         const chats = await api_default4.chatboxes.get();
-        return chats.filter((c) => c.get("type") === HEADLINES_TYPE);
+        return chats?.filter((c) => c.get("type") === HEADLINES_TYPE) ?? [];
       } else if (typeof jids === "string") {
         return _get(jids);
       }
@@ -13132,8 +13526,8 @@ public_default.plugins.add("converse-headlines", {
 });
 
 // plugins/omemo/device.js
-import { Model as Model23 } from "@converse/skeletor";
-import log42 from "@converse/log";
+import { Model as Model24 } from "@converse/skeletor";
+import log43 from "@converse/log";
 
 // plugins/omemo/constants.js
 var constants_exports3 = {};
@@ -13154,22 +13548,22 @@ var KEY_ALGO = {
 };
 
 // plugins/omemo/parsers.js
-import sizzle18 from "sizzle";
-import log41 from "@converse/log";
+import sizzle19 from "sizzle";
+import log42 from "@converse/log";
 
 // plugins/omemo/utils.js
-import sizzle17 from "sizzle";
-import log40 from "@converse/log";
+import sizzle18 from "sizzle";
+import log41 from "@converse/log";
 
 // plugins/omemo/devicelists.js
 import { Collection as Collection11 } from "@converse/skeletor";
 
 // plugins/omemo/devicelist.js
-import { getOpenPromise as getOpenPromise17 } from "@converse/openpromise";
-import { Model as Model22 } from "@converse/skeletor";
-import log39 from "@converse/log";
-var { Strophe: Strophe52, stx: stx13, sizzle: sizzle16, u: u19 } = public_default.env;
-var DeviceList = class extends Model22 {
+import { getOpenPromise as getOpenPromise18 } from "@converse/openpromise";
+import { Model as Model23 } from "@converse/skeletor";
+import log40 from "@converse/log";
+var { Strophe: Strophe55, stx: stx18, sizzle: sizzle17, u: u21 } = public_default.env;
+var DeviceList = class extends Model23 {
   static {
     __name(this, "DeviceList");
   }
@@ -13178,7 +13572,7 @@ var DeviceList = class extends Model22 {
   }
   async initialize() {
     super.initialize();
-    this.initialized = getOpenPromise17();
+    this.initialized = getOpenPromise18();
     await this.initDevices();
     this.initialized.resolve();
   }
@@ -13186,7 +13580,7 @@ var DeviceList = class extends Model22 {
     this.devices = new converse_default.exports.Devices();
     const bare_jid = converse_default.session.get("bare_jid");
     const id = `converse.devicelist-${bare_jid}-${this.get("jid")}`;
-    u19.initStorage(this.devices, id);
+    u21.initStorage(this.devices, id);
     return this.fetchDevices();
   }
   /**
@@ -13199,13 +13593,13 @@ var DeviceList = class extends Model22 {
         ids = await this.fetchDevicesFromServer();
       } catch (e) {
         if (e === null) {
-          log39.error(`Timeout error while fetching OMEMO devices for ${this.get("jid")}`);
+          log40.error(`Timeout error while fetching OMEMO devices for ${this.get("jid")}`);
           this.destroy();
-        } else if (u19.isElement(e) && await parsers_exports.parseErrorStanza(e) instanceof ItemNotFoundError) {
-          log39.debug(`No OMEMO devices found for ${this.get("jid")}`);
+        } else if (u21.isElement(e) && await parsers_exports.parseErrorStanza(e) instanceof ItemNotFoundError) {
+          log40.debug(`No OMEMO devices found for ${this.get("jid")}`);
         } else {
-          log39.error(`Could not fetch OMEMO devices for ${this.get("jid")}`);
-          log39.error(e);
+          log40.error(`Could not fetch OMEMO devices for ${this.get("jid")}`);
+          log40.error(e);
           this.destroy();
         }
       }
@@ -13219,11 +13613,11 @@ var DeviceList = class extends Model22 {
     if (this._devices_promise === void 0) {
       this._devices_promise = new Promise((resolve) => {
         this.devices.fetch({
-          success: /* @__PURE__ */ __name((c) => resolve(this.onDevicesFound(c)), "success"),
-          error: /* @__PURE__ */ __name((_, e) => {
-            log39.error(e);
+          success: (c) => resolve(this.onDevicesFound(c)),
+          error: (_, e) => {
+            log40.error(e);
             resolve();
-          }, "error")
+          }
         });
       });
     }
@@ -13251,7 +13645,7 @@ var DeviceList = class extends Model22 {
     }
     await api_default4.omemo.session.restore();
     if (!converse_default.state.omemo_store) {
-      log39.debug("publishCurrentDevice: omemo_store is not defined, likely a timing issue");
+      log40.debug("publishCurrentDevice: omemo_store is not defined, likely a timing issue");
       return;
     }
     if (!device_ids.includes(await this.getOwnDeviceId())) {
@@ -13263,15 +13657,15 @@ var DeviceList = class extends Model22 {
    */
   async fetchDevicesFromServer() {
     const bare_jid = converse_default.session.get("bare_jid");
-    const stanza = stx13`
+    const stanza = stx18`
             <iq type='get' from='${bare_jid}' to='${this.get("jid")}' xmlns="jabber:client">
-                <pubsub xmlns='${Strophe52.NS.PUBSUB}'>
-                    <items node='${Strophe52.NS.OMEMO_DEVICELIST}'/>
+                <pubsub xmlns='${Strophe55.NS.PUBSUB}'>
+                    <items node='${Strophe55.NS.OMEMO_DEVICELIST}'/>
                 </pubsub>
             </iq>`;
     const iq = await api_default4.sendIQ(stanza);
-    const selector = `list[xmlns="${Strophe52.NS.OMEMO}"] device`;
-    const device_ids = sizzle16(selector, iq).map((d) => d.getAttribute("id"));
+    const selector = `list[xmlns="${Strophe55.NS.OMEMO}"] device`;
+    const device_ids = sizzle17(selector, iq).map((d) => d.getAttribute("id"));
     const jid = this.get("jid");
     return Promise.all(device_ids.map((id) => this.devices.create({ id, jid }, { promise: true })));
   }
@@ -13281,14 +13675,14 @@ var DeviceList = class extends Model22 {
    * See: https://xmpp.org/extensions/attic/xep-0384-0.3.0.html#usecases-announcing
    */
   publishDevices() {
-    const item = stx13`
+    const item = stx18`
             <item id='current'>
-                <list xmlns='${Strophe52.NS.OMEMO}'>
-                    ${this.devices.filter((d) => d.get("active")).map((d) => stx13`<device id='${d.get("id")}'/>`)}
+                <list xmlns='${Strophe55.NS.OMEMO}'>
+                    ${this.devices.filter((d) => d.get("active")).map((d) => stx18`<device id='${d.get("id")}'/>`)}
                 </list>
             </item>`;
     const options = { access_model: "open" };
-    return api_default4.pubsub.publish(null, Strophe52.NS.OMEMO_DEVICELIST, item, options, false);
+    return api_default4.pubsub.publish(null, Strophe55.NS.OMEMO_DEVICELIST, item, options, false);
   }
   /**
    * @param {string[]} device_ids
@@ -13303,10 +13697,10 @@ var DeviceList = class extends Model22 {
         (d) => new Promise(
           (resolve) => d.destroy({
             success: resolve,
-            error: /* @__PURE__ */ __name((_, e) => {
-              log39.error(e);
+            error: (_, e) => {
+              log40.error(e);
               resolve();
-            }, "error")
+            }
           })
         )
       )
@@ -13329,132 +13723,8 @@ var DeviceLists = class extends Collection11 {
 var devicelists_default = DeviceLists;
 
 // plugins/omemo/utils.js
-var { u: u20, Strophe: Strophe53, stx: stx14 } = public_default.env;
-var { arrayBufferToHex: arrayBufferToHex2, base64ToArrayBuffer: base64ToArrayBuffer2 } = u20;
-async function updateDevicesFromStanza(stanza) {
-  const items_el = sizzle17(`items[node="${Strophe53.NS.OMEMO_DEVICELIST}"]`, stanza).pop();
-  if (!items_el) return;
-  const device_selector = `item list[xmlns="${Strophe53.NS.OMEMO}"] device`;
-  const device_ids = sizzle17(device_selector, items_el).map((d) => d.getAttribute("id"));
-  const jid = stanza.getAttribute("from");
-  const devicelist = await api_default4.omemo.devicelists.get(jid, true);
-  const devices = devicelist.devices;
-  const removed_ids = devices.pluck("id").filter(
-    /** @param {string} id */
-    (id) => !device_ids.includes(id)
-  );
-  const bare_jid = converse_default.session.get("bare_jid");
-  removed_ids.forEach(
-    /** @param {string} id */
-    (id) => {
-      if (jid === bare_jid && id === converse_default.state.omemo_store.get("device_id")) {
-        return;
-      }
-      devices.get(id).save("active", false);
-    }
-  );
-  device_ids.forEach(
-    /** @param {string} device_id */
-    (device_id) => {
-      const device = devices.get(device_id);
-      if (device) {
-        device.save("active", true);
-      } else {
-        devices.create({ id: device_id, jid });
-      }
-    }
-  );
-  if (u20.isSameBareJID(bare_jid, jid)) {
-    devicelist.publishCurrentDevice(device_ids);
-  }
-}
-__name(updateDevicesFromStanza, "updateDevicesFromStanza");
-async function updateBundleFromStanza(stanza) {
-  const items_el = sizzle17(`items`, stanza).pop();
-  if (!items_el || !items_el.getAttribute("node").startsWith(Strophe53.NS.OMEMO_BUNDLES)) {
-    return;
-  }
-  const device_id = items_el.getAttribute("node").split(":")[1];
-  const jid = stanza.getAttribute("from");
-  const bundle_el = sizzle17(`item > bundle`, items_el).pop();
-  const devicelist = await api_default4.omemo.devicelists.get(jid, true);
-  const device = devicelist.devices.get(device_id) || devicelist.devices.create({ "id": device_id, jid });
-  const bundle = u20.omemo.parseBundle(bundle_el);
-  device.save({ bundle });
-}
-__name(updateBundleFromStanza, "updateBundleFromStanza");
-async function handlePEPPush(message) {
-  try {
-    if (sizzle17(`event[xmlns="${Strophe53.NS.PUBSUB}#event"]`, message).length) {
-      await api_default4.waitUntil("OMEMOInitialized");
-      await updateDevicesFromStanza(message);
-      await updateBundleFromStanza(message);
-    }
-  } catch (e) {
-    log40.error(e);
-  }
-}
-__name(handlePEPPush, "handlePEPPush");
-function registerPEPPushHandler() {
-  api_default4.connection.get().addHandler(
-    /** @param {Element} message */
-    (message) => {
-      handlePEPPush(message);
-      return true;
-    },
-    null,
-    "message"
-  );
-}
-__name(registerPEPPushHandler, "registerPEPPushHandler");
-async function fetchDeviceLists() {
-  const bare_jid = converse_default.session.get("bare_jid");
-  converse_default.state.devicelists = new devicelists_default();
-  const id = `converse.devicelists-${bare_jid}`;
-  initStorage(converse_default.state.devicelists, id);
-  await new Promise((resolve) => {
-    converse_default.state.devicelists.fetch({
-      success: resolve,
-      /**
-       * @param {unknown} _m
-       * @param {unknown} e
-       */
-      error: /* @__PURE__ */ __name((_m, e) => {
-        log40.error(e);
-        resolve();
-      }, "error")
-    });
-  });
-  await api_default4.omemo.devicelists.get(bare_jid, true);
-}
-__name(fetchDeviceLists, "fetchDeviceLists");
-async function initOMEMO(reconnecting) {
-  if (reconnecting) {
-    return;
-  }
-  if (!converse_default.state.config.get("trusted") || api_default4.settings.get("clear_cache_on_logout")) {
-    log40.warn("Not initializing OMEMO, since this browser is not trusted or clear_cache_on_logout is set to true");
-    return;
-  }
-  try {
-    await fetchDeviceLists();
-    await api_default4.omemo.session.restore();
-    await converse_default.state.omemo_store.publishBundle();
-  } catch (e) {
-    log40.error("Could not initialize OMEMO support");
-    log40.error(e);
-    return;
-  }
-  api_default4.trigger("OMEMOInitialized");
-}
-__name(initOMEMO, "initOMEMO");
-async function getDeviceList(jid, create = false) {
-  const { devicelists } = converse_default.state;
-  const list = devicelists.get(jid) || (create ? devicelists.create({ jid }) : null);
-  await list?.initialized;
-  return list;
-}
-__name(getDeviceList, "getDeviceList");
+var { u: u22, Strophe: Strophe56, stx: stx19 } = public_default.env;
+var { arrayBufferToHex: arrayBufferToHex2, base64ToArrayBuffer: base64ToArrayBuffer2 } = u22;
 async function generateFingerprint(device) {
   if (device.get("bundle")?.fingerprint) {
     return;
@@ -13465,36 +13735,6 @@ async function generateFingerprint(device) {
   device.trigger("change:bundle");
 }
 __name(generateFingerprint, "generateFingerprint");
-function handleMessageSendError(e, chat) {
-  const { __ } = converse_default;
-  if (e instanceof errors_exports.IQError) {
-    chat.save("omemo_supported", false);
-    const err_msgs = [];
-    if (sizzle17(`presence-subscription-required[xmlns="${Strophe53.NS.PUBSUB_ERROR}"]`, e.iq).length) {
-      err_msgs.push(
-        __(
-          "Sorry, we're unable to send an encrypted message because %1$s requires you to be subscribed to their presence in order to see their OMEMO information",
-          e.iq.getAttribute("from")
-        )
-      );
-    } else if (sizzle17(`remote-server-not-found[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]`, e.iq).length) {
-      err_msgs.push(
-        __(
-          "Sorry, we're unable to send an encrypted message because the remote server for %1$s could not be found",
-          e.iq.getAttribute("from")
-        )
-      );
-    } else {
-      err_msgs.push(__("Unable to send an encrypted message due to an unexpected error."));
-      err_msgs.push(e.iq.outerHTML);
-    }
-    api_default4.alert("error", __("Error"), err_msgs);
-  } else if (e instanceof errors_exports.UserFacingError) {
-    api_default4.alert("error", __("Error"), [e.message]);
-  }
-  throw e;
-}
-__name(handleMessageSendError, "handleMessageSendError");
 async function getDevicesForContact(jid) {
   await api_default4.waitUntil("OMEMOInitialized");
   const devicelist = await api_default4.omemo.devicelists.get(jid, true);
@@ -13502,123 +13742,6 @@ async function getDevicesForContact(jid) {
   return devicelist.devices;
 }
 __name(getDevicesForContact, "getDevicesForContact");
-function getSessionCipher(jid, id) {
-  const { libsignal } = (
-    /** @type import('./types').WindowWithLibsignal */
-    window
-  );
-  const address = new libsignal.SignalProtocolAddress(jid, id);
-  return new libsignal.SessionCipher(converse_default.state.omemo_store, address);
-}
-__name(getSessionCipher, "getSessionCipher");
-function encryptKey(key_and_tag, device) {
-  return getSessionCipher(device.get("jid"), device.get("id")).encrypt(key_and_tag).then(
-    /** @param {ArrayBuffer} payload */
-    (payload) => ({ payload, device })
-  );
-}
-__name(encryptKey, "encryptKey");
-async function buildSession(device) {
-  const { libsignal } = (
-    /** @type import('./types').WindowWithLibsignal */
-    window
-  );
-  const address = new libsignal.SignalProtocolAddress(device.get("jid"), device.get("id"));
-  const sessionBuilder = new libsignal.SessionBuilder(converse_default.state.omemo_store, address);
-  const prekey = device.getRandomPreKey();
-  const bundle = await device.getBundle();
-  return sessionBuilder.processPreKey({
-    registrationId: parseInt(device.get("id"), 10),
-    identityKey: base64ToArrayBuffer2(bundle.identity_key),
-    signedPreKey: {
-      keyId: bundle.signed_prekey.id,
-      // <Number>
-      publicKey: base64ToArrayBuffer2(bundle.signed_prekey.public_key),
-      signature: base64ToArrayBuffer2(bundle.signed_prekey.signature)
-    },
-    preKey: {
-      keyId: prekey.id,
-      // <Number>
-      publicKey: base64ToArrayBuffer2(prekey.key)
-    }
-  });
-}
-__name(buildSession, "buildSession");
-async function getSession(device) {
-  if (!device.get("bundle")) {
-    log40.error(`Could not build an OMEMO session for device ${device.get("id")} because we don't have its bundle`);
-    return null;
-  }
-  const { libsignal } = (
-    /** @type import('./types').WindowWithLibsignal */
-    window
-  );
-  const address = new libsignal.SignalProtocolAddress(device.get("jid"), device.get("id"));
-  const session = await converse_default.state.omemo_store.loadSession(address.toString());
-  if (session) {
-    return session;
-  } else {
-    try {
-      return await buildSession(device);
-    } catch (e) {
-      log40.error(`Could not build an OMEMO session for device ${device.get("id")}`);
-      log40.error(e);
-      return null;
-    }
-  }
-}
-__name(getSession, "getSession");
-async function getBundlesAndBuildSessions(chatbox) {
-  const { __ } = converse_default;
-  const no_devices_err = __("Sorry, no devices found to which we can send an OMEMO encrypted message.");
-  let devices;
-  if (chatbox instanceof muc_default) {
-    const collections = await Promise.all(
-      chatbox.occupants.map(
-        /** @param {import('../../plugins/muc/occupant').default} o */
-        (o) => getDevicesForContact(o.get("jid"))
-      )
-    );
-    devices = collections.reduce((a, b) => a.concat(b.models), []);
-  } else if (chatbox.get("type") === constants_exports.PRIVATE_CHAT_TYPE) {
-    const their_devices = await getDevicesForContact(chatbox.get("jid"));
-    if (their_devices.length === 0) {
-      throw new errors_exports.UserFacingError(no_devices_err);
-    }
-    const bare_jid = converse_default.session.get("bare_jid");
-    const own_list = await api_default4.omemo.devicelists.get(bare_jid);
-    const own_devices = own_list.devices;
-    devices = [...own_devices.models, ...their_devices.models];
-  }
-  const id = converse_default.state.omemo_store.get("device_id");
-  devices = devices.filter(
-    /** @param {Device} d */
-    (d) => d.get("id") !== id
-  );
-  await Promise.all(devices.map(
-    /** @param {Device} d */
-    (d) => d.getBundle()
-  ));
-  const sessions = await Promise.all(
-    devices.map(
-      /** @param {Device} [d] */
-      (d) => {
-        return d && getSession(d) || null;
-      }
-    )
-  );
-  if (sessions.includes(null)) {
-    devices = devices.filter(
-      /** @param {Device} d */
-      (d) => sessions[devices.indexOf(d)]
-    );
-    if (devices.length === 0) {
-      throw new errors_exports.UserFacingError(no_devices_err);
-    }
-  }
-  return devices;
-}
-__name(getBundlesAndBuildSessions, "getBundlesAndBuildSessions");
 async function encryptMessage(plaintext) {
   const iv = crypto.getRandomValues(new window.Uint8Array(12));
   const key = await crypto.subtle.generateKey(KEY_ALGO, true, ["encrypt", "decrypt"]);
@@ -13630,7 +13753,7 @@ async function encryptMessage(plaintext) {
       tagLength: TAG_LENGTH
     }
   );
-  const encrypted = await crypto.subtle.encrypt(algo, key, u20.stringToArrayBuffer(plaintext));
+  const encrypted = await crypto.subtle.encrypt(algo, key, u22.stringToArrayBuffer(plaintext));
   const length = encrypted.byteLength - (128 + 7 >> 3);
   const ciphertext = encrypted.slice(0, length);
   const tag = encrypted.slice(length);
@@ -13638,164 +13761,29 @@ async function encryptMessage(plaintext) {
   return {
     tag,
     key: exported_key,
-    key_and_tag: u20.appendArrayBuffer(exported_key, tag),
-    payload: u20.arrayBufferToBase64(ciphertext),
-    iv: u20.arrayBufferToBase64(iv)
+    key_and_tag: u22.appendArrayBuffer(exported_key, tag),
+    payload: u22.arrayBufferToBase64(ciphertext),
+    iv: u22.arrayBufferToBase64(iv)
   };
 }
 __name(encryptMessage, "encryptMessage");
 async function decryptMessage(obj) {
   const key_obj = await crypto.subtle.importKey("raw", obj.key, KEY_ALGO, true, ["encrypt", "decrypt"]);
-  const cipher = u20.appendArrayBuffer(u20.base64ToArrayBuffer(obj.payload), obj.tag);
+  const cipher = u22.appendArrayBuffer(u22.base64ToArrayBuffer(obj.payload), obj.tag);
   const algo = (
     /** @type {AesGcmParams} */
     {
       name: "AES-GCM",
-      iv: u20.base64ToArrayBuffer(obj.iv),
+      iv: u22.base64ToArrayBuffer(obj.iv),
       tagLength: TAG_LENGTH
     }
   );
-  return u20.arrayBufferToString(await crypto.subtle.decrypt(algo, key_obj, cipher));
+  return u22.arrayBufferToString(await crypto.subtle.decrypt(algo, key_obj, cipher));
 }
 __name(decryptMessage, "decryptMessage");
-async function createOMEMOMessageStanza(chat, data) {
-  let { stanza } = data;
-  const { message } = data;
-  if (!message.get("is_encrypted")) {
-    return data;
-  }
-  if (!message.get("body")) {
-    throw new Error("No message body to encrypt!");
-  }
-  const devices = await getBundlesAndBuildSessions(chat);
-  const { key_and_tag, iv, payload } = await encryptMessage(message.get("plaintext"));
-  const dicts = await Promise.all(
-    devices.filter((device) => device.get("trusted") != UNTRUSTED && device.get("active")).map((device) => encryptKey(key_and_tag, device))
-  );
-  stanza.cnode(
-    stx14`
-            <encrypted xmlns="${Strophe53.NS.OMEMO}">
-                <header sid="${converse_default.state.omemo_store.get("device_id")}">
-                    ${dicts.map(({ payload: payload2, device }) => {
-      const prekey = 3 == parseInt(payload2.type, 10);
-      if (prekey) {
-        return stx14`<key rid="${device.get("id")}" prekey="true">${btoa(payload2.body)}</key>`;
-      }
-      return stx14`<key rid="${device.get("id")}">${btoa(payload2.body)}</key>`;
-    })}
-                    <iv>${iv}</iv>
-                </header>
-                <payload>${payload}</payload>
-            </encrypted>`
-  ).root();
-  stanza.cnode(stx14`<store xmlns="${Strophe53.NS.HINTS}"/>`).root();
-  stanza.cnode(stx14`<encryption xmlns="${Strophe53.NS.EME}" namespace="${Strophe53.NS.OMEMO}"/>`).root();
-  return { message, stanza };
-}
-__name(createOMEMOMessageStanza, "createOMEMOMessageStanza");
-function getOutgoingMessageAttributes(chat, attrs) {
-  const { __ } = converse_default;
-  if (chat.get("omemo_active") && attrs.body) {
-    return {
-      ...attrs,
-      is_encrypted: true,
-      plaintext: attrs.body,
-      body: __(
-        "This is an OMEMO encrypted message which your client doesn\u2019t seem to support. Find more information on https://conversations.im/omemo"
-      )
-    };
-  }
-  return attrs;
-}
-__name(getOutgoingMessageAttributes, "getOutgoingMessageAttributes");
-async function contactHasOMEMOSupport(jid) {
-  const devices = await u20.omemo.getDevicesForContact(jid);
-  return devices.length > 0;
-}
-__name(contactHasOMEMOSupport, "contactHasOMEMOSupport");
-async function checkOMEMOSupported(chatbox) {
-  let supported;
-  if (chatbox.get("type") === constants_exports.CHATROOMS_TYPE) {
-    await api_default4.waitUntil("OMEMOInitialized");
-    const { features } = (
-      /** @type {MUC} */
-      chatbox
-    );
-    supported = features.get("nonanonymous") && features.get("membersonly");
-  } else if (chatbox.get("type") === constants_exports.PRIVATE_CHAT_TYPE) {
-    supported = await contactHasOMEMOSupport(chatbox.get("jid"));
-  }
-  chatbox.set("omemo_supported", !!supported);
-  if (supported && api_default4.settings.get("omemo_default")) {
-    chatbox.set("omemo_active", true);
-  }
-}
-__name(checkOMEMOSupported, "checkOMEMOSupported");
-async function onOccupantAdded(chatroom, occupant) {
-  if (occupant.isSelf() || !chatroom.features.get("nonanonymous") || !chatroom.features.get("membersonly")) {
-    return;
-  }
-  const { __ } = converse_default;
-  if (chatroom.get("omemo_active")) {
-    const supported = await contactHasOMEMOSupport(occupant.get("jid"));
-    if (!supported) {
-      chatroom.createMessage({
-        "message": __(
-          "%1$s doesn't appear to have a client that supports OMEMO. Encrypted chat will no longer be possible in this grouchat.",
-          occupant.get("nick")
-        ),
-        "type": "error"
-      });
-      chatroom.save({ "omemo_active": false, "omemo_supported": false });
-    }
-  }
-}
-__name(onOccupantAdded, "onOccupantAdded");
-function onChatInitialized(chatbox) {
-  checkOMEMOSupported(chatbox);
-  if (chatbox.get("type") === constants_exports.CHATROOMS_TYPE) {
-    chatbox.occupants.on(
-      "add",
-      /** @param {import('../../plugins/muc/occupant').default} o */
-      (o) => onOccupantAdded(
-        /** @type {MUC} */
-        chatbox,
-        o
-      )
-    );
-    chatbox.features.on("change", () => checkOMEMOSupported(chatbox));
-  }
-}
-__name(onChatInitialized, "onChatInitialized");
-function setEncryptedFileURL(message, attrs) {
-  if (message.file.xep454_ivkey) {
-    const url = attrs.oob_url.replace(/^https?:/, "aesgcm:") + "#" + message.file.xep454_ivkey;
-    return {
-      ...attrs,
-      ...{
-        oob_url: null,
-        // Since only the body gets encrypted, we don't set the oob_url
-        message: url,
-        body: url
-      }
-    };
-  }
-  return attrs;
-}
-__name(setEncryptedFileURL, "setEncryptedFileURL");
-async function encryptFile(file) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
-  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, await file.arrayBuffer());
-  const exported_key = await window.crypto.subtle.exportKey("raw", key);
-  const encrypted_file = new File([encrypted], file.name, { type: file.type, lastModified: file.lastModified });
-  Object.assign(encrypted_file, { xep454_ivkey: arrayBufferToHex2(iv) + arrayBufferToHex2(exported_key) });
-  return encrypted_file;
-}
-__name(encryptFile, "encryptFile");
-Object.assign(u20, {
+Object.assign(u22, {
   omemo: {
-    ...u20.omemo,
+    ...u22.omemo,
     decryptMessage,
     encryptMessage,
     generateFingerprint,
@@ -13804,145 +13792,11 @@ Object.assign(u20, {
 });
 
 // plugins/omemo/parsers.js
-var { Strophe: Strophe54 } = public_default.env;
-function getDecryptionErrorAttributes(e) {
-  const { __ } = converse_default;
-  return {
-    "error_text": __("Sorry, could not decrypt a received OMEMO message due to an error.") + ` ${e.name} ${e.message}`,
-    "error_condition": e.name,
-    "error_message": e.message,
-    "error_type": "Decryption",
-    "is_ephemeral": true,
-    "is_error": true,
-    "type": "error"
-  };
-}
-__name(getDecryptionErrorAttributes, "getDecryptionErrorAttributes");
-function getJIDForDecryption(attrs) {
-  const { __ } = converse_default;
-  let from_jid;
-  if (attrs.sender === "me") {
-    from_jid = converse_default.session.get("bare_jid");
-  } else if (attrs.contact_jid) {
-    from_jid = attrs.contact_jid;
-  } else if ("from_real_jid" in attrs) {
-    from_jid = attrs.from_real_jid;
-  } else {
-    from_jid = attrs.from;
-  }
-  if (!from_jid) {
-    Object.assign(attrs, {
-      error_text: __(
-        "Sorry, could not decrypt a received OMEMO message because we don't have the XMPP address for that user."
-      ),
-      error_type: "Decryption",
-      is_ephemeral: true,
-      is_error: true,
-      type: "error"
-    });
-    throw new Error("Could not find JID to decrypt OMEMO message for");
-  }
-  return from_jid;
-}
-__name(getJIDForDecryption, "getJIDForDecryption");
-async function handleDecryptedWhisperMessage(attrs, key_and_tag) {
-  const from_jid = getJIDForDecryption(attrs);
-  const devicelist = await api_default4.omemo.devicelists.get(from_jid, true);
-  const encrypted = attrs.encrypted;
-  let device = devicelist.devices.get(encrypted.device_id);
-  if (!device) {
-    device = await devicelist.devices.create({ "id": encrypted.device_id, "jid": from_jid }, { "promise": true });
-  }
-  if (encrypted.payload) {
-    const key = key_and_tag.slice(0, 16);
-    const tag = key_and_tag.slice(16);
-    const result = await decryptMessage({
-      ...encrypted,
-      payload: encrypted.payload,
-      ...{ key, tag }
-    });
-    device.save("active", true);
-    return result;
-  }
-}
-__name(handleDecryptedWhisperMessage, "handleDecryptedWhisperMessage");
-async function decryptWhisperMessage(attrs) {
-  const from_jid = getJIDForDecryption(attrs);
-  const session_cipher = getSessionCipher(from_jid, parseInt(attrs.encrypted.device_id, 10));
-  const key = utils_default.base64ToArrayBuffer(attrs.encrypted.key);
-  try {
-    const key_and_tag = await session_cipher.decryptWhisperMessage(key, "binary");
-    const plaintext = await handleDecryptedWhisperMessage(attrs, key_and_tag);
-    return Object.assign(attrs, { plaintext });
-  } catch (e) {
-    log41.error(`${e.name} ${e.message}`);
-    return Object.assign(attrs, getDecryptionErrorAttributes(e));
-  }
-}
-__name(decryptWhisperMessage, "decryptWhisperMessage");
-async function decryptPrekeyWhisperMessage(attrs) {
-  const from_jid = getJIDForDecryption(attrs);
-  const session_cipher = getSessionCipher(from_jid, parseInt(attrs.encrypted.device_id, 10));
-  const key = utils_default.base64ToArrayBuffer(attrs.encrypted.key);
-  let key_and_tag;
-  try {
-    key_and_tag = await session_cipher.decryptPreKeyWhisperMessage(key, "binary");
-  } catch (e) {
-    log41.error(`${e.name} ${e.message}`);
-    return Object.assign(attrs, getDecryptionErrorAttributes(e));
-  }
-  try {
-    const plaintext = await handleDecryptedWhisperMessage(attrs, key_and_tag);
-    const { omemo_store } = converse_default.state;
-    await omemo_store.generateMissingPreKeys();
-    await omemo_store.publishBundle();
-    if (plaintext) {
-      return Object.assign(attrs, { "plaintext": plaintext });
-    } else {
-      return Object.assign(attrs, { "is_only_key": true });
-    }
-  } catch (e) {
-    log41.error(`${e.name} ${e.message}`);
-    return Object.assign(attrs, getDecryptionErrorAttributes(e));
-  }
-}
-__name(decryptPrekeyWhisperMessage, "decryptPrekeyWhisperMessage");
-async function parseEncryptedMessage(stanza, attrs) {
-  if (api_default4.settings.get("clear_cache_on_logout") || !attrs.is_encrypted || attrs.encryption_namespace !== Strophe54.NS.OMEMO) {
-    return attrs;
-  }
-  const encrypted_el = sizzle18(`encrypted[xmlns="${Strophe54.NS.OMEMO}"]`, stanza).pop();
-  const header = encrypted_el.querySelector("header");
-  attrs.encrypted = { "device_id": header.getAttribute("sid") };
-  const device_id = await api_default4.omemo?.getDeviceID();
-  const key = device_id && sizzle18(`key[rid="${device_id}"]`, encrypted_el).pop();
-  if (key) {
-    Object.assign(attrs.encrypted, {
-      iv: header.querySelector("iv").textContent,
-      key: key.textContent,
-      payload: encrypted_el.querySelector("payload")?.textContent || null,
-      prekey: ["true", "1"].includes(key.getAttribute("prekey"))
-    });
-  } else {
-    return Object.assign(attrs, {
-      error_condition: "not-encrypted-for-this-device",
-      error_type: "Decryption",
-      is_ephemeral: true,
-      is_error: true,
-      type: "error"
-    });
-  }
-  if (attrs.encrypted.prekey === true) {
-    return decryptPrekeyWhisperMessage(attrs);
-  } else {
-    return decryptWhisperMessage(attrs);
-  }
-}
-__name(parseEncryptedMessage, "parseEncryptedMessage");
+var { Strophe: Strophe57 } = public_default.env;
 function parseBundle(bundle_el) {
   const signed_prekey_public_el = bundle_el.querySelector("signedPreKeyPublic");
   const signed_prekey_signature_el = bundle_el.querySelector("signedPreKeySignature");
-  const prekeys = sizzle18(`prekeys > preKeyPublic`, bundle_el).map(
+  const prekeys = sizzle19(`prekeys > preKeyPublic`, bundle_el).map(
     /** @param {Element} el */
     (el) => ({
       id: parseInt(el.getAttribute("preKeyId"), 10),
@@ -13968,8 +13822,8 @@ Object.assign(utils_default, {
 });
 
 // plugins/omemo/device.js
-var { Strophe: Strophe55, sizzle: sizzle19, stx: stx15, u: u21 } = public_default.env;
-var Device = class extends Model23 {
+var { Strophe: Strophe58, sizzle: sizzle20, stx: stx20, u: u23 } = public_default.env;
+var Device = class extends Model24 {
   static {
     __name(this, "Device");
   }
@@ -13984,7 +13838,7 @@ var Device = class extends Model23 {
    */
   getRandomPreKey() {
     const bundle = this.get("bundle");
-    return bundle.prekeys[u21.getRandomInt(bundle.prekeys.length)];
+    return bundle.prekeys[u23.getRandomInt(bundle.prekeys.length)];
   }
   /**
    * Fetch the device's OMEMO bundle from the server.
@@ -13995,25 +13849,28 @@ var Device = class extends Model23 {
    */
   async fetchBundleFromServer() {
     const bare_jid = converse_default.session.get("bare_jid");
-    const stanza = stx15`
+    const stanza = stx20`
             <iq type="get" from="${bare_jid}" to="${this.get("jid")}" xmlns="jabber:client">
-                <pubsub xmlns="${Strophe55.NS.PUBSUB}">
-                    <items node="${Strophe55.NS.OMEMO_BUNDLES}:${this.get("id")}"/>
+                <pubsub xmlns="${Strophe58.NS.PUBSUB}">
+                    <items node="${Strophe58.NS.OMEMO_BUNDLES}:${this.get("id")}"/>
                 </pubsub>
             </iq>`;
     let iq;
     try {
       iq = await api_default4.sendIQ(stanza);
     } catch (iq2) {
-      log42.error(`Could not fetch bundle for device ${this.get("id")} from ${this.get("jid")}`);
-      log42.error(iq2);
+      log43.error(`Could not fetch bundle for device ${this.get("id")} from ${this.get("jid")}`);
+      log43.error(iq2);
+      if (iq2 && iq2.querySelector("error")) {
+        throw new IQError("Could not fetch bundle", iq2);
+      }
       return null;
     }
     if (iq.querySelector("error")) {
       throw new IQError("Could not fetch bundle", iq);
     }
-    const publish_el = sizzle19(`items[node="${Strophe55.NS.OMEMO_BUNDLES}:${this.get("id")}"]`, iq).pop();
-    const bundle_el = sizzle19(`bundle[xmlns="${Strophe55.NS.OMEMO}"]`, publish_el).pop();
+    const publish_el = sizzle20(`items[node="${Strophe58.NS.OMEMO_BUNDLES}:${this.get("id")}"]`, iq).pop();
+    const bundle_el = sizzle20(`bundle[xmlns="${Strophe58.NS.OMEMO}"]`, publish_el).pop();
     const bundle = parseBundle(bundle_el);
     this.save("bundle", bundle);
     return bundle;
@@ -14046,514 +13903,13 @@ var Devices = class extends Collection12 {
 };
 var devices_default = Devices;
 
-// plugins/omemo/store.js
-import { Model as Model24 } from "@converse/skeletor";
-import log43 from "@converse/log";
-var { Strophe: Strophe56, stx: stx16, u: u22 } = public_default.env;
-var OMEMOStore = class extends Model24 {
-  static {
-    __name(this, "OMEMOStore");
-  }
-  /**
-   * @typedef {Window & globalThis & {libsignal: any} } WindowWithLibsignal
-   */
-  get Direction() {
-    return {
-      SENDING: 1,
-      RECEIVING: 2
-    };
-  }
-  /**
-   * @returns {Promise<import('./types').KeyPair>}
-   */
-  getIdentityKeyPair() {
-    const keypair = this.get("identity_keypair");
-    return Promise.resolve({
-      "privKey": u22.base64ToArrayBuffer(keypair.privKey),
-      "pubKey": u22.base64ToArrayBuffer(keypair.pubKey)
-    });
-  }
-  getLocalRegistrationId() {
-    return Promise.resolve(parseInt(this.get("device_id"), 10));
-  }
-  /**
-   * @param {string} identifier
-   * @param {ArrayBuffer} identity_key
-   * @param {unknown} _direction
-   */
-  isTrustedIdentity(identifier, identity_key, _direction) {
-    if (identifier === null || identifier === void 0) {
-      throw new Error("Can't check identity key for invalid key");
-    }
-    if (!(identity_key instanceof ArrayBuffer)) {
-      throw new Error("Expected identity_key to be an ArrayBuffer");
-    }
-    const trusted = this.get("identity_key" + identifier);
-    if (trusted === void 0) {
-      return Promise.resolve(true);
-    }
-    return Promise.resolve(u22.arrayBufferToBase64(identity_key) === trusted);
-  }
-  /**
-   * @param {string} identifier
-   */
-  loadIdentityKey(identifier) {
-    if (identifier === null || identifier === void 0) {
-      throw new Error("Can't load identity_key for invalid identifier");
-    }
-    return Promise.resolve(u22.base64ToArrayBuffer(this.get("identity_key" + identifier)));
-  }
-  /**
-   * @param {string} identifier
-   * @param {string} identity_key
-   */
-  saveIdentity(identifier, identity_key) {
-    if (identifier === null || identifier === void 0) {
-      throw new Error("Can't save identity_key for invalid identifier");
-    }
-    const { libsignal } = (
-      /** @type WindowWithLibsignal */
-      window
-    );
-    const address = new libsignal.SignalProtocolAddress.fromString(identifier);
-    const existing = this.get("identity_key" + address.getName());
-    const b64_idkey = u22.arrayBufferToBase64(identity_key);
-    this.save("identity_key" + address.getName(), b64_idkey);
-    if (existing && b64_idkey !== existing) {
-      return Promise.resolve(true);
-    } else {
-      return Promise.resolve(false);
-    }
-  }
-  getPreKeys() {
-    return this.get("prekeys") || {};
-  }
-  /**
-   * @param {string} key_id
-   */
-  loadPreKey(key_id) {
-    const res = this.getPreKeys()[key_id];
-    if (res) {
-      return Promise.resolve({
-        "privKey": u22.base64ToArrayBuffer(res.privKey),
-        "pubKey": u22.base64ToArrayBuffer(res.pubKey)
-      });
-    }
-    return Promise.resolve();
-  }
-  /**
-   * @param {string} key_id
-   * @param {import('./types').KeyPair} key_pair
-   */
-  storePreKey(key_id, key_pair) {
-    const prekey = {};
-    prekey[key_id] = {
-      "pubKey": u22.arrayBufferToBase64(key_pair.pubKey),
-      "privKey": u22.arrayBufferToBase64(key_pair.privKey)
-    };
-    this.save("prekeys", Object.assign(this.getPreKeys(), prekey));
-    return Promise.resolve();
-  }
-  /**
-   * @param {string} key_id
-   */
-  removePreKey(key_id) {
-    const prekeys = { ...this.getPreKeys() };
-    delete prekeys[key_id];
-    this.save("prekeys", prekeys);
-    return Promise.resolve();
-  }
-  /**
-   * @param {string} _key_id
-   * @returns {Promise<import('./types').KeyPair|void>}
-   */
-  loadSignedPreKey(_key_id) {
-    const res = this.get("signed_prekey");
-    if (res) {
-      return Promise.resolve({
-        "privKey": u22.base64ToArrayBuffer(res.privKey),
-        "pubKey": u22.base64ToArrayBuffer(res.pubKey)
-      });
-    }
-    return Promise.resolve();
-  }
-  /**
-   * @param {import('./types').SignedPreKey} spk
-   */
-  storeSignedPreKey(spk) {
-    if (typeof spk !== "object") {
-      throw new Error("storeSignedPreKey: expected an object");
-    }
-    this.save("signed_prekey", {
-      "id": spk.keyId,
-      "privKey": u22.arrayBufferToBase64(spk.keyPair.privKey),
-      "pubKey": u22.arrayBufferToBase64(spk.keyPair.pubKey),
-      // XXX: The InMemorySignalProtocolStore does not pass
-      // in or store the signature, but we need it when we
-      // publish our bundle and this method isn't called from
-      // within libsignal code, so we modify it to also store
-      // the signature.
-      "signature": u22.arrayBufferToBase64(spk.signature)
-    });
-    return Promise.resolve();
-  }
-  /**
-   * @param {string} key_id
-   */
-  removeSignedPreKey(key_id) {
-    if (this.get("signed_prekey")["id"] === key_id) {
-      this.unset("signed_prekey");
-      this.save();
-    }
-    return Promise.resolve();
-  }
-  /**
-   * @param {string} identifier
-   */
-  loadSession(identifier) {
-    return Promise.resolve(this.get("session" + identifier));
-  }
-  /**
-   * @param {string} identifier
-   * @param {object} record
-   */
-  storeSession(identifier, record) {
-    return Promise.resolve(this.save("session" + identifier, record));
-  }
-  /**
-   * @param {string} identifier
-   */
-  removeSession(identifier) {
-    return Promise.resolve(this.unset("session" + identifier));
-  }
-  /**
-   * @param {string} [identifier='']
-   */
-  removeAllSessions(identifier = "") {
-    const keys = Object.keys(this.attributes).filter(
-      (key) => key.startsWith("session" + identifier) ? key : false
-    );
-    const attrs = {};
-    keys.forEach((key) => {
-      attrs[key] = void 0;
-    });
-    this.save(attrs);
-    return Promise.resolve();
-  }
-  publishBundle() {
-    const signed_prekey = this.get("signed_prekey");
-    const node = `${Strophe56.NS.OMEMO_BUNDLES}:${this.get("device_id")}`;
-    const item = stx16`
-            <item>
-                <bundle xmlns="${Strophe56.NS.OMEMO}">
-                    <signedPreKeyPublic signedPreKeyId="${signed_prekey.id}">${signed_prekey.pubKey}</signedPreKeyPublic>
-                    <signedPreKeySignature>${signed_prekey.signature}</signedPreKeySignature>
-                    <identityKey>${this.get("identity_keypair").pubKey}</identityKey>
-                    <prekeys>${Object.values(this.get("prekeys")).map(
-      (prekey, id) => stx16`<preKeyPublic preKeyId="${id}">${prekey.pubKey}</preKeyPublic>`
-    )}
-                    </prekeys>
-                </bundle>
-            </item>`;
-    const options = { access_model: "open" };
-    return api_default4.pubsub.publish(null, node, item, options, false);
-  }
-  async generateMissingPreKeys() {
-    const { libsignal } = (
-      /** @type WindowWithLibsignal */
-      window
-    );
-    const { KeyHelper } = libsignal;
-    const prekeyIds = Object.keys(this.getPreKeys());
-    const missing_keys = Array.from({ length: converse_default.NUM_PREKEYS }, (_, id) => id.toString()).filter(
-      (id) => !prekeyIds.includes(id)
-    );
-    if (missing_keys.length < 1) {
-      log43.debug("No missing prekeys to generate for our own device");
-      return Promise.resolve();
-    }
-    const keys = await Promise.all(missing_keys.map((id) => KeyHelper.generatePreKey(parseInt(id, 10))));
-    keys.forEach((k) => this.storePreKey(k.keyId, k.keyPair));
-    const prekeys = this.getPreKeys();
-    const marshalled_keys = Object.keys(prekeys).map((id) => ({
-      id,
-      key: prekeys[id].pubKey
-    }));
-    const bare_jid = converse_default.session.get("bare_jid");
-    const devicelist = await getDeviceList(bare_jid);
-    const device = devicelist.devices.get(this.get("device_id"));
-    const bundle = await device.getBundle();
-    device.save("bundle", Object.assign(bundle, { "prekeys": marshalled_keys }));
-  }
-  /**
-   * Generates, stores and then returns pre-keys.
-   *
-   * Pre-keys are one half of a X3DH key exchange and are published as part
-   * of the device bundle.
-   *
-   * For a new contact or device to establish an encrypted session, it needs
-   * to use a pre-key, which it chooses randomly from the list of available
-   * ones.
-   */
-  async generatePreKeys() {
-    const amount = converse_default.NUM_PREKEYS;
-    const { libsignal } = (
-      /** @type WindowWithLibsignal */
-      window
-    );
-    const { KeyHelper } = libsignal;
-    const keys = await Promise.all([...Array(amount).keys()].map((id) => KeyHelper.generatePreKey(id)));
-    keys.forEach((k) => this.storePreKey(k.keyId, k.keyPair));
-    return keys.map((k) => ({
-      id: k.keyId,
-      key: u22.arrayBufferToBase64(k.keyPair.pubKey)
-    }));
-  }
-  /**
-   * Generate the cryptographic data used by the X3DH key agreement protocol
-   * in order to build a session with other devices.
-   *
-   * By generating a bundle, and publishing it via PubSub, we allow other
-   * clients to download it and start asynchronous encrypted sessions with us,
-   * even if we're offline at that time.
-   */
-  async generateBundle() {
-    const { libsignal } = (
-      /** @type WindowWithLibsignal */
-      window
-    );
-    const identity_keypair = await libsignal.KeyHelper.generateIdentityKeyPair();
-    const identity_key = u22.arrayBufferToBase64(identity_keypair.pubKey);
-    const device_id = await generateDeviceID();
-    this.save({
-      device_id,
-      identity_key,
-      identity_keypair: {
-        privKey: u22.arrayBufferToBase64(identity_keypair.privKey),
-        pubKey: identity_key
-      }
-    });
-    const signed_prekey = await libsignal.KeyHelper.generateSignedPreKey(identity_keypair, 0);
-    this.storeSignedPreKey(signed_prekey);
-    const prekeys = await this.generatePreKeys();
-    const bundle = { identity_key, device_id, prekeys };
-    bundle["signed_prekey"] = {
-      id: signed_prekey.keyId,
-      public_key: u22.arrayBufferToBase64(signed_prekey.keyPair.pubKey),
-      signature: u22.arrayBufferToBase64(signed_prekey.signature)
-    };
-    const bare_jid = converse_default.session.get("bare_jid");
-    const devicelist = await api_default4.omemo.devicelists.get(bare_jid);
-    const device = await devicelist.devices.create({ id: bundle.device_id, "jid": bare_jid }, { promise: true });
-    device.save("bundle", bundle);
-  }
-  fetchSession() {
-    if (this._setup_promise === void 0) {
-      this._setup_promise = new Promise((resolve, reject) => {
-        this.fetch({
-          success: /* @__PURE__ */ __name(() => {
-            if (!this.get("device_id")) {
-              this.generateBundle().then(resolve).catch(reject);
-            } else {
-              resolve();
-            }
-          }, "success"),
-          /**
-           * @param {unknown} _model
-           * @param {unknown} resp
-           */
-          error: /* @__PURE__ */ __name((_model, resp) => {
-            log43.warn(`Could restore OMEMO session, we'll generate a new one: ${resp}`);
-            this.generateBundle().then(resolve).catch(reject);
-          }, "error")
-        });
-      });
-    }
-    return this._setup_promise;
-  }
-};
-async function generateDeviceID() {
-  const { libsignal } = (
-    /** @type WindowWithLibsignal */
-    window
-  );
-  const bare_jid = converse_default.session.get("bare_jid");
-  const devicelist = await getDeviceList(bare_jid, true);
-  const existing_ids = devicelist.devices.pluck("id");
-  let device_id = libsignal.KeyHelper.generateRegistrationId();
-  let i2 = 0;
-  while (existing_ids.includes(device_id)) {
-    device_id = libsignal.KeyHelper.generateRegistrationId();
-    i2++;
-    if (i2 === 10) {
-      throw new Error("Unable to generate a unique device ID");
-    }
-  }
-  return device_id.toString();
-}
-__name(generateDeviceID, "generateDeviceID");
-var store_default = OMEMOStore;
-
-// plugins/omemo/api.js
-var api_default14 = {
-  /**
-   * The "omemo" namespace groups methods relevant to OMEMO
-   * encryption.
-   *
-   * @namespace _converse.api.omemo
-   * @memberOf _converse.api
-   */
-  omemo: {
-    /**
-     * Returns the device ID of the current device.
-     */
-    async getDeviceID() {
-      await api_default4.waitUntil("OMEMOInitialized");
-      return converse_default.state.omemo_store.get("device_id");
-    },
-    session: {
-      async restore() {
-        const { state } = converse_default;
-        if (state.omemo_store === void 0) {
-          const { state: state2 } = converse_default;
-          const bare_jid = converse_default.session.get("bare_jid");
-          const id = `converse.omemosession-${bare_jid}`;
-          state2.omemo_store = new store_default({ id });
-          initStorage(state2.omemo_store, id);
-        }
-        await state.omemo_store.fetchSession();
-      }
-    },
-    /**
-     * The "devicelists" namespace groups methods related to OMEMO device lists
-     *
-     * @namespace _converse.api.omemo.devicelists
-     * @memberOf _converse.api.omemo
-     */
-    devicelists: {
-      /**
-       * Returns the {@link DeviceList} for a particular JID.
-       * The device list will be created if it doesn't exist already.
-       * @method _converse.api.omemo.devicelists.get
-       * @param {String} jid - The Jabber ID for which the device list will be returned.
-       * @param {boolean} create=false - Set to `true` if the device list
-       *      should be created if it cannot be found.
-       */
-      async get(jid, create = false) {
-        return await getDeviceList(jid, create);
-      }
-    },
-    /**
-     * The "bundle" namespace groups methods relevant to the user's OMEMO bundle.
-     * @namespace _converse.api.omemo.bundle
-     * @memberOf _converse.api.omemo
-     */
-    bundle: {
-      /**
-       * Lets you generate a new OMEMO device bundle
-       *
-       * @method _converse.api.omemo.bundle.generate
-       * @returns {promise} Promise which resolves once we have a result from the server.
-       */
-      async generate() {
-        await api_default4.waitUntil("OMEMOInitialized");
-        const bare_jid = converse_default.session.get("bare_jid");
-        const devicelist = await api_default4.omemo.devicelists.get(bare_jid);
-        const { omemo_store } = converse_default.state;
-        const device_id = omemo_store.get("device_id");
-        if (device_id) {
-          const device2 = devicelist.devices.get(device_id);
-          omemo_store.unset(device_id);
-          if (device2) {
-            await new Promise((done) => device2.destroy({ "success": done, "error": done }));
-          }
-          devicelist.devices.trigger("remove");
-        }
-        await omemo_store.generateBundle();
-        await omemo_store.removeAllSessions();
-        await omemo_store.publishBundle();
-        await devicelist.publishDevices();
-        const device = devicelist.devices.get(omemo_store.get("device_id"));
-        return generateFingerprint(device);
-      }
-    }
-  }
-};
-
-// plugins/omemo/plugin.js
-var { u: u23, Strophe: Strophe57 } = public_default.env;
-public_default.plugins.add("converse-omemo", {
-  dependencies: ["converse-pubsub", "converse-profile"],
-  /**
-   * @param {import('../../shared/_converse.js').ConversePrivateGlobal} _converse
-   */
-  enabled(_converse2) {
-    return (
-      /** @type WindowWithLibsignal */
-      window.libsignal && _converse2.state.config.get("trusted") && !_converse2.api.settings.get("clear_cache_on_logout") && !_converse2.api.settings.get("blacklisted_plugins").includes("converse-omemo")
-    );
-  },
-  initialize() {
-    api_default4.settings.extend({ omemo_default: false });
-    api_default4.promises.add(["OMEMOInitialized"]);
-    const exports = {
-      Device: device_default,
-      Devices: devices_default,
-      DeviceList: devicelist_default,
-      DeviceLists: devicelists_default,
-      OMEMOStore: store_default
-    };
-    Object.assign(converse_default.api, api_default14);
-    Object.assign(converse_default, exports);
-    Object.assign(converse_default.exports, exports);
-    api_default4.listen.on(
-      "createMessageStanza",
-      /**
-       * @param {import('../../shared/chatbox.js').default} chat
-       * @param {import('../../shared/types').MessageAndStanza} data
-       */
-      async (chat, data) => {
-        try {
-          data = await createOMEMOMessageStanza(chat, data);
-        } catch (e) {
-          handleMessageSendError(e, chat);
-        }
-        return data;
-      }
-    );
-    api_default4.listen.on("connected", registerPEPPushHandler);
-    api_default4.listen.on("chatRoomInitialized", onChatInitialized);
-    api_default4.listen.on("chatBoxInitialized", onChatInitialized);
-    api_default4.listen.on("getOutgoingMessageAttributes", getOutgoingMessageAttributes);
-    api_default4.listen.on("statusInitialized", initOMEMO);
-    api_default4.listen.on("addClientFeatures", () => api_default4.disco.own.features.add(`${Strophe57.NS.OMEMO_DEVICELIST}+notify`));
-    api_default4.listen.on("parseMessage", parseEncryptedMessage);
-    api_default4.listen.on("parseMUCMessage", parseEncryptedMessage);
-    api_default4.listen.on("afterFileUploaded", setEncryptedFileURL);
-    api_default4.listen.on(
-      "beforeFileUpload",
-      /**
-       * @param {import('../../shared/chatbox.js').default} chat
-       * @param {File} file
-       */
-      (chat, file) => chat.get("omemo_active") ? encryptFile(file) : file
-    );
-    api_default4.listen.on("clearSession", () => {
-      delete converse_default.state.omemo_store;
-      if (u23.shouldClearCache(converse_default) && converse_default.state.devicelists) {
-        converse_default.state.devicelists.clearStore();
-        delete converse_default.state.devicelists;
-      }
-    });
-  }
-});
-
 // plugins/omemo/index.js
-var { Strophe: Strophe58 } = public_default.env;
-Strophe58.addNamespace("OMEMO_DEVICELIST", Strophe58.NS.OMEMO + ".devicelist");
-Strophe58.addNamespace("OMEMO_VERIFICATION", Strophe58.NS.OMEMO + ".verification");
-Strophe58.addNamespace("OMEMO_WHITELISTED", Strophe58.NS.OMEMO + ".whitelisted");
-Strophe58.addNamespace("OMEMO_BUNDLES", Strophe58.NS.OMEMO + ".bundles");
+/*! TOFIND */
+var { Strophe: Strophe59 } = public_default.env;
+Strophe59.addNamespace("OMEMO_DEVICELIST", Strophe59.NS.OMEMO + ".devicelist");
+Strophe59.addNamespace("OMEMO_VERIFICATION", Strophe59.NS.OMEMO + ".verification");
+Strophe59.addNamespace("OMEMO_WHITELISTED", Strophe59.NS.OMEMO + ".whitelisted");
+Strophe59.addNamespace("OMEMO_BUNDLES", Strophe59.NS.OMEMO + ".bundles");
 
 // plugins/mam/placeholder.js
 import { Model as Model25 } from "@converse/skeletor";
@@ -14584,11 +13940,12 @@ var MAMPlaceholderMessage = class extends Model25 {
 };
 
 // plugins/mam/utils.js
-import sizzle20 from "sizzle";
-import { Strophe as Strophe59, $iq as $iq8 } from "strophe.js";
+import sizzle21 from "sizzle";
+import { Strophe as Strophe60, $iq as $iq2 } from "strophe.js";
 import log44 from "@converse/log";
-var { NS: NS3 } = Strophe59;
+var { NS: NS3 } = Strophe60;
 var u24 = public_default.env.utils;
+var { stx: stx21 } = public_default.env;
 async function onMAMError(e, iq) {
   if (u24.isElement(e)) {
     const err = await parseErrorStanza(e);
@@ -14602,10 +13959,10 @@ async function onMAMError(e, iq) {
 }
 __name(onMAMError, "onMAMError");
 function onMAMPreferences(iq, feature) {
-  const preference = sizzle20(`prefs[xmlns="${NS3.MAM}"]`, iq).pop();
+  const preference = sizzle21(`prefs[xmlns="${NS3.MAM}"]`, iq).pop();
   const default_pref = preference.getAttribute("default");
   if (default_pref !== api_default4.settings.get("message_archiving")) {
-    const stanza = $iq8({ "type": "set" }).c("prefs", {
+    const stanza = $iq2({ "type": "set" }).c("prefs", {
       "xmlns": NS3.MAM,
       "default": api_default4.settings.get("message_archiving")
     });
@@ -14625,7 +13982,10 @@ function getMAMPrefsFromFeature(feature) {
     return;
   }
   if (prefs["default"] !== api_default4.settings.get("message_archiving")) {
-    const stanza = $iq8({ "type": "get" }).c("prefs", { "xmlns": NS3.MAM });
+    const stanza = stx21`
+            <iq type="get" xmlns="jabber:client">
+                <prefs xmlns="${NS3.MAM}"></prefs>
+            </iq>`;
     api_default4.sendIQ(stanza).then(
       /** @param {Element} iq */
       (iq) => converse_default.exports.onMAMPreferences(iq, feature)
@@ -14679,12 +14039,14 @@ async function handleMAMResult(model, result, query, options, should_page = fals
 }
 __name(handleMAMResult, "handleMAMResult");
 async function fetchArchivedMessages(model, options = {}, should_page = false) {
-  if (model.disable_mam) return;
+  if (model.disable_mam)
+    return;
   const is_muc = model.get("type") === CHATROOMS_TYPE;
   const bare_jid = converse_default.session.get("bare_jid");
   const mam_jid = is_muc ? model.get("jid") : bare_jid;
   const supported = await api_default4.disco.supports(NS3.MAM, mam_jid);
-  if (!supported) return;
+  if (!supported)
+    return;
   const max = api_default4.settings.get("archived_messages_page_size");
   const query = (
     /** @type {import('./types').ArchiveQueryOptions} */
@@ -14743,7 +14105,8 @@ function createScrollupPlaceholder(model) {
     const mam_jid = is_muc ? model.get("jid") : converse_default.session.get("bare_jid");
     const key = `stanza_id ${mam_jid}`;
     const oldest_message = model.getOldestMessage();
-    if (!oldest_message) return;
+    if (!oldest_message)
+      return;
     const msg_data = {
       before: oldest_message.get(key),
       template_hook: "getMessageTemplate",
@@ -14758,7 +14121,8 @@ function createScrollupPlaceholder(model) {
 }
 __name(createScrollupPlaceholder, "createScrollupPlaceholder");
 function fetchNewestMessages(model) {
-  if (model.disable_mam) return;
+  if (model.disable_mam)
+    return;
   const most_recent_msg = model.getMostRecentMessage();
   const should_page = api_default4.settings.get("mam_request_all_pages") ? "backwards" : false;
   if (most_recent_msg) {
@@ -14770,12 +14134,12 @@ function fetchNewestMessages(model) {
 __name(fetchNewestMessages, "fetchNewestMessages");
 
 // plugins/mam/plugin.js
-import { Strophe as Strophe62 } from "strophe.js";
+import { Strophe as Strophe63 } from "strophe.js";
 
 // plugins/mam/api.js
-import dayjs6 from "dayjs";
+import sizzle22 from "sizzle";
+import { Strophe as Strophe62, Stanza as Stanza10 } from "strophe.js";
 import log45 from "@converse/log";
-import sizzle21 from "sizzle";
 
 // shared/rsm.js
 /**
@@ -14785,8 +14149,8 @@ import sizzle21 from "sizzle";
  *   Some code taken from the Strophe RSM plugin, licensed under the MIT License
  *   Copyright 2006-2017 Strophe (https://github.com/strophe/strophejs)
  */
-var { Strophe: Strophe60, $build: $build3 } = public_default.env;
-Strophe60.addNamespace("RSM", "http://jabber.org/protocol/rsm");
+var { Strophe: Strophe61, $build: $build3 } = public_default.env;
+Strophe61.addNamespace("RSM", "http://jabber.org/protocol/rsm");
 var RSM_QUERY_PARAMETERS = ["after", "before", "index", "max"];
 var toNumber = /* @__PURE__ */ __name((v) => Number(v), "toNumber");
 var toString = /* @__PURE__ */ __name((v) => v.toString(), "toString");
@@ -14818,7 +14182,7 @@ var RSM = class _RSM {
       const attr = RSM_ATTRIBUTES[i2];
       const elem = set.getElementsByTagName(attr)[0];
       if (!isUndefined(elem) && elem !== null) {
-        result[attr] = RSM_TYPES[attr](Strophe60.getText(elem));
+        result[attr] = RSM_TYPES[attr](Strophe61.getText(elem));
         if (attr == "first") {
           result.index = RSM_TYPES["index"](elem.getAttribute("index"));
         }
@@ -14841,7 +14205,7 @@ var RSM = class _RSM {
    * @returns {Element}
    */
   toXML() {
-    const xml = $build3("set", { xmlns: Strophe60.NS.RSM });
+    const xml = $build3("set", { xmlns: Strophe61.NS.RSM });
     const reducer = /* @__PURE__ */ __name((xml2, a) => !isUndefined(this.query[a]) ? xml2.c(a).t((this.query[a] || "").toString()).up() : xml2, "reducer");
     return RSM_QUERY_PARAMETERS.reduce(reducer, xml).tree();
   }
@@ -14850,7 +14214,7 @@ var RSM = class _RSM {
    * @returns {string}
    */
   toString() {
-    return Strophe60.serialize(this.toXML());
+    return Strophe61.serialize(this.toXML());
   }
   /**
    * @param {string} max
@@ -14871,16 +14235,15 @@ var RSM = class _RSM {
 };
 
 // plugins/mam/api.js
-import { Strophe as Strophe61, Stanza as Stanza6 } from "strophe.js";
-var { NS: NS4 } = Strophe61;
-var { stx: stx17, u: u25 } = public_default.env;
-var api_default15 = {
+var { NS: NS4 } = Strophe62;
+var { dayjs: dayjs6, stx: stx22, u: u25 } = public_default.env;
+var api_default14 = {
   /**
    * The [XEP-0313](https://xmpp.org/extensions/xep-0313.html) Message Archive Management API
    *
    * Enables you to query an XMPP server for archived messages.
    *
-   * See also the [message-archiving](/docs/html/configuration.html#message-archiving)
+   * See also the [message-archiving](https://conversejs.org/docs/configuration/#message-archiving)
    * option in the configuration settings section, which you'll
    * usually want to use in conjunction with this API.
    *
@@ -15092,27 +14455,27 @@ var api_default15 = {
       const connection2 = api_default4.connection.get();
       const rsm = options.rsm ? new RSM(options.rsm) : {};
       const queryid = u25.getUniqueId();
-      const stanza = stx17`
+      const stanza = stx22`
                 <iq id="${u25.getUniqueId()}"
-                        ${toJID ? Stanza6.unsafeXML(`to="${Strophe61.xmlescape(toJID)}"`) : ""}
+                        ${toJID ? Stanza10.unsafeXML(`to="${Strophe62.xmlescape(toJID)}"`) : ""}
                         type="set"
                         xmlns="jabber:client">
                     <query queryid="${queryid}" xmlns="${NS4.MAM}">
-                        ${withJID || startDate || endDate ? stx17`
+                        ${withJID || startDate || endDate ? stx22`
                             <x type="submit" xmlns="${NS4.XFORM}">
                                 <field type="hidden" var="FORM_TYPE"><value>${NS4.MAM}</value></field>
-                                ${withJID ? stx17`<field var="with"><value>${withJID}</value></field>` : ""}
-                                ${startDate ? stx17`<field var="start"><value>${startDate}</value></field>` : ""}
-                                ${endDate ? stx17`<field var="end"><value>${endDate}</value></field>` : ""}
+                                ${withJID ? stx22`<field var="with"><value>${withJID}</value></field>` : ""}
+                                ${startDate ? stx22`<field var="start"><value>${startDate}</value></field>` : ""}
+                                ${endDate ? stx22`<field var="end"><value>${endDate}</value></field>` : ""}
                             </x>` : ""}
-                        ${Object.keys(rsm.query ?? {}).length ? Stanza6.fromString(rsm.toString()) : ""}
+                        ${Object.keys(rsm.query ?? {}).length ? Stanza10.fromString(rsm.toString()) : ""}
                     </query>
                 </iq>`;
       const messages = [];
       const message_handler = connection2.addHandler(
         /** @param {Element} stanza */
         (stanza2) => {
-          const result = sizzle21(`message > result[xmlns="${NS4.MAM}"]`, stanza2).pop();
+          const result = sizzle22(`message > result[xmlns="${NS4.MAM}"]`, stanza2).pop();
           if (result === void 0 || result.getAttribute("queryid") !== queryid) {
             return true;
           }
@@ -15150,9 +14513,9 @@ var api_default15 = {
       }
       connection2.deleteHandler(message_handler);
       let rsm_result;
-      const fin = iq_result && sizzle21(`fin[xmlns="${NS4.MAM}"]`, iq_result).pop();
+      const fin = iq_result && sizzle22(`fin[xmlns="${NS4.MAM}"]`, iq_result).pop();
       const complete = fin?.getAttribute("complete") === "true";
-      const set = sizzle21(`set[xmlns="${NS4.RSM}"]`, fin).pop();
+      const set = sizzle22(`set[xmlns="${NS4.RSM}"]`, fin).pop();
       if (set) {
         rsm_result = new RSM({ ...options.rsm, xml: set });
       }
@@ -15167,7 +14530,7 @@ var api_default15 = {
  * @copyright 2022, the Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { NS: NS5 } = Strophe62;
+var { NS: NS5 } = Strophe63;
 public_default.plugins.add("converse-mam", {
   dependencies: ["converse-disco", "converse-muc"],
   initialize() {
@@ -15180,7 +14543,7 @@ public_default.plugins.add("converse-mam", {
       message_archiving_timeout: 6e4
       // Time (in milliseconds) to wait before aborting MAM request
     });
-    Object.assign(api_default4, api_default15);
+    Object.assign(api_default4, api_default14);
     const exports = { onMAMError, onMAMPreferences, handleMAMResult, MAMPlaceholderMessage };
     Object.assign(converse_default, exports);
     Object.assign(converse_default.exports, exports);
@@ -15219,10 +14582,10 @@ Object.assign(utils_default, { mam: { fetchArchivedMessages } });
 import log46 from "@converse/log";
 
 // plugins/ping/utils.js
-var { Strophe: Strophe63, $iq: $iq9 } = public_default.env;
+var { Strophe: Strophe64, stx: stx23 } = public_default.env;
 
 // plugins/ping/api.js
-var { Strophe: Strophe64, $iq: $iq10, u: u26 } = public_default.env;
+var { Strophe: Strophe65, u: u26, stx: stx24 } = public_default.env;
 
 // plugins/ping/index.js
 /**
@@ -15232,8 +14595,8 @@ var { Strophe: Strophe64, $iq: $iq10, u: u26 } = public_default.env;
  * @copyright 2022, the Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { Strophe: Strophe65 } = public_default.env;
-Strophe65.addNamespace("PING", "urn:xmpp:ping");
+var { Strophe: Strophe66 } = public_default.env;
+Strophe66.addNamespace("PING", "urn:xmpp:ping");
 /*! TOFIND */
 
 // plugins/pubsub/api.js
@@ -15257,8 +14620,8 @@ __name(parseStanzaForPubSubConfig, "parseStanzaForPubSubConfig");
  * @copyright The Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { Strophe: Strophe66, stx: stx18 } = public_default.env;
-var api_default17 = {
+var { Strophe: Strophe67, stx: stx25 } = public_default.env;
+var api_default16 = {
   /**
    * @typedef {import('strophe.js').Builder} Builder
    * @typedef {import('strophe.js').Stanza} Stanza
@@ -15278,16 +14641,17 @@ var api_default17 = {
        * @returns {Promise<import('./types').PubSubConfigOptions>}
        */
       async get(jid, node) {
-        if (!node) throw new Error("api.pubsub.config.get: Node value required");
+        if (!node)
+          throw new Error("api.pubsub.config.get: Node value required");
         const bare_jid = converse_default.session.get("bare_jid");
         const full_jid = converse_default.session.get("jid");
         const entity_jid = jid || bare_jid;
-        const stanza = stx18`
+        const stanza = stx25`
                     <iq xmlns="jabber:client"
                         from="${full_jid}"
                         type="get"
                         to="${entity_jid}">
-                    <pubsub xmlns="${Strophe66.NS.PUBSUB}#owner"><configure node="${node}"/></pubsub>
+                    <pubsub xmlns="${Strophe67.NS.PUBSUB}#owner"><configure node="${node}"/></pubsub>
                     </iq>`;
         let response;
         try {
@@ -15306,25 +14670,26 @@ var api_default17 = {
        * @returns {Promise<import('./types').PubSubConfigOptions>}
        */
       async set(jid, node, config) {
-        if (!node) throw new Error("api.pubsub.config.set: Node value required");
+        if (!node)
+          throw new Error("api.pubsub.config.set: Node value required");
         const bare_jid = converse_default.session.get("bare_jid");
         const entity_jid = jid || bare_jid;
         const new_config = {
           ...await api_default4.pubsub.config.get(entity_jid, node),
           ...config
         };
-        const stanza = stx18`
+        const stanza = stx25`
                     <iq xmlns="jabber:client"
                         from="${bare_jid}"
                         type="set"
                         to="${entity_jid}">
-                    <pubsub xmlns="${Strophe66.NS.PUBSUB}#owner">
+                    <pubsub xmlns="${Strophe67.NS.PUBSUB}#owner">
                         <configure node="${node}">
-                            <x xmlns="${Strophe66.NS.XFORM}" type="submit">
+                            <x xmlns="${Strophe67.NS.XFORM}" type="submit">
                                 <field var="FORM_TYPE" type="hidden">
-                                    <value>${Strophe66.NS.PUBSUB}#nodeconfig</value>
+                                    <value>${Strophe67.NS.PUBSUB}#nodeconfig</value>
                                 </field>
-                                ${Object.entries(new_config).map(([k, v]) => stx18`<field var="pubsub#${k}"><value>${v}</value></field>`)}
+                                ${Object.entries(new_config).map(([k, v]) => stx25`<field var="pubsub#${k}"><value>${v}</value></field>`)}
                             </x>
                         </configure>
                     </pubsub>
@@ -15352,39 +14717,41 @@ var api_default17 = {
      * @returns {Promise<void|Element>}
      */
     async publish(jid, node, item, options, strict_options = true) {
-      if (!node) throw new Error("api.pubsub.publish: node value required");
-      if (!item) throw new Error("api.pubsub.publish: item value required");
+      if (!node)
+        throw new Error("api.pubsub.publish: node value required");
+      if (!item)
+        throw new Error("api.pubsub.publish: item value required");
       const bare_jid = converse_default.session.get("bare_jid");
       const entity_jid = jid || bare_jid;
-      const stanza = stx18`
+      const stanza = stx25`
                 <iq xmlns="jabber:client"
                     from="${bare_jid}"
                     type="set"
                     to="${entity_jid}">
-                <pubsub xmlns="${Strophe66.NS.PUBSUB}">
+                <pubsub xmlns="${Strophe67.NS.PUBSUB}">
                     <publish node="${node}">${item}</publish>
-                    ${options ? stx18`<publish-options>
-                    <x xmlns="${Strophe66.NS.XFORM}" type="submit">
+                    ${options ? stx25`<publish-options>
+                    <x xmlns="${Strophe67.NS.XFORM}" type="submit">
                         <field var="FORM_TYPE" type="hidden">
-                            <value>${Strophe66.NS.PUBSUB}#publish-options</value>
+                            <value>${Strophe67.NS.PUBSUB}#publish-options</value>
                         </field>
-                        ${Object.entries(options).map(([k, v]) => stx18`<field var="pubsub#${k}"><value>${v}</value></field>`)}
+                        ${Object.entries(options).map(([k, v]) => stx25`<field var="pubsub#${k}"><value>${v}</value></field>`)}
                     </x></publish-options>` : ""}
                 </pubsub>
                 </iq>`;
       if (entity_jid === bare_jid) {
-        const supports_pep = await api_default4.disco.getIdentity("pubsub", "pep", bare_jid) || await api_default4.disco.getIdentity("pubsub", "pep", Strophe66.getDomainFromJid(bare_jid));
+        const supports_pep = await api_default4.disco.getIdentity("pubsub", "pep", bare_jid) || await api_default4.disco.getIdentity("pubsub", "pep", Strophe67.getDomainFromJid(bare_jid));
         if (!supports_pep) {
           log47.warn(`api.pubsub.publish: Not publishing via PEP because it's not supported!`);
           log47.warn(stanza);
           return;
         }
       }
-      const supports_publish_options = await api_default4.disco.supports(Strophe66.NS.PUBSUB + "#publish-options", entity_jid) || entity_jid === bare_jid && // XEP-0223 says we need to check the server for support
+      const supports_publish_options = await api_default4.disco.supports(Strophe67.NS.PUBSUB + "#publish-options", entity_jid) || entity_jid === bare_jid && // XEP-0223 says we need to check the server for support
       // (although Prosody returns it on the bare jid)
       await api_default4.disco.supports(
-        Strophe66.NS.PUBSUB + "#publish-options",
-        Strophe66.getDomainFromJid(entity_jid)
+        Strophe67.NS.PUBSUB + "#publish-options",
+        Strophe67.getDomainFromJid(entity_jid)
       );
       if (!supports_publish_options && strict_options) {
         log47.warn(`api.pubsub.publish: #publish-options not supported, refusing to publish item.`);
@@ -15396,7 +14763,7 @@ var api_default17 = {
       } catch (iq) {
         const e = await parseErrorStanza(iq);
         if (e.name === "conflict" && /** @type {import('shared/errors').StanzaError} */
-        e.extra[Strophe66.NS.PUBSUB_ERROR] === "precondition-not-met") {
+        e.extra[Strophe67.NS.PUBSUB_ERROR] === "precondition-not-met") {
           await api_default4.pubsub.config.set(entity_jid, node, options);
           try {
             await api_default4.sendIQ(stanza);
@@ -15423,13 +14790,13 @@ var api_default17 = {
  * @copyright The Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { Strophe: Strophe67, sizzle: sizzle22 } = public_default.env;
-Strophe67.addNamespace("PUBSUB_ERROR", Strophe67.NS.PUBSUB + "#errors");
+var { Strophe: Strophe68, sizzle: sizzle23 } = public_default.env;
+Strophe68.addNamespace("PUBSUB_ERROR", Strophe68.NS.PUBSUB + "#errors");
 public_default.plugins.add("converse-pubsub", {
   dependencies: ["converse-disco"],
   initialize() {
     const { api: api3 } = converse_default;
-    Object.assign(converse_default.api, api_default17);
+    Object.assign(converse_default.api, api_default16);
     api3.listen.on(
       "parseErrorStanza",
       /**
@@ -15437,11 +14804,11 @@ public_default.plugins.add("converse-pubsub", {
        * @param {import('shared/types.js').ErrorExtra} extra
        */
       (stanza, extra) => {
-        const pubsub_err = sizzle22(`error [xmlns="${Strophe67.NS.PUBSUB_ERROR}"]`, stanza).pop();
+        const pubsub_err = sizzle23(`error [xmlns="${Strophe68.NS.PUBSUB_ERROR}"]`, stanza).pop();
         if (pubsub_err) {
           return {
             ...extra,
-            [Strophe67.NS.PUBSUB_ERROR]: pubsub_err.nodeName
+            [Strophe68.NS.PUBSUB_ERROR]: pubsub_err.nodeName
           };
         }
         return extra;
@@ -15450,12 +14817,176 @@ public_default.plugins.add("converse-pubsub", {
   }
 });
 
+// plugins/reactions/parsers.js
+var { Strophe: Strophe69 } = public_default.env;
+async function parseReactionsMessage(stanza, attrs, chatbox) {
+  const reactions_element = stanza.getElementsByTagNameNS(Strophe69.NS.REACTIONS, "reactions")[0];
+  if (!reactions_element) {
+    return attrs;
+  }
+  const reaction_to_id = reactions_element.getAttribute("id");
+  if (!reaction_to_id) {
+    return attrs;
+  }
+  const reaction_elements = reactions_element.getElementsByTagName("reaction");
+  const emojis2 = Array.from(reaction_elements).map((el) => el.textContent).filter((e) => e);
+  let reacting_key;
+  if (attrs.type === "groupchat") {
+    const muc_attrs = (
+      /** @type {MUCMessageAttributes} */
+      attrs
+    );
+    const muc_chatbox = (
+      /** @type {import('../../plugins/muc/muc.js').default|undefined} */
+      chatbox
+    );
+    if (muc_attrs.occupant_id) {
+      reacting_key = muc_attrs.occupant_id;
+    } else if (muc_attrs.from_real_jid && muc_chatbox?.features?.get("nonanonymous")) {
+      reacting_key = muc_attrs.from_real_jid;
+    } else {
+      reacting_key = attrs.from;
+    }
+  } else {
+    reacting_key = Strophe69.getBareJidFromJid(attrs.from);
+  }
+  const reactions = { [reacting_key]: emojis2 };
+  return Object.assign(attrs, {
+    reaction_to_id,
+    reactions
+  });
+}
+__name(parseReactionsMessage, "parseReactionsMessage");
+
+// plugins/reactions/utils.js
+var { Strophe: Strophe70, u: u27 } = public_default.env;
+function getDuplicateMessageQueries(chatbox, queries, attrs) {
+  const reaction_to_id = (
+    /** @type {string|undefined} */
+    attrs.reaction_to_id
+  );
+  if (!reaction_to_id)
+    return queries;
+  const extra = [{ origin_id: reaction_to_id }, { msgid: reaction_to_id }];
+  if (chatbox.get("type") === "chatroom") {
+    extra.push({ [`stanza_id ${chatbox.get("jid")}`]: reaction_to_id });
+  }
+  return [...queries, ...extra];
+}
+__name(getDuplicateMessageQueries, "getDuplicateMessageQueries");
+function getUpdatedMessageAttributes(message, new_attrs, original_attrs) {
+  const incoming_reactions = original_attrs?.reactions;
+  if (!incoming_reactions)
+    return new_attrs;
+  const reactions = { ...message.get("reactions") || {} };
+  for (const key in incoming_reactions) {
+    if (incoming_reactions[key]?.length) {
+      reactions[key] = incoming_reactions[key];
+    } else {
+      delete reactions[key];
+    }
+  }
+  return { ...new_attrs, reactions };
+}
+__name(getUpdatedMessageAttributes, "getUpdatedMessageAttributes");
+function getErrorAttributesForMessage(message, new_attrs, original_attrs) {
+  if (original_attrs.reaction_to_id) {
+    const chatbox = message.collection?.chatbox;
+    const my_key = chatbox ? getOwnReactionJID(chatbox) : Strophe70.getBareJidFromJid(api_default4.connection.get().jid);
+    const reactions = { ...message.get("reactions") };
+    delete reactions[my_key];
+    new_attrs.reactions = reactions;
+  }
+  return new_attrs;
+}
+__name(getErrorAttributesForMessage, "getErrorAttributesForMessage");
+function onBeforeMessageCreated(chatbox, attrs, data) {
+  if (!attrs.reaction_to_id)
+    return data;
+  attrs.dangling_reaction = true;
+  chatbox.createMessage(attrs);
+  return { ...data, handled: true };
+}
+__name(onBeforeMessageCreated, "onBeforeMessageCreated");
+function onAfterMessageCreated(chatbox, message) {
+  const msgid = message.get("msgid");
+  const origin_id = message.get("origin_id");
+  const stanza_id_values = Object.keys(message.attributes).filter((k) => k.startsWith("stanza_id ")).map((k) => message.get(k)).filter(Boolean);
+  if (!msgid && !origin_id && !stanza_id_values.length)
+    return;
+  const danglings = chatbox.messages.models.filter((m) => {
+    if (!m.get("dangling_reaction"))
+      return false;
+    const reaction_to_id = m.get("reaction_to_id");
+    return reaction_to_id === msgid || reaction_to_id === origin_id || stanza_id_values.includes(reaction_to_id);
+  });
+  if (!danglings.length)
+    return;
+  const reactions = { ...message.get("reactions") || {} };
+  for (const dangling of danglings) {
+    const incoming = dangling.get("reactions") || {};
+    for (const jid in incoming) {
+      if (incoming[jid]?.length) {
+        reactions[jid] = incoming[jid];
+      } else {
+        delete reactions[jid];
+      }
+    }
+    dangling.destroy();
+  }
+  message.save({ reactions });
+}
+__name(onAfterMessageCreated, "onAfterMessageCreated");
+function getOwnReactionJID(chatbox) {
+  if (chatbox.get("type") === "chatroom") {
+    if (chatbox.get("occupant_id")) {
+      return chatbox.get("occupant_id");
+    }
+    if (chatbox.features?.get("nonanonymous")) {
+      return converse_default.session.get("bare_jid");
+    }
+    return `${chatbox.get("jid")}/${chatbox.get("nick")}`;
+  }
+  return Strophe70.getBareJidFromJid(api_default4.connection.get().jid);
+}
+__name(getOwnReactionJID, "getOwnReactionJID");
+Object.assign(u27, {
+  reactions: {
+    ...u27.reactions,
+    getOwnReactionJID
+  }
+});
+
+// plugins/reactions/plugin.js
+/**
+ * @module converse-reactions
+ * @copyright The Converse.js contributors
+ * @license Mozilla Public License (MPLv2)
+ * @description XEP-0444: Message Reactions - Headless core logic
+ */
+var { Strophe: Strophe71 } = public_default.env;
+Strophe71.addNamespace("REACTIONS", "urn:xmpp:reactions:0");
+public_default.plugins.add("converse-reactions", {
+  dependencies: ["converse-chat", "converse-muc", "converse-pubsub", "converse-emoji"],
+  initialize() {
+    api_default4.listen.on("parseMessage", parseReactionsMessage);
+    api_default4.listen.on("parseMUCMessage", parseReactionsMessage);
+    api_default4.listen.on("getDuplicateMessageQueries", getDuplicateMessageQueries);
+    api_default4.listen.on("getUpdatedMessageAttributes", getUpdatedMessageAttributes);
+    api_default4.listen.on("getErrorAttributesForMessage", getErrorAttributesForMessage);
+    api_default4.listen.on("beforeMessageCreated", onBeforeMessageCreated);
+    api_default4.listen.on("afterMessageCreated", onAfterMessageCreated);
+  }
+});
+
 // plugins/roster/contact.js
-import { getOpenPromise as getOpenPromise18 } from "@converse/openpromise";
+import { getOpenPromise as getOpenPromise19 } from "@converse/openpromise";
 import { Model as Model26 } from "@converse/skeletor";
 
 // plugins/status/api.js
-var api_default18 = {
+var idle_seconds = 0;
+var idle = false;
+var api_default17 = {
   /**
    * Set and get the user's chat status, also called their *availability*.
    * @namespace _converse.api.user.status
@@ -15464,7 +14995,6 @@ var api_default18 = {
   status: {
     /**
      * Return the current user's availability status.
-     * @async
      * @method _converse.api.user.status.get
      * @example _converse.api.user.status.get();
      */
@@ -15482,8 +15012,6 @@ var api_default18 = {
     },
     /**
      * The user's status can be set to one of the following values:
-     *
-     * @async
      * @method _converse.api.user.status.set
      * @param { string } value The user's chat status (e.g. 'away', 'dnd', 'offline', 'online', 'unavailable' or 'xa')
      * @param { string } [message] A custom status message
@@ -15517,9 +15045,8 @@ var api_default18 = {
      */
     message: {
       /**
-       * @async
        * @method _converse.api.user.status.message.get
-       * @returns { Promise<string> } The status message
+       * @returns {Promise<string>} The status message
        * @example const message = _converse.api.user.status.message.get()
        */
       async get() {
@@ -15527,9 +15054,8 @@ var api_default18 = {
         return converse_default.state.profile.get("status_message");
       },
       /**
-       * @async
        * @method _converse.api.user.status.message.set
-       * @param { string } status The status message
+       * @param {string} status The status message
        * @example _converse.api.user.status.message.set('In a meeting');
        */
       async set(status) {
@@ -15537,11 +15063,38 @@ var api_default18 = {
         converse_default.state.profile.save({ status_message: status });
       }
     }
+  },
+  /**
+   * Set and get the user's idle status
+   * @namespace _converse.api.user.idle
+   * @memberOf _converse.api.user
+   */
+  idle: {
+    /**
+     * @method _converse.api.user.idle.get
+     * @returns {import('./types').IdleStatus}
+     * @example _converse.api.user.idle.get();
+     */
+    get() {
+      return { idle, seconds: idle_seconds };
+    },
+    /**
+     * @method _converse.api.user.idle.set
+     * @param {import('./types').IdleStatus} status
+     */
+    set(status) {
+      if (status.idle) {
+        idle = status.idle;
+      }
+      if (typeof status.seconds === "number") {
+        idle_seconds = status.seconds;
+      }
+    }
   }
 };
 
 // plugins/roster/contact.js
-var { Strophe: Strophe68, $pres: $pres3, stx: stx19 } = public_default.env;
+var { Strophe: Strophe72, stx: stx26, u: u28 } = public_default.env;
 var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
   static {
     __name(this, "RosterContact");
@@ -15558,14 +15111,14 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
   async initialize(attrs) {
     this.lazy_load_vcard = true;
     super.initialize();
-    this.initialized = getOpenPromise18();
+    this.initialized = getOpenPromise19();
     await this.setPresence();
     const { jid } = attrs;
     this.set({
       ...attrs,
       ...{
-        jid: Strophe68.getBareJidFromJid(jid).toLowerCase(),
-        user_id: Strophe68.getNodeFromJid(jid)
+        jid: Strophe72.getBareJidFromJid(jid).toLowerCase(),
+        user_id: Strophe72.getNodeFromJid(jid)
       }
     });
     this.listenTo(this.presence, "change:show", () => api_default4.trigger("contactPresenceChanged", this));
@@ -15596,7 +15149,7 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
   }
   /**
    * Send a presence subscription request to this roster contact
-   * @param {string} message - An optional message to explain the
+   * @param {string} [message] - An optional message to explain the
    *      reason for the subscription request.
    */
   subscribe(message) {
@@ -15615,10 +15168,7 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
    * "subscribe" to the contact
    */
   ackSubscribe() {
-    api_default4.send($pres3({
-      "type": "subscribe",
-      "to": this.get("jid")
-    }));
+    api_default4.send(stx26`<presence type="subscribe" to="${this.get("jid")}" xmlns="jabber:client"></presence>`);
   }
   /**
    * Upon receiving the presence stanza of type "unsubscribed",
@@ -15628,7 +15178,7 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
    * send notification of the subscription state change to the user.
    */
   ackUnsubscribe() {
-    api_default4.send($pres3({ "type": "unsubscribe", "to": this.get("jid") }));
+    api_default4.send(stx26`<presence type="unsubscribe" to="${this.get("jid")}" xmlns="jabber:client"></presence>`);
     this.sendRosterRemoveStanza();
     this.destroy();
   }
@@ -15643,15 +15193,15 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
   }
   /**
    * Authorize presence subscription
-   * @param {string} message - Optional message to send to the person being authorized
+   * @param {string} [message] - Optional message to send to the person being authorized
    */
   authorize(message) {
-    api_default4.send(stx19`
+    api_default4.send(stx26`
             <presence
                 to="${this.get("jid")}"
                 type="subscribed"
                 xmlns="jabber:client">
-                    ${message && message !== "" ? stx19`<status>${message}</status>` : ""}
+                    ${message && message !== "" ? stx26`<status>${message}</status>` : ""}
             </presence>`);
     this.save({
       requesting: false,
@@ -15661,25 +15211,32 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
   }
   /**
    * Remove this contact from the roster
-   * @async
    * @param {boolean} [unauthorize] - Whether to also unauthorize the
    * @returns {Promise<Error|Element>}
    */
-  remove(unauthorize) {
+  async remove(unauthorize) {
     const subscription = this.get("subscription");
     if (subscription === "none" && this.get("ask") !== "subscribe") {
       this.destroy();
       return;
     }
     if (this.get("ask") === "subscribe" || subscription === "to") {
-      api_default4.send($pres3({ type: "unsubscribe", to: this.get("jid") }));
+      api_default4.send(stx26`<presence type="unsubscribe" to="${this.get("jid")}" xmlns="jabber:client"></presence>`);
     }
     if (unauthorize && ["from", "both"].includes(subscription)) {
       this.unauthorize();
     }
     const promise = this.sendRosterRemoveStanza();
-    if (this.collection) this.destroy();
-    return promise;
+    if (this.collection)
+      this.destroy();
+    try {
+      return await promise;
+    } catch (e) {
+      if (u28.isElement(e)) {
+        return e;
+      }
+      throw e;
+    }
   }
   /**
    * @param {import('./types').RosterContactUpdateAttrs} attrs
@@ -15688,12 +15245,12 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
   async update(attrs) {
     this.save(attrs);
     return await api_default4.sendIQ(
-      stx19`<iq xmlns="jabber:client" type="set">
-                <query xmlns="${Strophe68.NS.ROSTER}">
+      stx26`<iq xmlns="jabber:client" type="set">
+                <query xmlns="${Strophe72.NS.ROSTER}">
                     <item jid="${this.get("jid")}" name="${this.get("nickname")}">
                         ${this.get("groups")?.map(
         /** @param {string} group */
-        (group) => stx19`<group>${group}</group>`
+        (group) => stx26`<group>${group}</group>`
       )}
                     </item>
                 </query>
@@ -15705,8 +15262,8 @@ var RosterContact = class extends ModelWithVCard(ColorAwareModel(Model26)) {
    * @returns {Promise}
    */
   async sendRosterRemoveStanza() {
-    const iq = stx19`<iq type="set" xmlns="jabber:client">
-            <query xmlns="${Strophe68.NS.ROSTER}">
+    const iq = stx26`<iq type="set" xmlns="jabber:client">
+            <query xmlns="${Strophe72.NS.ROSTER}">
                 <item jid="${this.get("jid")}" subscription="remove"/>
             </query>
         </iq>`;
@@ -15721,7 +15278,7 @@ var contact_default = RosterContact;
 // plugins/roster/contacts.js
 import { Collection as Collection13, Model as Model27 } from "@converse/skeletor";
 import log48 from "@converse/log";
-var { Strophe: Strophe69, sizzle: sizzle23, stx: stx20, u: u27, Stanza: Stanza7 } = public_default.env;
+var { Strophe: Strophe73, sizzle: sizzle24, stx: stx27, u: u29, Stanza: Stanza11 } = public_default.env;
 var RosterContacts = class extends Collection13 {
   static {
     __name(this, "RosterContacts");
@@ -15734,7 +15291,10 @@ var RosterContacts = class extends Collection13 {
   initialize() {
     const bare_jid = converse_default.session.get("bare_jid");
     const id = `roster.state-${bare_jid}-${this.get("jid")}`;
-    this.state = new Model27({ id, "collapsed_groups": [] });
+    this.state = new Model27(
+      /** @type {import('./types').ContactsStateAttrs} */
+      { id, "collapsed_groups": [] }
+    );
     initStorage(this.state, id);
     this.state.fetch();
     api_default4.listen.on(
@@ -15767,7 +15327,7 @@ var RosterContacts = class extends Collection13 {
         converse_default.state.roster.onRosterPush(iq);
         return true;
       },
-      Strophe69.NS.ROSTER,
+      Strophe73.NS.ROSTER,
       "iq",
       "set"
     );
@@ -15790,7 +15350,7 @@ var RosterContacts = class extends Collection13 {
         t += msg.querySelectorAll("item").length * 250;
         return true;
       },
-      Strophe69.NS.ROSTERX,
+      Strophe73.NS.ROSTERX,
       "message",
       null
     );
@@ -15806,10 +15366,10 @@ var RosterContacts = class extends Collection13 {
         add: true,
         silent: true,
         success: resolve,
-        error: /* @__PURE__ */ __name((_, e) => reject(e), "error")
+        error: (_, e) => reject(e)
       });
     });
-    if (u27.isErrorObject(result)) {
+    if (u29.isErrorObject(result)) {
       log48.error(result);
       converse_default.session.save("roster_cached", false);
       this.data.save("version", void 0);
@@ -15840,7 +15400,7 @@ var RosterContacts = class extends Collection13 {
    * @param {string} jid
    */
   isSelf(jid) {
-    return u27.isSameBareJID(jid, api_default4.connection.get().jid);
+    return u29.isSameBareJID(jid, api_default4.connection.get().jid);
   }
   /**
    * Send an IQ stanza to the XMPP server to add a new roster contact.
@@ -15849,13 +15409,13 @@ var RosterContacts = class extends Collection13 {
   sendContactAddIQ(attributes) {
     const { jid, groups } = attributes;
     const name = attributes.name ? attributes.name : null;
-    const iq = stx20`
+    const iq = stx27`
             <iq type="set" xmlns="jabber:client">
-                <query xmlns="${Strophe69.NS.ROSTER}">
-                    <item jid="${jid}" ${name ? Stanza7.unsafeXML(`name="${Strophe69.xmlescape(name)}"`) : ""}>
+                <query xmlns="${Strophe73.NS.ROSTER}">
+                    <item jid="${jid}" ${name ? Stanza11.unsafeXML(`name="${Strophe73.xmlescape(name)}"`) : ""}>
                         ${groups?.map(
       /** @param {string} g */
-      (g) => stx20`<group>${g}</group>`
+      (g) => stx27`<group>${g}</group>`
     )}
                     </item>
                 </query>
@@ -15874,7 +15434,8 @@ var RosterContacts = class extends Collection13 {
    */
   async addContact(attributes, persist = true, subscribe = true, message = "") {
     const { jid, name } = attributes ?? {};
-    if (!jid || !u27.isValidJID(jid)) throw new Error("Invalid JID provided to addContact");
+    if (!jid || !u29.isValidJID(jid))
+      throw new Error("Invalid JID provided to addContact");
     await api_default4.waitUntil("rosterContactsFetched");
     if (persist) {
       try {
@@ -15899,7 +15460,8 @@ var RosterContacts = class extends Collection13 {
       },
       { sort: false }
     );
-    if (subscribe) contact.subscribe(message);
+    if (contact && subscribe)
+      contact.subscribe(message);
     return contact;
   }
   /**
@@ -15916,7 +15478,7 @@ var RosterContacts = class extends Collection13 {
     if (contact instanceof RosterContact2) {
       contact.authorize().subscribe();
     } else {
-      const nickname = sizzle23(`nick[xmlns="${Strophe69.NS.NICK}"]`, presence).pop()?.textContent || void 0;
+      const nickname = sizzle24(`nick[xmlns="${Strophe73.NS.NICK}"]`, presence).pop()?.textContent || void 0;
       const contact2 = await this.addContact({
         jid: bare_jid,
         name: nickname,
@@ -15941,10 +15503,10 @@ var RosterContacts = class extends Collection13 {
       log48.warn(`Ignoring roster illegitimate roster push message from ${iq.getAttribute("from")}`);
       return;
     }
-    api_default4.send(stx20`<iq type="result" id="${id}" from="${api_default4.connection.get().jid}" xmlns="jabber:client" />`);
-    const query = sizzle23(`query[xmlns="${Strophe69.NS.ROSTER}"]`, iq).pop();
+    api_default4.send(stx27`<iq type="result" id="${id}" from="${api_default4.connection.get().jid}" xmlns="jabber:client" />`);
+    const query = sizzle24(`query[xmlns="${Strophe73.NS.ROSTER}"]`, iq).pop();
     this.data.save("version", query.getAttribute("ver"));
-    const items = sizzle23(`item`, query);
+    const items = sizzle24(`item`, query);
     if (items.length > 1) {
       log48.error(iq);
       throw new Error('Roster push query may not contain more than one "item" element.');
@@ -15967,17 +15529,17 @@ var RosterContacts = class extends Collection13 {
    * @returns {Promise}
    */
   async fetchFromServer() {
-    const stanza = stx20`
-            <iq type="get" id="${u27.getUniqueId("roster")}" xmlns="jabber:client">
-                <query xmlns="${Strophe69.NS.ROSTER}"
-                    ${this.shouldUseRosterVersioning() ? Stanza7.unsafeXML(`ver="${this.data.get("version")}"`) : ""}>
+    const stanza = stx27`
+            <iq type="get" id="${u29.getUniqueId("roster")}" xmlns="jabber:client">
+                <query xmlns="${Strophe73.NS.ROSTER}"
+                    ${this.shouldUseRosterVersioning() ? Stanza11.unsafeXML(`ver="${this.data.get("version")}"`) : ""}>
                 </query>
             </iq>`;
     const iq = await api_default4.sendIQ(stanza, null, false);
     if (iq.getAttribute("type") === "result") {
-      const query = sizzle23(`query[xmlns="${Strophe69.NS.ROSTER}"]`, iq).pop();
+      const query = sizzle24(`query[xmlns="${Strophe73.NS.ROSTER}"]`, iq).pop();
       if (query) {
-        const items = sizzle23(`item`, query);
+        const items = sizzle24(`item`, query);
         if (!this.data.get("version") && this.models.length) {
           const jids = items.map(
             /** @param {Element} item */
@@ -15988,7 +15550,7 @@ var RosterContacts = class extends Collection13 {
         items.forEach((item) => this.updateContact(item));
         this.data.save("version", query.getAttribute("ver"));
       }
-    } else if (!u27.isServiceUnavailableError(iq)) {
+    } else if (!u29.isServiceUnavailableError(iq)) {
       log48.error(iq);
       log48.error("Error while trying to fetch roster from the server");
       return;
@@ -16010,7 +15572,7 @@ var RosterContacts = class extends Collection13 {
     }
     const ask = item.getAttribute("ask");
     const nickname = item.getAttribute("name");
-    const groups = [...new Set(sizzle23("group", item).map((e) => e.textContent))];
+    const groups = [...new Set(sizzle24("group", item).map((e) => e.textContent?.trim()).filter((n) => n))];
     if (contact) {
       contact.save({ subscription, ask, nickname, groups, "requesting": null });
     } else {
@@ -16021,8 +15583,8 @@ var RosterContacts = class extends Collection13 {
    * @param {Element} presence
    */
   createRequestingContact(presence) {
-    const jid = Strophe69.getBareJidFromJid(presence.getAttribute("from"));
-    const nickname = sizzle23(`nick[xmlns="${Strophe69.NS.NICK}"]`, presence).pop()?.textContent || null;
+    const jid = Strophe73.getBareJidFromJid(presence.getAttribute("from"));
+    const nickname = sizzle24(`nick[xmlns="${Strophe73.NS.NICK}"]`, presence).pop()?.textContent || null;
     const user_data = {
       jid,
       subscription: "none",
@@ -16038,7 +15600,7 @@ var RosterContacts = class extends Collection13 {
   handleIncomingSubscription(presence) {
     /*! TOFIND */
     return;
-    const jid = presence.getAttribute("from"), bare_jid = Strophe69.getBareJidFromJid(jid), contact = this.get(bare_jid);
+    const jid = presence.getAttribute("from"), bare_jid = Strophe73.getBareJidFromJid(jid), contact = this.get(bare_jid);
     if (!api_default4.settings.get("allow_contact_requests")) {
       const { __ } = converse_default;
       rejectPresenceSubscription(jid, __("This client does not allow presence subscriptions"));
@@ -16066,14 +15628,15 @@ var RosterContacts = class extends Collection13 {
    */
   handleOwnPresence(stanza) {
     const jid = stanza.getAttribute("from");
-    const resource = Strophe69.getResourceFromJid(jid);
+    const resource = Strophe73.getResourceFromJid(jid);
     const presence_type = stanza.getAttribute("type");
     const { profile } = converse_default.state;
     if (api_default4.connection.get().jid !== jid && presence_type !== "unavailable" && (api_default4.settings.get("synchronize_availability") === true || api_default4.settings.get("synchronize_availability") === resource)) {
       const show = stanza.querySelector("show")?.textContent;
       profile.save({ show, presence: "online" }, { silent: true });
       const status_message = stanza.querySelector("status")?.textContent;
-      if (status_message) profile.save({ status_message });
+      if (status_message)
+        profile.save({ status_message });
     }
     if (converse_default.session.get("jid") === jid && presence_type === "unavailable") {
       api_default4.user.presence.send();
@@ -16084,18 +15647,20 @@ var RosterContacts = class extends Collection13 {
    */
   presenceHandler(presence) {
     const presence_type = presence.getAttribute("type");
-    if (presence_type === "error") return true;
+    if (presence_type === "error")
+      return true;
     const jid = presence.getAttribute("from");
-    const bare_jid = Strophe69.getBareJidFromJid(jid);
+    const bare_jid = Strophe73.getBareJidFromJid(jid);
     if (this.isSelf(bare_jid)) {
       return this.handleOwnPresence(presence);
-    } else if (sizzle23(`query[xmlns="${Strophe69.NS.MUC}"]`, presence).length) {
+    } else if (sizzle24(`query[xmlns="${Strophe73.NS.MUC}"]`, presence).length) {
       return;
     }
     const contact = this.get(bare_jid);
     if (contact) {
       const status = presence.querySelector("status")?.textContent;
-      if (contact.get("status") !== status) contact.save({ status });
+      if (contact.get("status") !== status)
+        contact.save({ status });
     }
     if (presence_type === "subscribed" && contact) {
       contact.ackSubscribe();
@@ -16106,7 +15671,7 @@ var RosterContacts = class extends Collection13 {
     } else if (presence_type === "subscribe") {
       this.handleIncomingSubscription(presence);
     } else if (presence_type === "unavailable" && contact) {
-      const resource = Strophe69.getResourceFromJid(jid);
+      const resource = Strophe73.getResourceFromJid(jid);
       contact.presence.removeResource(resource);
     } else if (contact) {
       contact.presence.addResource(presence);
@@ -16146,15 +15711,15 @@ var resources_default = Resources;
 import { Model as Model29 } from "@converse/skeletor";
 
 // plugins/roster/parsers.js
-var { Strophe: Strophe70, sizzle: sizzle24, dayjs: dayjs7 } = public_default.env;
+var { Strophe: Strophe74, sizzle: sizzle25, dayjs: dayjs7 } = public_default.env;
 function parsePresence(stanza) {
   const jid = stanza.getAttribute("from");
   const type = (
     /** @type {import('./types').PresenceTypes} */
     stanza.getAttribute("type")
   );
-  const resource = Strophe70.getResourceFromJid(jid);
-  const delay = sizzle24(`delay[xmlns="${Strophe70.NS.DELAY}"]`, stanza).pop();
+  const resource = Strophe74.getResourceFromJid(jid);
+  const delay = sizzle25(`delay[xmlns="${Strophe74.NS.DELAY}"]`, stanza).pop();
   const priority = stanza.querySelector("priority")?.textContent;
   const show = (
     /** @type {import('./types').PresenceShowValues|undefined} */
@@ -16181,8 +15746,10 @@ var Presence = class extends Model29 {
   }
   defaults() {
     return {
-      presence: "offline",
-      show: null
+      presence: (
+        /** @type {import('./types').PresenceTypes | 'offline'} */
+        "offline"
+      )
     };
   }
   initialize() {
@@ -16262,121 +15829,7 @@ var presences_default = Presences;
 
 // plugins/status/profile.js
 import { Model as Model30 } from "@converse/skeletor";
-
-// plugins/status/utils.js
-var { Strophe: Strophe71, $build: $build4 } = public_default.env;
-function onStatusInitialized3(reconnecting) {
-  api_default4.trigger("statusInitialized", reconnecting);
-}
-__name(onStatusInitialized3, "onStatusInitialized");
-function initStatus(reconnecting) {
-  reconnecting = converse_default.state.profile === void 0 ? false : reconnecting;
-  if (reconnecting) {
-    onStatusInitialized3(reconnecting);
-  } else {
-    const id = `converse.xmppstatus-${converse_default.session.get("bare_jid")}`;
-    converse_default.state.profile = new converse_default.exports.Profile({ id });
-    converse_default.state.xmppstatus = converse_default.state.profile;
-    Object.assign(converse_default, { xmppstatus: converse_default.state.profile });
-    initStorage(converse_default.state.profile, id, "session");
-    converse_default.state.profile.fetch({
-      success: /* @__PURE__ */ __name(() => onStatusInitialized3(reconnecting), "success"),
-      error: /* @__PURE__ */ __name(() => onStatusInitialized3(reconnecting), "error"),
-      silent: true
-    });
-  }
-}
-__name(initStatus, "initStatus");
-var idle_seconds = 0;
-var idle = false;
-var auto_changed_status = false;
-var inactive = false;
-function isIdle() {
-  return idle;
-}
-__name(isIdle, "isIdle");
-function getIdleSeconds() {
-  return idle_seconds;
-}
-__name(getIdleSeconds, "getIdleSeconds");
-function onUserActivity() {
-  if (idle_seconds > 0) {
-    idle_seconds = 0;
-  }
-  if (!api_default4.connection.get()?.authenticated) {
-    return;
-  }
-  if (inactive) sendCSI(ACTIVE);
-  if (idle) {
-    idle = false;
-    api_default4.user.presence.send();
-  }
-  if (auto_changed_status === true) {
-    auto_changed_status = false;
-    converse_default.state.profile.set("show", void 0);
-  }
-}
-__name(onUserActivity, "onUserActivity");
-function onEverySecond() {
-  if (!api_default4.connection.get()?.authenticated) {
-    return;
-  }
-  const { profile } = converse_default.state;
-  const show = profile.get("show");
-  idle_seconds++;
-  if (api_default4.settings.get("csi_waiting_time") > 0 && idle_seconds > api_default4.settings.get("csi_waiting_time") && !inactive) {
-    sendCSI(INACTIVE);
-  }
-  if (api_default4.settings.get("idle_presence_timeout") > 0 && idle_seconds > api_default4.settings.get("idle_presence_timeout") && !idle) {
-    idle = true;
-    api_default4.user.presence.send();
-  }
-  if (api_default4.settings.get("auto_away") > 0 && idle_seconds > api_default4.settings.get("auto_away") && show !== "away" && show !== "xa" && show !== "dnd") {
-    auto_changed_status = true;
-    profile.set("show", "away");
-  } else if (api_default4.settings.get("auto_xa") > 0 && idle_seconds > api_default4.settings.get("auto_xa") && show !== "xa" && show !== "dnd") {
-    auto_changed_status = true;
-    profile.set("show", "xa");
-  }
-}
-__name(onEverySecond, "onEverySecond");
-function sendCSI(stat) {
-  api_default4.send($build4(stat, { xmlns: Strophe71.NS.CSI }));
-  inactive = stat === INACTIVE ? true : false;
-}
-__name(sendCSI, "sendCSI");
-var everySecondTrigger;
-function registerIntervalHandler() {
-  if (api_default4.settings.get("auto_away") < 1 && api_default4.settings.get("auto_xa") < 1 && api_default4.settings.get("csi_waiting_time") < 1 && api_default4.settings.get("idle_presence_timeout") < 1) {
-    return;
-  }
-  idle_seconds = 0;
-  auto_changed_status = false;
-  const { onUserActivity: onUserActivity2, onEverySecond: onEverySecond2 } = converse_default.exports;
-  window.addEventListener("click", onUserActivity2);
-  window.addEventListener("focus", onUserActivity2);
-  window.addEventListener("keypress", onUserActivity2);
-  window.addEventListener("mousemove", onUserActivity2);
-  window.addEventListener(getUnloadEvent(), onUserActivity2, { "once": true, "passive": true });
-  everySecondTrigger = setInterval(onEverySecond2, 1e3);
-}
-__name(registerIntervalHandler, "registerIntervalHandler");
-function tearDown2() {
-  const { onUserActivity: onUserActivity2 } = converse_default.exports;
-  window.removeEventListener("click", onUserActivity2);
-  window.removeEventListener("focus", onUserActivity2);
-  window.removeEventListener("keypress", onUserActivity2);
-  window.removeEventListener("mousemove", onUserActivity2);
-  window.removeEventListener(getUnloadEvent(), onUserActivity2);
-  if (everySecondTrigger) {
-    clearInterval(everySecondTrigger);
-    everySecondTrigger = null;
-  }
-}
-__name(tearDown2, "tearDown");
-
-// plugins/status/profile.js
-var { Stanza: Stanza8, Strophe: Strophe72, stx: stx21 } = public_default.env;
+var { Stanza: Stanza12, Strophe: Strophe75, stx: stx28 } = public_default.env;
 var Profile = class extends ModelWithVCard(ColorAwareModel(Model30)) {
   static {
     __name(this, "Profile");
@@ -16390,7 +15843,7 @@ var Profile = class extends ModelWithVCard(ColorAwareModel(Model30)) {
     };
   }
   /**
-   * @return {import('./types').connection_status}
+   * @return {import('./types').ConnectionStatus}
    */
   getStatus() {
     const presence = this.get("presence");
@@ -16399,9 +15852,6 @@ var Profile = class extends ModelWithVCard(ColorAwareModel(Model30)) {
     }
     return this.get("show") || presence || "offline";
   }
-  /**
-   * @param {string} attr
-   */
   get(attr) {
     if (attr === "jid") {
       return converse_default.session.get("bare_jid");
@@ -16445,7 +15895,7 @@ var Profile = class extends ModelWithVCard(ColorAwareModel(Model30)) {
   }
   /**
    * Constructs a presence stanza
-   * @param {import('./types').presence_attrs} [attrs={}]
+   * @param {import('./types').PresenceAttrs} [attrs={}]
    * @returns {Promise<Stanza>}
    */
   async constructPresence(attrs = {}) {
@@ -16456,59 +15906,63 @@ var Profile = class extends ModelWithVCard(ColorAwareModel(Model30)) {
     const include_nick = type === "subscribe";
     const nick = include_nick ? profile.getNickname() : null;
     const priority = api_default4.settings.get("priority");
+    const { idle: is_idle, seconds: idle_seconds2 } = api_default4.user.idle.get();
     let idle_since;
-    if (isIdle()) {
+    if (is_idle) {
       idle_since = /* @__PURE__ */ new Date();
-      idle_since.setSeconds(idle_since.getSeconds() - getIdleSeconds());
+      idle_since.setSeconds(idle_since.getSeconds() - idle_seconds2);
     }
-    const presence = stx21`
-            <presence ${to ? Stanza8.unsafeXML(`to="${Strophe72.xmlescape(to)}"`) : ""}
-                    ${type ? Stanza8.unsafeXML(`type="${Strophe72.xmlescape(type)}"`) : ""}
+    const presence = stx28`
+            <presence ${to ? Stanza12.unsafeXML(`to="${Strophe75.xmlescape(to)}"`) : ""}
+                    ${type ? Stanza12.unsafeXML(`type="${Strophe75.xmlescape(type)}"`) : ""}
                     xmlns="jabber:client">
-                ${nick ? stx21`<nick xmlns="${Strophe72.NS.NICK}">${nick}</nick>` : ""}
-                ${show ? stx21`<show>${show}</show>` : ""}
-                ${status ? stx21`<status>${status}</status>` : ""}
+                ${nick ? stx28`<nick xmlns="${Strophe75.NS.NICK}">${nick}</nick>` : ""}
+                ${show ? stx28`<show>${show}</show>` : ""}
+                ${status ? stx28`<status>${status}</status>` : ""}
                 <priority>${Number.isNaN(Number(priority)) ? 0 : priority}</priority>
-                ${idle_since ? stx21`<idle xmlns="${Strophe72.NS.IDLE}" since="${idle_since.toISOString()}"></idle>` : ""}
+                ${idle_since ? stx28`<idle xmlns="${Strophe75.NS.IDLE}" since="${idle_since.toISOString()}"></idle>` : ""}
             </presence>`;
     return await api_default4.hook("constructedPresence", null, presence);
   }
 };
 
+// plugins/status/utils.js
+function onStatusInitialized3(reconnecting) {
+  api_default4.trigger("statusInitialized", reconnecting);
+}
+__name(onStatusInitialized3, "onStatusInitialized");
+function initStatus(reconnecting) {
+  reconnecting = converse_default.state.profile === void 0 ? false : reconnecting;
+  if (reconnecting) {
+    onStatusInitialized3(reconnecting);
+  } else {
+    const id = `converse.xmppstatus-${converse_default.session.get("bare_jid")}`;
+    converse_default.state.profile = new converse_default.exports.Profile({ id });
+    converse_default.state.xmppstatus = converse_default.state.profile;
+    Object.assign(converse_default, { xmppstatus: converse_default.state.profile });
+    initStorage(converse_default.state.profile, id, "session");
+    converse_default.state.profile.fetch({
+      success: () => onStatusInitialized3(reconnecting),
+      error: () => onStatusInitialized3(reconnecting),
+      silent: true
+    });
+  }
+}
+__name(initStatus, "initStatus");
+
 // plugins/status/plugin.js
-var { Strophe: Strophe73 } = public_default.env;
-Strophe73.addNamespace("IDLE", "urn:xmpp:idle:1");
 public_default.plugins.add("converse-status", {
   initialize() {
-    api_default4.settings.extend({
-      auto_away: 0,
-      // Seconds after which user status is set to 'away'
-      auto_xa: 0,
-      // Seconds after which user status is set to 'xa'
-      csi_waiting_time: 0,
-      // Support for XEP-0352. Seconds before client is considered idle and CSI is sent out.
-      idle_presence_timeout: 300,
-      // Seconds after which an idle presence is sent
-      priority: 0
-    });
+    api_default4.settings.extend({ priority: 0 });
     api_default4.promises.add(["statusInitialized"]);
     const exports = {
       XMPPStatus: Profile,
       // Deprecated
-      Profile,
-      onUserActivity,
-      onEverySecond,
-      sendCSI,
-      registerIntervalHandler
+      Profile
     };
     Object.assign(converse_default, exports);
     Object.assign(converse_default.exports, exports);
-    Object.assign(converse_default.api.user, api_default18);
-    if (api_default4.settings.get("idle_presence_timeout") > 0) {
-      api_default4.listen.on("addClientFeatures", () => api_default4.disco.own.features.add(Strophe73.NS.IDLE));
-    }
-    api_default4.listen.on("presencesInitialized", (reconnecting) => !reconnecting && registerIntervalHandler());
-    api_default4.listen.on("beforeTearDown", tearDown2);
+    Object.assign(converse_default.api.user, api_default17);
     api_default4.listen.on("clearSession", () => {
       if (shouldClearCache(converse_default) && converse_default.state.profile) {
         converse_default.state.profile.destroy();
@@ -16523,8 +15977,8 @@ public_default.plugins.add("converse-status", {
 });
 
 // plugins/roster/api.js
-var { Strophe: Strophe74 } = public_default.env;
-var api_default19 = {
+var { Strophe: Strophe76 } = public_default.env;
+var api_default18 = {
   /**
    * @namespace _converse.api.contacts
    * @memberOf _converse.api
@@ -16568,7 +16022,7 @@ var api_default19 = {
       const { roster } = converse_default.state;
       const _getter = (
         /** @param {string} jid */
-        /* @__PURE__ */ __name((jid) => roster.get(Strophe74.getBareJidFromJid(jid)), "_getter")
+        /* @__PURE__ */ __name((jid) => roster.get(Strophe76.getBareJidFromJid(jid)), "_getter")
       );
       if (jids === void 0) {
         jids = roster.pluck("jid");
@@ -16597,14 +16051,15 @@ var api_default19 = {
      * @param {boolean} [persist=true] - Whether the contact should be persisted to the user's roster.
      * @param {boolean} [subscribe=true] - Whether we should subscribe to the contacts presence updates.
      * @param {string} [message=''] - An optional message to include with the presence subscription
-     * @param {boolean} subscribe - Whether a presense subscription should
+     * @param {boolean} subscribe - Whether a presence subscription should
      *      be sent out to the contact being added.
      * @returns {Promise<RosterContact>}
      * @example
      *      api.contacts.add({ jid: 'buddy@example.com', groups: ['Buddies'] })
      */
     async add(attributes, persist = true, subscribe = true, message = "") {
-      if (!isValidJID(attributes?.jid)) throw new Error("api.contacts.add: Valid JID required");
+      if (!isValidJID(attributes?.jid))
+        throw new Error("api.contacts.add: Valid JID required");
       const { roster } = converse_default.state;
       return roster.addContact(attributes, persist, subscribe, message);
     }
@@ -16633,7 +16088,7 @@ public_default.plugins.add("converse-roster", {
       "rosterInitialized",
       "presencesInitialized"
     ]);
-    Object.assign(converse_default.api, api_default19);
+    Object.assign(converse_default.api, api_default18);
     Object.assign(utils_default, { roster: { isUnsavedContact } });
     const { __ } = converse_default;
     const labels = {
@@ -16650,7 +16105,6 @@ public_default.plugins.add("converse-roster", {
     Object.assign(converse_default, exports);
     Object.assign(converse_default.exports, exports);
     api_default4.listen.on("beforeTearDown", () => unregisterPresenceHandler2());
-    api_default4.listen.on("chatBoxesInitialized", onChatBoxesInitialized);
     api_default4.listen.on("clearSession", onClearSession2);
     api_default4.listen.on("presencesInitialized", onPresencesInitialized);
     api_default4.listen.on("statusInitialized", onStatusInitialized2);
@@ -16661,13 +16115,13 @@ public_default.plugins.add("converse-roster", {
 
 // plugins/smacks/utils.js
 import log49 from "@converse/log";
-import { getOpenPromise as getOpenPromise19 } from "@converse/openpromise";
-var { Strophe: Strophe75, u: u28, stx: stx22 } = public_default.env;
+import { getOpenPromise as getOpenPromise20 } from "@converse/openpromise";
+var { Strophe: Strophe77, u: u30, stx: stx29 } = public_default.env;
 function isStreamManagementSupported() {
   if (api_default4.connection.isType("bosh") && !isTestEnv()) {
     return false;
   }
-  return api_default4.disco.stream.getFeature("sm", Strophe75.NS.SM);
+  return api_default4.disco.stream.getFeature("sm", Strophe77.NS.SM);
 }
 __name(isStreamManagementSupported, "isStreamManagementSupported");
 function handleAck(el) {
@@ -16697,7 +16151,7 @@ __name(handleAck, "handleAck");
 function sendAck() {
   if (converse_default.session.get("smacks_enabled")) {
     const h = converse_default.session.get("num_stanzas_handled");
-    const stanza = stx22`<a xmlns="${Strophe75.NS.SM}" h="${h}"/>`;
+    const stanza = stx29`<a xmlns="${Strophe77.NS.SM}" h="${h}"/>`;
     api_default4.send(stanza);
   }
   return true;
@@ -16705,7 +16159,7 @@ function sendAck() {
 __name(sendAck, "sendAck");
 function stanzaHandler(el) {
   if (converse_default.session.get("smacks_enabled")) {
-    if (u28.isTagEqual(el, "iq") || u28.isTagEqual(el, "presence") || u28.isTagEqual(el, "message")) {
+    if (u30.isTagEqual(el, "iq") || u30.isTagEqual(el, "presence") || u30.isTagEqual(el, "message")) {
       const h = converse_default.session.get("num_stanzas_handled");
       converse_default.session.save("num_stanzas_handled", h + 1);
     }
@@ -16726,8 +16180,9 @@ function initSessionData() {
 __name(initSessionData, "initSessionData");
 function resetSessionData() {
   const { session } = converse_default;
-  u28.safeSave(session, {
+  u30.safeSave(session, {
     smacks_enabled: false,
+    smacks_stream_id: null,
     num_stanzas_handled: 0,
     num_stanzas_handled_by_server: 0,
     num_stanzas_since_last_ack: 0,
@@ -16750,10 +16205,8 @@ function onFailedStanza(el) {
   if (el.querySelector("item-not-found")) {
     log49.warn("Could not resume previous SMACKS session, session id not found. A new session will be established.");
   } else {
-    log49.error("Failed to enable stream management");
-    log49.error(el.outerHTML);
-    const connection2 = api_default4.connection.get();
-    connection2._changeConnectStatus(Strophe75.Status.DISCONNECTED, null);
+    log49.warn("Failed to resume previous SMACKS session. A new session will be established.");
+    log49.warn(el.outerHTML);
   }
   return true;
 }
@@ -16761,7 +16214,7 @@ __name(onFailedStanza, "onFailedStanza");
 function resendUnackedStanzas() {
   const stanzas = converse_default.session.get("unacked_stanzas");
   converse_default.session.save("unacked_stanzas", []);
-  stanzas.forEach((s) => api_default4.send(u28.toStanza(s)));
+  stanzas.forEach((s) => api_default4.send(u30.toStanza(s)));
 }
 __name(resendUnackedStanzas, "resendUnackedStanzas");
 function onResumedStanza(el) {
@@ -16772,17 +16225,18 @@ function onResumedStanza(el) {
   connection2.do_bind = false;
   connection2.authenticated = true;
   connection2.restored = true;
-  connection2._changeConnectStatus(Strophe75.Status.CONNECTED, null);
+  converse_default.session.save("smacks_resumed", true);
+  connection2._changeConnectStatus(Strophe77.Status.CONNECTED, null);
 }
 __name(onResumedStanza, "onResumedStanza");
 async function sendResumeStanza() {
-  const promise = getOpenPromise19();
+  const promise = getOpenPromise20();
   const connection2 = api_default4.connection.get();
-  connection2._addSysHandler((el) => promise.resolve(onResumedStanza(el)), Strophe75.NS.SM, "resumed");
-  connection2._addSysHandler((el) => promise.resolve(onFailedStanza(el)), Strophe75.NS.SM, "failed");
+  connection2._addSysHandler((el) => promise.resolve(onResumedStanza(el)), Strophe77.NS.SM, "resumed");
+  connection2._addSysHandler((el) => promise.resolve(onFailedStanza(el)), Strophe77.NS.SM, "failed");
   const previous_id = converse_default.session.get("smacks_stream_id");
   const h = converse_default.session.get("num_stanzas_handled");
-  const stanza = stx22`<resume xmlns="${Strophe75.NS.SM}" h="${h}" previd="${previous_id}"/>`;
+  const stanza = stx29`<resume xmlns="${Strophe77.NS.SM}" h="${h}" previd="${previous_id}"/>`;
   api_default4.send(stanza);
   connection2.flush();
   await promise;
@@ -16793,12 +16247,12 @@ async function sendEnableStanza() {
     return;
   }
   if (await isStreamManagementSupported()) {
-    const promise = getOpenPromise19();
+    const promise = getOpenPromise20();
     const connection2 = api_default4.connection.get();
-    connection2._addSysHandler((el) => promise.resolve(saveSessionData(el)), Strophe75.NS.SM, "enabled");
-    connection2._addSysHandler((el) => promise.resolve(onFailedStanza(el)), Strophe75.NS.SM, "failed");
+    connection2._addSysHandler((el) => promise.resolve(saveSessionData(el)), Strophe77.NS.SM, "enabled");
+    connection2._addSysHandler((el) => promise.resolve(onFailedStanza(el)), Strophe77.NS.SM, "failed");
     const resume = api_default4.connection.isType("websocket") || isTestEnv();
-    const stanza = stx22`<enable xmlns="${Strophe75.NS.SM}" resume="${resume}"/>`;
+    const stanza = stx29`<enable xmlns="${Strophe77.NS.SM}" resume="${resume}"/>`;
     api_default4.send(stanza);
     connection2.flush();
     await promise;
@@ -16818,8 +16272,8 @@ async function enableStreamManagement() {
     conn.deleteHandler(smacks_handlers.pop());
   }
   smacks_handlers.push(conn.addHandler(stanzaHandler));
-  smacks_handlers.push(conn.addHandler(sendAck, Strophe75.NS.SM, "r"));
-  smacks_handlers.push(conn.addHandler(handleAck, Strophe75.NS.SM, "a"));
+  smacks_handlers.push(conn.addHandler(sendAck, Strophe77.NS.SM, "r"));
+  smacks_handlers.push(conn.addHandler(handleAck, Strophe77.NS.SM, "a"));
   const { session } = converse_default;
   if (session?.get("smacks_stream_id")) {
     await sendResumeStanza();
@@ -16836,8 +16290,8 @@ function onStanzaSent(stanza) {
   if (!converse_default.session.get("smacks_enabled")) {
     return;
   }
-  if (u28.isTagEqual(stanza, "iq") || u28.isTagEqual(stanza, "presence") || u28.isTagEqual(stanza, "message")) {
-    const stanza_string = Strophe75.serialize(stanza);
+  if (u30.isTagEqual(stanza, "iq") || u30.isTagEqual(stanza, "presence") || u30.isTagEqual(stanza, "message")) {
+    const stanza_string = Strophe77.serialize(stanza);
     converse_default.session.save(
       "unacked_stanzas",
       (converse_default.session.get("unacked_stanzas") || []).concat([stanza_string])
@@ -16846,13 +16300,19 @@ function onStanzaSent(stanza) {
     if (max_unacked > 0) {
       const num = converse_default.session.get("num_stanzas_since_last_ack") + 1;
       if (num % max_unacked === 0) {
-        api_default4.send(stx22`<r xmlns="${Strophe75.NS.SM}"/>`);
+        api_default4.send(stx29`<r xmlns="${Strophe77.NS.SM}"/>`);
       }
       converse_default.session.save({ "num_stanzas_since_last_ack": num });
     }
   }
 }
 __name(onStanzaSent, "onStanzaSent");
+function onWillReconnect() {
+  if (converse_default.session.get("smacks_resumed")) {
+    resetSessionData();
+  }
+}
+__name(onWillReconnect, "onWillReconnect");
 
 // plugins/smacks/index.js
 /**
@@ -16860,16 +16320,17 @@ __name(onStanzaSent, "onStanzaSent");
  * @license Mozilla Public License (MPLv2)
  * @description Converse.js plugin which adds support for XEP-0198: Stream Management
  */
-var { Strophe: Strophe76 } = public_default.env;
-Strophe76.addNamespace("SM", "urn:xmpp:sm:3");
+var { Strophe: Strophe78 } = public_default.env;
+Strophe78.addNamespace("SM", "urn:xmpp:sm:3");
 public_default.plugins.add("converse-smacks", {
   initialize() {
     api_default4.settings.extend({
-      "enable_smacks": true,
-      "smacks_max_unacked_stanzas": 5
+      enable_smacks: true,
+      smacks_max_unacked_stanzas: 5
     });
     api_default4.listen.on("afterResourceBinding", sendEnableStanza);
     api_default4.listen.on("beforeResourceBinding", enableStreamManagement);
+    api_default4.listen.on("will-reconnect", onWillReconnect);
     api_default4.listen.on("send", onStanzaSent);
     api_default4.listen.on("userSessionInitialized", initSessionData);
   }
@@ -16912,7 +16373,7 @@ var vcard_default = VCard;
 
 // plugins/vcard/vcards.js
 import { Collection as Collection16 } from "@converse/skeletor";
-import { getOpenPromise as getOpenPromise20 } from "@converse/openpromise";
+import { getOpenPromise as getOpenPromise21 } from "@converse/openpromise";
 var VCards = class extends Collection16 {
   static {
     __name(this, "VCards");
@@ -16930,11 +16391,11 @@ var VCards = class extends Collection16 {
     api_default4.trigger("VCardsInitialized");
   }
   fetchVCards() {
-    const deferred = getOpenPromise20();
+    const deferred = getOpenPromise21();
     this.fetch(
       {
-        success: /* @__PURE__ */ __name(() => deferred.resolve(), "success"),
-        error: /* @__PURE__ */ __name(() => deferred.resolve(), "error")
+        success: () => deferred.resolve(),
+        error: () => deferred.resolve()
       }
     );
     return deferred;
@@ -16944,8 +16405,8 @@ var vcards_default = VCards;
 
 // plugins/vcard/api.js
 import log50 from "@converse/log";
-var { Strophe: Strophe77, dayjs: dayjs8, u: u29, stx: stx23 } = public_default.env;
-var api_default20 = {
+var { Strophe: Strophe79, dayjs: dayjs8, u: u31, stx: stx30 } = public_default.env;
+var api_default19 = {
   /**
    * The XEP-0054 VCard API
    *
@@ -16971,27 +16432,28 @@ var api_default20 = {
      *     'fn': 'John Doe',
      *     'nickname': 'jdoe'
      * }).then(() => {
-     *     // Succes
+     *     // Success
      * }).catch((e) => {
      *     // Failure, e is your error object
      * }).
      */
     async set(jid, data) {
-      if (!jid) throw Error("No jid provided for the VCard data");
+      if (!jid)
+        throw Error("No jid provided for the VCard data");
       api_default4.waitUntil("VCardsInitialized");
       let vcard = converse_default.state.vcards.get(jid);
       const old_vcard_attrs = vcard?.attributes ?? null;
       if (vcard && old_vcard_attrs.image !== data.image) {
-        const buffer = u29.base64ToArrayBuffer(data.image);
+        const buffer = u31.base64ToArrayBuffer(data.image);
         const hash_ab = await crypto.subtle.digest("SHA-1", buffer);
         vcard.save({
           image: data.image,
           image_type: data.image_type,
-          image_hash: u29.arrayBufferToHex(hash_ab)
+          image_hash: u31.arrayBufferToHex(hash_ab)
         });
       }
       let result;
-      const vcard_el = stx23`
+      const vcard_el = stx30`
                 <vCard xmlns="vcard-temp">
                     <FN>${data.fn ?? ""}</FN>
                     <NICKNAME>${data.nickname ?? ""}</NICKNAME>
@@ -17006,12 +16468,13 @@ var api_default20 = {
       try {
         result = await api_default4.sendIQ(createStanza("set", jid, vcard_el));
       } catch (e) {
-        if (old_vcard_attrs) vcard.save(old_vcard_attrs);
+        if (old_vcard_attrs)
+          vcard.save(old_vcard_attrs);
         throw e;
       }
       vcard = await api_default4.vcard.update(jid, true);
-      if (u29.isOwnJID(jid)) {
-        const node = stx23`<x xmlns="${Strophe77.NS.VCARD_UPDATE}">
+      if (u31.isOwnJID(jid)) {
+        const node = stx30`<x xmlns="${Strophe79.NS.VCARD_UPDATE}">
                     <photo>${vcard.get("image_hash") ?? ""}</photo>
                 </x>`;
         api_default4.user.presence.send({}, node);
@@ -17043,24 +16506,22 @@ var api_default20 = {
       /*! TOFIND */
       return;
       api_default4.waitUntil("VCardsInitialized");
-      if (typeof model === "string") return fetchVCard(model);
-      const error_date = model.get("vcard_error");
-      if (error_date) {
-        const { random, round } = Math;
-        const subtract_flag = round(random());
-        const recent_date = dayjs8().subtract(21, "days").subtract(round(random() * 24) * subtract_flag, "hours").add(round(random() * 24) * (!subtract_flag ? 1 : 0), "hours");
-        const tried_recently = dayjs8(error_date).isAfter(recent_date);
-        if (!force && tried_recently) return null;
-      }
+      if (typeof model === "string")
+        return fetchVCard(model);
+      const jid = model.get("jid");
       const vcard_updated = model.get("vcard_updated");
-      if (vcard_updated) {
+      const vcard_error = model.get("vcard_error");
+      if (vcard_updated || vcard_error) {
+        const muc = converse_default.state.chatboxes.get(jid);
+        if (!muc || !force)
+          return null;
         const { random, round } = Math;
         const subtract_flag = round(random());
         const recent_date = dayjs8().subtract(7, "days").subtract(round(random() * 24) * subtract_flag, "hours").add(round(random() * 24) * (!subtract_flag ? 1 : 0), "hours");
         const updated_recently = dayjs8(vcard_updated).isAfter(recent_date);
-        if (!force && updated_recently) return null;
+        if (!force && updated_recently)
+          return null;
       }
-      const jid = model.get("jid");
       if (!jid) {
         log50.error("No JID to get vcard for");
         return null;
@@ -17090,7 +16551,6 @@ var api_default20 = {
       api_default4.waitUntil("VCardsInitialized");
       const data = await this.get(model, force);
       if (data === null) {
-        log50.debug("api.vcard.update: null data returned, not updating the vcard");
         return;
       }
       model = typeof model === "string" ? converse_default.state.vcards.get(model) : model;
@@ -17100,7 +16560,7 @@ var api_default20 = {
       }
       if (Object.keys(data).length) {
         delete data["stanza"];
-        u29.safeSave(model, data);
+        u31.safeSave(model, data);
       }
       return model;
     }
@@ -17112,7 +16572,7 @@ var api_default20 = {
  * @copyright The Converse.js contributors
  * @license Mozilla Public License (MPLv2)
  */
-var { Strophe: Strophe78 } = public_default.env;
+var { Strophe: Strophe80 } = public_default.env;
 public_default.plugins.add("converse-vcard", {
   dependencies: ["converse-status", "converse-roster"],
   enabled() {
@@ -17123,7 +16583,7 @@ public_default.plugins.add("converse-vcard", {
       lazy_load_vcards: true
     });
     api_default4.promises.add("VCardsInitialized");
-    Object.assign(converse_default.api, api_default20);
+    Object.assign(converse_default.api, api_default19);
     const exports = { VCard: vcard_default, VCards: vcards_default };
     Object.assign(converse_default, exports);
     Object.assign(converse_default.exports, exports);
@@ -17135,13 +16595,14 @@ public_default.plugins.add("converse-vcard", {
       }
     );
     api_default4.listen.on("addClientFeatures", () => {
-      api_default4.disco.own.features.add(Strophe78.NS.VCARD);
-      api_default4.disco.own.features.add(Strophe78.NS.VCARD_UPDATE);
+      api_default4.disco.own.features.add(Strophe80.NS.VCARD);
+      api_default4.disco.own.features.add(Strophe80.NS.VCARD_UPDATE);
     });
     api_default4.listen.on("clearSession", () => clearVCardsSession());
     api_default4.listen.on("visibilityChanged", ({ el }) => {
       const { model } = el;
-      if (model?.vcard) model.vcard.trigger("visibilityChanged");
+      if (model?.vcard)
+        model.vcard.trigger("visibilityChanged");
     });
     api_default4.listen.on("connected", () => {
       const vcards = new converse_default.exports.VCards();
@@ -17155,8 +16616,6 @@ public_default.plugins.add("converse-vcard", {
 });
 
 // index.js
-dayjs9.extend(advancedFormat);
-dayjs9.extend(localizedFormat);
 var constants = Object.assign({}, constants_exports, constants_exports2, constants_exports3);
 Object.assign(converse_default.constants, constants);
 /*! TOFIND */
@@ -17168,7 +16627,7 @@ function converseInit(converseIndex) {
 }
 __name(converseInit, "converseInit");
 window["converse"] = public_default;
-var index_default = public_default;
+var headless_default = public_default;
 export {
   message_default as BaseMessage,
   model_default as Bookmark,
@@ -17198,7 +16657,7 @@ export {
   contact_default as RosterContact,
   contacts_default as RosterContacts,
   RosterFilter,
-  Stanza9 as Stanza,
+  Stanza13 as Stanza,
   vcard_default as VCard,
   vcards_default as VCards,
   converse_default as _converse,
@@ -17206,7 +16665,7 @@ export {
   constants,
   public_default as converse,
   converseInit,
-  index_default as default,
+  headless_default as default,
   errors_exports as errors,
   i18n_default as i18n,
   log51 as log,

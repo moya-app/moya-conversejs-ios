@@ -1,64 +1,69 @@
 export default MUC;
 declare const MUC_base: {
     new (...args: any[]): {
+        [x: string]: any;
         _vcard: import("../vcard").VCard;
         lazy_load_vcard: boolean;
         initialize(): void;
         readonly vcard: import("../vcard").VCard;
         getVCard(): Promise<import("../vcard").VCard | null>;
-        cid: any;
-        attributes: {};
-        validationError: string;
-        collection: any;
-        changed: {};
-        browserStorage: Storage;
-        _browserStorage: Storage;
+        _browserStorage?: import("@converse/skeletor").BrowserStorage;
+        _changing: boolean;
+        _pending: boolean | import("@converse/skeletor").ModelOptions;
+        _previousAttributes?: import("@converse/skeletor").ModelAttributes;
+        _url: string;
+        _urlRoot: string;
+        attributes: import("@converse/skeletor").ModelAttributes;
+        changed: Partial<import("@converse/skeletor").ModelAttributes>;
+        cid: string;
+        collection?: import("@converse/skeletor").Collection;
+        id: string | number;
+        validationError: string | number | null;
+        browserStorage: import("@converse/skeletor").BrowserStorage;
         readonly idAttribute: string;
         readonly cidPrefix: string;
-        preinitialize(): void;
-        validate(attrs: object, options?: object): string;
-        toJSON(): any;
-        sync(method: "create" | "update" | "patch" | "delete" | "read", model: Model, options: import("@converse/skeletor/src/types/model").Options): any;
-        get(attr: string): any;
+        preinitialize(...args: any[]): void;
+        validate(attrs: import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, options?: import("@converse/skeletor").ModelOptions): string | number | null | void;
+        defaults(): Partial<import("@converse/skeletor").ModelAttributes>;
+        toJSON(): import("@converse/skeletor").ModelAttributes;
+        sync(method: import("@converse/skeletor").SyncOperation, model: Model<any>, options: import("@converse/skeletor").Options): any;
+        get<K extends string | number>(attr: K): import("@converse/skeletor").ModelAttributes[K];
         keys(): string[];
         values(): any[];
-        pairs(): [string, any][];
-        entries(): [string, any][];
-        invert(): any;
-        pick(...args: any[]): any;
-        omit(...args: any[]): any;
-        isEmpty(): any;
-        has(attr: string): boolean;
-        matches(attrs: import("@converse/skeletor/src/types/model").Attributes): boolean;
-        set(key: string | any, val?: string | any, options?: import("@converse/skeletor/src/types/model").Options): false | any;
-        _changing: boolean;
-        _previousAttributes: any;
-        id: any;
-        _pending: boolean | import("@converse/skeletor/src/types/model").Options;
-        unset(attr: string, options?: import("@converse/skeletor/src/types/model").Options): false | any;
-        clear(options: import("@converse/skeletor/src/types/model").Options): false | any;
-        hasChanged(attr?: string): any;
-        changedAttributes(diff: any): any;
-        previous(attr?: string): any;
-        previousAttributes(): any;
-        fetch(options?: import("@converse/skeletor/src/types/model").Options): any;
-        save(key?: string | import("@converse/skeletor/src/types/model").Attributes, val?: boolean | number | string | import("@converse/skeletor/src/types/model").Options, options?: import("@converse/skeletor/src/types/model").Options): any;
-        destroy(options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        url(): any;
-        parse(resp: import("@converse/skeletor/src/types/model").Options, options?: import("@converse/skeletor/src/types/model").Options): import("@converse/skeletor/src/types/model").Options;
+        pairs(): [string | number, any][];
+        entries(): [string | number, any][];
+        invert(): Record<string, string | number>;
+        pick<K extends string | number>(...args: K[]): Pick<import("@converse/skeletor").ModelAttributes, K>;
+        omit<K extends string | number>(...args: K[]): Omit<import("@converse/skeletor").ModelAttributes, K>;
+        isEmpty(): boolean;
+        has(attr: string | number): boolean;
+        matches(attrs: Partial<import("@converse/skeletor").ModelAttributes>): boolean;
+        set(key: string | import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, val?: any, options?: import("@converse/skeletor").ModelOptions): any;
+        unset(attr: string | number, options?: import("@converse/skeletor").ModelOptions): any;
+        clear(options?: import("@converse/skeletor").ModelOptions): any;
+        hasChanged(attr?: string | number): boolean;
+        changedAttributes(diff?: Partial<import("@converse/skeletor").ModelAttributes>): false | Partial<import("@converse/skeletor").ModelAttributes>;
+        previous<K extends string | number>(attr: K): import("@converse/skeletor").ModelAttributes[K];
+        previousAttributes(): import("@converse/skeletor").ModelAttributes;
+        fetch(options?: import("@converse/skeletor").Options): any;
+        save(key?: string | Partial<import("@converse/skeletor").ModelAttributes>, val?: any, options?: import("@converse/skeletor").ModelOptions): any;
+        destroy(options?: import("@converse/skeletor").ModelOptions): any;
+        urlRoot: string;
+        url: string;
+        parse(resp: any, options?: import("@converse/skeletor").ModelOptions): void | Partial<import("@converse/skeletor").ModelAttributes>;
         isNew(): boolean;
-        isValid(options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        _validate(attrs: import("@converse/skeletor/src/types/model").Attributes, options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        on(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context: any): any;
-        _events: any;
-        _listeners: {};
-        listenTo(obj: any, name: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
-        _listeningTo: {};
-        _listenId: any;
-        off(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context?: any): any;
-        stopListening(obj?: any, name?: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
-        once(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context: any): any;
-        listenToOnce(obj: any, name: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
+        isValid(options?: import("@converse/skeletor").ModelOptions): boolean;
+        _validate(attrs: import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, options?: import("@converse/skeletor").ModelOptions): boolean;
+        _events?: import("@converse/skeletor").EventHandlersMap;
+        _listeners?: import("@converse/skeletor").EventListenerMap;
+        _listeningTo?: import("@converse/skeletor").EventListenerMap;
+        _listenId?: string;
+        on(name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext, context?: import("@converse/skeletor").EventContext): any;
+        listenTo(obj: import("@converse/skeletor").ObjectListenedTo, name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
+        off(name?: string | import("@converse/skeletor").EventCallbackMap | null, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext | null, context?: import("@converse/skeletor").EventContext): any;
+        stopListening(obj?: any, name?: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
+        once(name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext, context?: import("@converse/skeletor").EventContext): any;
+        listenToOnce(obj: any, name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
         trigger(name: string, ...args: any[]): any;
         constructor: Function;
         toString(): string;
@@ -70,12 +75,13 @@ declare const MUC_base: {
     };
 } & {
     new (...args: any[]): {
+        [x: string]: any;
         disable_mam: boolean;
         initialize(): Promise<void>;
         initNotifications(): void;
-        notifications: Model;
+        notifications: Model<import("@converse/skeletor").ModelAttributes>;
         initUI(): void;
-        ui: Model;
+        ui: Model<import("@converse/skeletor").ModelAttributes>;
         getDisplayName(): string;
         canPostMessages(): boolean;
         createMessage(attrs: any, options: any): Promise<any>;
@@ -87,8 +93,8 @@ declare const MUC_base: {
         fetchMessages(): any;
         afterMessagesFetched(): void;
         onMessage(_attrs_or_error: import("../../shared/types").MessageAttributes | Error): Promise<void>;
-        getUpdatedMessageAttributes(message: import("../../shared/message.js").default, attrs: import("../../shared/types").MessageAttributes): object;
-        updateMessage(message: import("../../shared/message.js").default, attrs: import("../../shared/types").MessageAttributes): void;
+        getUpdatedMessageAttributes(message: import("../../shared/message.js").default, attrs: import("../../shared/types").MessageAttributes): Promise<object>;
+        updateMessage(message: import("../../shared/message.js").default, attrs: import("../../shared/types").MessageAttributes): Promise<void>;
         handleCorrection(attrs: import("../../shared/types").MessageAttributes | import("./types").MUCMessageAttributes): Promise<import("../../shared/message.js").default | void>;
         queueMessage(attrs: import("../../shared/types").MessageAttributes): any;
         msg_chain: any;
@@ -113,7 +119,7 @@ declare const MUC_base: {
         getMostRecentMessage(): import("../../shared/message.js").default;
         getMessageReferencedByError(attrs: object): any;
         findDanglingRetraction(attrs: object): import("../../shared/message.js").default | null;
-        getDuplicateMessage(attrs: object): import("../../shared/message.js").default;
+        getDuplicateMessage(attrs: object): Promise<import("../../shared/message.js").default | undefined>;
         getOriginIdQueryAttrs(attrs: object): {
             origin_id: any;
             from: any;
@@ -136,59 +142,63 @@ declare const MUC_base: {
         debouncedPruneHistory: import("lodash").DebouncedFunc<() => void>;
         isScrolledUp(): any;
         isHidden(): boolean;
-        cid: any;
-        attributes: {};
-        validationError: string;
-        collection: any;
-        changed: {};
-        browserStorage: Storage;
-        _browserStorage: Storage;
+        _browserStorage?: import("@converse/skeletor").BrowserStorage;
+        _changing: boolean;
+        _pending: boolean | import("@converse/skeletor").ModelOptions;
+        _previousAttributes?: import("@converse/skeletor").ModelAttributes;
+        _url: string;
+        _urlRoot: string;
+        attributes: import("@converse/skeletor").ModelAttributes;
+        changed: Partial<import("@converse/skeletor").ModelAttributes>;
+        cid: string;
+        collection?: import("@converse/skeletor").Collection;
+        id: string | number;
+        validationError: string | number | null;
+        browserStorage: import("@converse/skeletor").BrowserStorage;
         readonly idAttribute: string;
         readonly cidPrefix: string;
-        preinitialize(): void;
-        validate(attrs: object, options?: object): string;
-        toJSON(): any;
-        sync(method: "create" | "update" | "patch" | "delete" | "read", model: Model, options: import("@converse/skeletor/src/types/model").Options): any;
-        get(attr: string): any;
+        preinitialize(...args: any[]): void;
+        validate(attrs: import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, options?: import("@converse/skeletor").ModelOptions): string | number | null | void;
+        defaults(): Partial<import("@converse/skeletor").ModelAttributes>;
+        toJSON(): import("@converse/skeletor").ModelAttributes;
+        sync(method: import("@converse/skeletor").SyncOperation, model: Model<any>, options: import("@converse/skeletor").Options): any;
+        get<K extends string | number>(attr: K): import("@converse/skeletor").ModelAttributes[K];
         keys(): string[];
         values(): any[];
-        pairs(): [string, any][];
-        entries(): [string, any][];
-        invert(): any;
-        pick(...args: any[]): any;
-        omit(...args: any[]): any;
-        isEmpty(): any;
-        has(attr: string): boolean;
-        matches(attrs: import("@converse/skeletor/src/types/model").Attributes): boolean;
-        set(key: string | any, val?: string | any, options?: import("@converse/skeletor/src/types/model").Options): false | any;
-        _changing: boolean;
-        _previousAttributes: any;
-        id: any;
-        _pending: boolean | import("@converse/skeletor/src/types/model").Options;
-        unset(attr: string, options?: import("@converse/skeletor/src/types/model").Options): false | any;
-        clear(options: import("@converse/skeletor/src/types/model").Options): false | any;
-        hasChanged(attr?: string): any;
-        changedAttributes(diff: any): any;
-        previous(attr?: string): any;
-        previousAttributes(): any;
-        fetch(options?: import("@converse/skeletor/src/types/model").Options): any;
-        save(key?: string | import("@converse/skeletor/src/types/model").Attributes, val?: boolean | number | string | import("@converse/skeletor/src/types/model").Options, options?: import("@converse/skeletor/src/types/model").Options): any;
-        destroy(options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        url(): any;
-        parse(resp: import("@converse/skeletor/src/types/model").Options, options?: import("@converse/skeletor/src/types/model").Options): import("@converse/skeletor/src/types/model").Options;
+        pairs(): [string | number, any][];
+        entries(): [string | number, any][];
+        invert(): Record<string, string | number>;
+        pick<K extends string | number>(...args: K[]): Pick<import("@converse/skeletor").ModelAttributes, K>;
+        omit<K extends string | number>(...args: K[]): Omit<import("@converse/skeletor").ModelAttributes, K>;
+        isEmpty(): boolean;
+        has(attr: string | number): boolean;
+        matches(attrs: Partial<import("@converse/skeletor").ModelAttributes>): boolean;
+        set(key: string | import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, val?: any, options?: import("@converse/skeletor").ModelOptions): any;
+        unset(attr: string | number, options?: import("@converse/skeletor").ModelOptions): any;
+        clear(options?: import("@converse/skeletor").ModelOptions): any;
+        hasChanged(attr?: string | number): boolean;
+        changedAttributes(diff?: Partial<import("@converse/skeletor").ModelAttributes>): false | Partial<import("@converse/skeletor").ModelAttributes>;
+        previous<K extends string | number>(attr: K): import("@converse/skeletor").ModelAttributes[K];
+        previousAttributes(): import("@converse/skeletor").ModelAttributes;
+        fetch(options?: import("@converse/skeletor").Options): any;
+        save(key?: string | Partial<import("@converse/skeletor").ModelAttributes>, val?: any, options?: import("@converse/skeletor").ModelOptions): any;
+        destroy(options?: import("@converse/skeletor").ModelOptions): any;
+        urlRoot: string;
+        url: string;
+        parse(resp: any, options?: import("@converse/skeletor").ModelOptions): void | Partial<import("@converse/skeletor").ModelAttributes>;
         isNew(): boolean;
-        isValid(options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        _validate(attrs: import("@converse/skeletor/src/types/model").Attributes, options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        on(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context: any): any;
-        _events: any;
-        _listeners: {};
-        listenTo(obj: any, name: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
-        _listeningTo: {};
-        _listenId: any;
-        off(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context?: any): any;
-        stopListening(obj?: any, name?: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
-        once(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context: any): any;
-        listenToOnce(obj: any, name: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
+        isValid(options?: import("@converse/skeletor").ModelOptions): boolean;
+        _validate(attrs: import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, options?: import("@converse/skeletor").ModelOptions): boolean;
+        _events?: import("@converse/skeletor").EventHandlersMap;
+        _listeners?: import("@converse/skeletor").EventListenerMap;
+        _listeningTo?: import("@converse/skeletor").EventListenerMap;
+        _listenId?: string;
+        on(name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext, context?: import("@converse/skeletor").EventContext): any;
+        listenTo(obj: import("@converse/skeletor").ObjectListenedTo, name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
+        off(name?: string | import("@converse/skeletor").EventCallbackMap | null, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext | null, context?: import("@converse/skeletor").EventContext): any;
+        stopListening(obj?: any, name?: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
+        once(name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext, context?: import("@converse/skeletor").EventContext): any;
+        listenToOnce(obj: any, name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
         trigger(name: string, ...args: any[]): any;
         constructor: Function;
         toString(): string;
@@ -200,64 +210,69 @@ declare const MUC_base: {
     };
 } & {
     new (...args: any[]): {
+        [x: string]: any;
         setColor(): Promise<void>;
         getIdentifier(): any;
         getColor(): Promise<string>;
         getAvatarStyle(append_style?: string): Promise<string>;
-        cid: any;
-        attributes: {};
-        validationError: string;
-        collection: any;
-        changed: {};
-        browserStorage: Storage;
-        _browserStorage: Storage;
+        _browserStorage?: import("@converse/skeletor").BrowserStorage;
+        _changing: boolean;
+        _pending: boolean | import("@converse/skeletor").ModelOptions;
+        _previousAttributes?: import("@converse/skeletor").ModelAttributes;
+        _url: string;
+        _urlRoot: string;
+        attributes: import("@converse/skeletor").ModelAttributes;
+        changed: Partial<import("@converse/skeletor").ModelAttributes>;
+        cid: string;
+        collection?: import("@converse/skeletor").Collection;
+        id: string | number;
+        validationError: string | number | null;
+        browserStorage: import("@converse/skeletor").BrowserStorage;
         readonly idAttribute: string;
         readonly cidPrefix: string;
-        preinitialize(): void;
-        initialize(attrs?: import("@converse/skeletor/src/types/model").Attributes, options?: import("@converse/skeletor/src/types/model").ModelOptions): void;
-        validate(attrs: object, options?: object): string;
-        toJSON(): any;
-        sync(method: "create" | "update" | "patch" | "delete" | "read", model: Model, options: import("@converse/skeletor/src/types/model").Options): any;
-        get(attr: string): any;
+        preinitialize(...args: any[]): void;
+        initialize(attrs?: Partial<import("@converse/skeletor").ModelAttributes>, options?: import("@converse/skeletor").ModelOptions): void;
+        validate(attrs: import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, options?: import("@converse/skeletor").ModelOptions): string | number | null | void;
+        defaults(): Partial<import("@converse/skeletor").ModelAttributes>;
+        toJSON(): import("@converse/skeletor").ModelAttributes;
+        sync(method: import("@converse/skeletor").SyncOperation, model: Model<any>, options: import("@converse/skeletor").Options): any;
+        get<K extends string | number>(attr: K): import("@converse/skeletor").ModelAttributes[K];
         keys(): string[];
         values(): any[];
-        pairs(): [string, any][];
-        entries(): [string, any][];
-        invert(): any;
-        pick(...args: any[]): any;
-        omit(...args: any[]): any;
-        isEmpty(): any;
-        has(attr: string): boolean;
-        matches(attrs: import("@converse/skeletor/src/types/model").Attributes): boolean;
-        set(key: string | any, val?: string | any, options?: import("@converse/skeletor/src/types/model").Options): false | any;
-        _changing: boolean;
-        _previousAttributes: any;
-        id: any;
-        _pending: boolean | import("@converse/skeletor/src/types/model").Options;
-        unset(attr: string, options?: import("@converse/skeletor/src/types/model").Options): false | any;
-        clear(options: import("@converse/skeletor/src/types/model").Options): false | any;
-        hasChanged(attr?: string): any;
-        changedAttributes(diff: any): any;
-        previous(attr?: string): any;
-        previousAttributes(): any;
-        fetch(options?: import("@converse/skeletor/src/types/model").Options): any;
-        save(key?: string | import("@converse/skeletor/src/types/model").Attributes, val?: boolean | number | string | import("@converse/skeletor/src/types/model").Options, options?: import("@converse/skeletor/src/types/model").Options): any;
-        destroy(options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        url(): any;
-        parse(resp: import("@converse/skeletor/src/types/model").Options, options?: import("@converse/skeletor/src/types/model").Options): import("@converse/skeletor/src/types/model").Options;
+        pairs(): [string | number, any][];
+        entries(): [string | number, any][];
+        invert(): Record<string, string | number>;
+        pick<K extends string | number>(...args: K[]): Pick<import("@converse/skeletor").ModelAttributes, K>;
+        omit<K extends string | number>(...args: K[]): Omit<import("@converse/skeletor").ModelAttributes, K>;
+        isEmpty(): boolean;
+        has(attr: string | number): boolean;
+        matches(attrs: Partial<import("@converse/skeletor").ModelAttributes>): boolean;
+        set(key: string | import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, val?: any, options?: import("@converse/skeletor").ModelOptions): any;
+        unset(attr: string | number, options?: import("@converse/skeletor").ModelOptions): any;
+        clear(options?: import("@converse/skeletor").ModelOptions): any;
+        hasChanged(attr?: string | number): boolean;
+        changedAttributes(diff?: Partial<import("@converse/skeletor").ModelAttributes>): false | Partial<import("@converse/skeletor").ModelAttributes>;
+        previous<K extends string | number>(attr: K): import("@converse/skeletor").ModelAttributes[K];
+        previousAttributes(): import("@converse/skeletor").ModelAttributes;
+        fetch(options?: import("@converse/skeletor").Options): any;
+        save(key?: string | Partial<import("@converse/skeletor").ModelAttributes>, val?: any, options?: import("@converse/skeletor").ModelOptions): any;
+        destroy(options?: import("@converse/skeletor").ModelOptions): any;
+        urlRoot: string;
+        url: string;
+        parse(resp: any, options?: import("@converse/skeletor").ModelOptions): void | Partial<import("@converse/skeletor").ModelAttributes>;
         isNew(): boolean;
-        isValid(options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        _validate(attrs: import("@converse/skeletor/src/types/model").Attributes, options?: import("@converse/skeletor/src/types/model").Options): boolean;
-        on(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context: any): any;
-        _events: any;
-        _listeners: {};
-        listenTo(obj: any, name: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
-        _listeningTo: {};
-        _listenId: any;
-        off(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context?: any): any;
-        stopListening(obj?: any, name?: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
-        once(name: string, callback: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any, context: any): any;
-        listenToOnce(obj: any, name: string, callback?: (event: any, model: Model, collection: import("@converse/skeletor").Collection, options: Record<string, any>) => any): any;
+        isValid(options?: import("@converse/skeletor").ModelOptions): boolean;
+        _validate(attrs: import("@converse/skeletor").ObjectWithId | Partial<import("@converse/skeletor").ModelAttributes>, options?: import("@converse/skeletor").ModelOptions): boolean;
+        _events?: import("@converse/skeletor").EventHandlersMap;
+        _listeners?: import("@converse/skeletor").EventListenerMap;
+        _listeningTo?: import("@converse/skeletor").EventListenerMap;
+        _listenId?: string;
+        on(name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext, context?: import("@converse/skeletor").EventContext): any;
+        listenTo(obj: import("@converse/skeletor").ObjectListenedTo, name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
+        off(name?: string | import("@converse/skeletor").EventCallbackMap | null, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext | null, context?: import("@converse/skeletor").EventContext): any;
+        stopListening(obj?: any, name?: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
+        once(name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback | import("@converse/skeletor").EventContext, context?: import("@converse/skeletor").EventContext): any;
+        listenToOnce(obj: any, name: string | import("@converse/skeletor").EventCallbackMap, callback?: import("@converse/skeletor").EventCallback): any;
         trigger(name: string, ...args: any[]): any;
         constructor: Function;
         toString(): string;
@@ -386,8 +401,12 @@ declare class MUC extends MUC_base {
     restoreSession(): Promise<any>;
     session: MUCSession;
     initDiscoModels(): void;
-    features: Model;
-    config: Model;
+    features: Model<import("@converse/skeletor").ModelAttributes>;
+    config: Model<{
+        [x: string]: any;
+        id: string | number;
+        changesubject: boolean;
+    }>;
     initOccupants(): void;
     occupants: any;
     fetchOccupants(): any;
@@ -558,7 +577,7 @@ declare class MUC extends MUC_base {
     getDiscoInfoFields(): Promise<any>;
     /**
      * Use converse-disco to populate the features {@link Model} which
-     * is stored as an attibute on this {@link MUC}.
+     * is stored as an attribute on this {@link MUC}.
      * The results may be cached. If you want to force fetching the features from the
      * server, call {@link MUC#refreshDiscoInfo} instead.
      * @returns {Promise}
@@ -625,7 +644,7 @@ declare class MUC extends MUC_base {
      * @param {MUCOccupant} occupant
      * @param {string} role
      * @param {string} reason
-     * @param {function} onSuccess - callback for a succesful response
+     * @param {function} onSuccess - callback for a successful response
      * @param {function} onError - callback for an error response
      */
     setRole(occupant: import("./occupant.js").default, role: string, reason: string, onSuccess: Function, onError: Function): any;
@@ -757,11 +776,20 @@ declare class MUC extends MUC_base {
      */
     isOwnMessage(msg: any | Element | import("./message.js").default): boolean;
     /**
+     * Determines whether the incoming message stanza is a MUC reflection
+     * of a message we previously sent. A MUC reflection is the server
+     * echoing back our own message with the same `msgid`.
+     * @param {MUCMessage} message - The existing cached message model
+     * @param {MUCMessageAttributes} attrs - Attributes of the incoming stanza
+     * @returns {boolean}
+     */
+    isMUCReflectedMessage(message: import("./message.js").default, attrs: import("./types").MUCMessageAttributes): boolean;
+    /**
      * @param {MUCMessage} message
      * @param {MUCMessageAttributes} attrs
-     * @return {object}
+     * @return {Promise<object>}
      */
-    getUpdatedMessageAttributes(message: import("./message.js").default, attrs: import("./types").MUCMessageAttributes): object;
+    getUpdatedMessageAttributes(message: import("./message.js").default, attrs: import("./types").MUCMessageAttributes): Promise<object>;
     /**
      * Send a MUC-0410 MUC Self-Ping stanza to room to determine
      * whether we're still joined.
@@ -770,11 +798,11 @@ declare class MUC extends MUC_base {
     isJoined(): Promise<boolean>;
     /**
      * Sends a status update presence (i.e. based on the `<show>` element)
-     * @param {import("../status/types").presence_attrs} attrs
+     * @param {import("../status/types").PresenceAttrs} attrs
      * @param {Element[]|Builder[]|Element|Builder} [child_nodes]
      *  Nodes(s) to be added as child nodes of the `presence` XML element.
      */
-    sendStatusPresence(attrs: import("../status/types").presence_attrs, child_nodes?: Element[] | import("strophe.js").Builder[] | Element | import("strophe.js").Builder): Promise<void>;
+    sendStatusPresence(attrs: import("../status/types").PresenceAttrs, child_nodes?: Element[] | import("strophe.js").Builder[] | Element | import("strophe.js").Builder): Promise<void>;
     /**
      * Check whether we're still joined and re-join if not
      */
@@ -836,14 +864,6 @@ declare class MUC extends MUC_base {
      * @returns {boolean}
      */
     handleMEPNotification(attrs: import("./types").MUCMessageAttributes): boolean;
-    /**
-     * Returns an already cached message (if it exists) based on the
-     * passed in attributes map.
-     * @param {object} attrs - Attributes representing a received
-     *  message, as returned by {@link parseMUCMessage}
-     * @returns {MUCMessage|BaseMessage}
-     */
-    getDuplicateMessage(attrs: object): import("./message.js").default | import("../../shared/message.js").default;
     /**
      * Handler for all MUC messages sent to this groupchat. This method
      * shouldn't be called directly, instead {@link MUC#queueMessage}

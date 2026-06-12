@@ -1,7 +1,7 @@
 /**
  * @typedef {import('../muc/muc').default} MUC
  * @typedef {import('../chat/model').default} ChatBox
- * @typedef {import('@converse/skeletor/src/types/helpers.js').Model} Model
+ * @typedef {import('@converse/skeletor').Model} Model
  */
 import sizzle from "sizzle";
 import { Strophe, $iq } from "strophe.js";
@@ -18,6 +18,7 @@ import { parseErrorStanza } from "../../shared/parsers.js";
 
 const { NS } = Strophe;
 const u = converse.env.utils;
+const { stx } = converse.env;
 
 /**
  * @param {Element|Error} e
@@ -44,7 +45,7 @@ export async function onMAMError(e, iq) {
  * currently not supported in converse.js.
  *
  * Per JID preferences will be set in chat boxes, so it'll
- * probbaly be handled elsewhere in any case.
+ * probably be handled elsewhere in any case.
  *
  * @param {Element} iq
  * @param {Model} feature
@@ -79,7 +80,10 @@ export function getMAMPrefsFromFeature(feature) {
         return;
     }
     if (prefs["default"] !== api.settings.get("message_archiving")) {
-        const stanza = $iq({ "type": "get" }).c("prefs", { "xmlns": NS.MAM });
+        const stanza = stx`
+            <iq type="get" xmlns="jabber:client">
+                <prefs xmlns="${NS.MAM}"></prefs>
+            </iq>`;
         api.sendIQ(stanza)
             .then(/** @param {Element} iq */ (iq) => _converse.exports.onMAMPreferences(iq, feature))
             .catch(/** @param {Error|Element} e */ (e) => _converse.exports.onMAMError(e, stanza.tree()));

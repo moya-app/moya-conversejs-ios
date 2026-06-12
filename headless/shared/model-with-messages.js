@@ -162,14 +162,15 @@ export default function ModelWithMessages(BaseModel) {
         /**
          * @param {BaseMessage} message
          * @param {MessageAttributes} attrs
-         * @returns {object}
+         * @returns {Promise<object>}
          */
-        getUpdatedMessageAttributes(message, attrs) {
+        async getUpdatedMessageAttributes(message, attrs) {
+            let new_attrs;
             if (!attrs.error_type && message.get('error_type') === 'Decryption') {
                 // Looks like we have a failed decrypted message stored, and now
                 // we have a properly decrypted version of the same message.
                 // See issue: https://github.com/conversejs/converse.js/issues/2733#issuecomment-1035493594
-                return Object.assign({}, attrs, {
+                new_attrs = Object.assign({}, attrs, {
                     error_condition: undefined,
                     error_message: undefined,
                     error_text: undefined,
@@ -179,19 +180,26 @@ export default function ModelWithMessages(BaseModel) {
                     is_error: false,
                 });
             } else {
-                return {
+                new_attrs = {
                     is_archived: attrs.is_archived,
-                    time: attrs.time ? attrs.time : message.get('time'),
+                    ...(attrs.is_archived && attrs.time && { time: attrs.time }),
                 };
             }
+
+            /**
+             * *Hook* which allows plugins to update the attributes that will be
+             * set on an existing message when new attributes are received.
+             * @event _converse#getUpdatedMessageAttributes
+             */
+            return await api.hook('getUpdatedMessageAttributes', message, new_attrs, attrs);
         }
 
         /**
          * @param {BaseMessage} message
          * @param {MessageAttributes} attrs
          */
-        updateMessage(message, attrs) {
-            const new_attrs = this.getUpdatedMessageAttributes(message, attrs);
+        async updateMessage(message, attrs) {
+            const new_attrs = await this.getUpdatedMessageAttributes(message, attrs);
             new_attrs && message.save(new_attrs);
         }
 
@@ -230,7 +238,7 @@ export default function ModelWithMessages(BaseModel) {
             if (attrs.time < message.get('time') && message.get('edited')) {
                 // This is an older message which has been corrected afterwards
                 older_versions[attrs.time] = attrs['message'];
-                message.save({ 'older_versions': older_versions });
+                message.save({ older_versions });
             } else {
                 // This is a correction of an earlier message we already received
                 if (Object.keys(older_versions).length) {
@@ -327,7 +335,7 @@ export default function ModelWithMessages(BaseModel) {
              * @property {(ChatBox|MUC)} data.chatbox
              * @property {(BaseMessage)} data.message
              */
-            api.trigger('sendMessage', { 'chatbox': this, message });
+            api.trigger('sendMessage', { chatbox: this, message });
             return message;
         }
 
@@ -393,7 +401,7 @@ export default function ModelWithMessages(BaseModel) {
                         : __(
                               'The size of your file, %1$s, exceeds the maximum allowed by your server, which is %2$s.',
                               file.name,
-                              size
+                              size,
                           );
                     return this.createMessage({
                         message,
@@ -456,13 +464,13 @@ export default function ModelWithMessages(BaseModel) {
                 this.chat_state_timeout = setTimeout(
                     this.setChatState.bind(this),
                     _converse.TIMEOUTS.PAUSED,
-                    constants.PAUSED
+                    constants.PAUSED,
                 );
             } else if (state === constants.PAUSED) {
                 this.chat_state_timeout = setTimeout(
                     this.setChatState.bind(this),
                     _converse.TIMEOUTS.INACTIVE,
-                    constants.INACTIVE
+                    constants.INACTIVE,
                 );
             }
             this.set('chat_state', state, options);
@@ -599,7 +607,7 @@ export default function ModelWithMessages(BaseModel) {
         }
 
         /**
-         * Used by sub-classes to indicate wether a message is a chat
+         * Used by sub-classes to indicate whether a message is a chat
          * message, as opposed to error or info messages.
          * @param {BaseMessage} _message
          * @returns {boolean}
@@ -634,8 +642,15 @@ export default function ModelWithMessages(BaseModel) {
          * @param {object} attrs
          */
         getMessageReferencedByError(attrs) {
-            const id = attrs.msgid;
-            return id && this.messages.models.find((m) => [m.get('msgid'), m.get('retraction_id')].includes(id));
+            if (attrs.msgid) {
+                return this.messages.models.find((m) =>
+                    [m.get('msgid'), m.get('retraction_id'), m.get('origin_id')].includes(attrs.msgid),
+                );
+            } else if (attrs.reaction_to_id) {
+                return this.messages.models.find((m) =>
+                    [m.get('msgid'), m.get('origin_id')].includes(attrs.reaction_to_id),
+                );
+            }
         }
 
         /**
@@ -661,7 +676,7 @@ export default function ModelWithMessages(BaseModel) {
                     ({ attributes }) =>
                         attributes.retracted_id === attrs.origin_id &&
                         attributes.from === attrs.from &&
-                        !attributes.moderated_by
+                        !attributes.moderated_by,
                 );
             }
             return null;
@@ -670,20 +685,32 @@ export default function ModelWithMessages(BaseModel) {
         /**
          * Returns an already cached message (if it exists) based on the
          * passed in attributes map.
+         *
+         * @fires getDuplicateMessageQueries
          * @param {object} attrs - Attributes representing a received
          *  message, as returned by {@link parseMessage}
-         * @returns {BaseMessage}
+         * @returns {Promise<BaseMessage|undefined>}
          */
-        getDuplicateMessage(attrs) {
+        async getDuplicateMessage(attrs) {
+            /**
+             * Hook to let plugins contribute additional query objects.
+             * Each query object is a plain `{ attribute: value }` map;
+             * a message matches if every key in the object equals the corresponding
+             * attribute on the stored model. The built-in queries cover stanza_id,
+             * origin_id, and body deduplication; plugins add their own criteria.
+             */
+            const extra_queries = await api.hook('getDuplicateMessageQueries', this, [], attrs);
+
             const queries = [
                 ...this.getStanzaIdQueryAttrs(attrs),
                 this.getOriginIdQueryAttrs(attrs),
                 this.getMessageBodyQueryAttrs(attrs),
+                ...extra_queries,
             ].filter((s) => s);
 
             return this.messages.models.find(
                 /** @param {BaseMessage} m */
-                (m) => queries.find((q) => Object.keys(q).every((k) => m.get(k) === q[k]))
+                (m) => queries.find((q) => Object.keys(q).every((k) => m.get(k) === q[k])),
             );
         }
 
@@ -811,8 +838,11 @@ export default function ModelWithMessages(BaseModel) {
             /**
              * *Hook* which allows plugins to add application-specific attributes
              * @event _converse#getErrorAttributesForMessage
+             * @param {BaseMessage} message - The message context
+             * @param {Object} new_attrs - The newly created error attributes
+             * @param {Object} attrs - The original stanza attributes
              */
-            return await api.hook('getErrorAttributesForMessage', attrs, new_attrs);
+            return await api.hook('getErrorAttributesForMessage', message, new_attrs, attrs);
         }
 
         /**
@@ -844,20 +874,17 @@ export default function ModelWithMessages(BaseModel) {
          * @param {BaseMessage} message
          */
         incrementUnreadMsgsCounter(message) {
-            const settings = {
-                'num_unread': this.get('num_unread') + 1,
-            };
-            if (this.get('num_unread') === 0) {
-                settings['first_unread_id'] = message.get('id');
-            }
-            this.save(settings);
+            this.save({
+                num_unread: this.get('num_unread') + 1,
+                ...(this.get('num_unread') === 0 ? { first_unread_id: message.get('id') } : null),
+            });
         }
 
         clearUnreadMsgCounter() {
             if (this.get('num_unread') > 0) {
                 this.sendMarkerForMessage(this.messages.last());
+                u.safeSave(this, { num_unread: 0 });
             }
-            u.safeSave(this, { num_unread: 0 });
         }
 
         /**
@@ -930,6 +957,8 @@ export default function ModelWithMessages(BaseModel) {
                 oob_url,
                 origin_id,
                 references,
+                reply_to_id,
+                reply_to,
                 spoiler_hint,
                 type,
             } = message.attributes;
@@ -952,10 +981,11 @@ export default function ModelWithMessages(BaseModel) {
                                                 begin="${ref.begin}"
                                                 end="${ref.end}"
                                                 type="${ref.type}"
-                                                uri="${ref.uri}"></reference>`
+                                                uri="${ref.uri}"></reference>`,
                               )
                             : ''
                     }
+                    ${reply_to_id ? stx`<reply xmlns="${Strophe.NS.REPLY}" id="${reply_to_id}" to="${reply_to || ''}"></reply>` : ''}
                     ${edited ? stx`<replace xmlns="${Strophe.NS.MESSAGE_CORRECT}" id="${msgid}"></replace>` : ''}
                     ${origin_id ? stx`<origin-id xmlns="${Strophe.NS.SID}" id="${origin_id}"></origin-id>` : ''}
                 </message>`;

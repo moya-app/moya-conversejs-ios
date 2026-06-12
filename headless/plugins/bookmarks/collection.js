@@ -14,9 +14,13 @@ import log from '@converse/log';
 import { initStorage } from '../../utils/storage.js';
 import { parseStanzaForBookmarks } from './parsers.js';
 import '../../plugins/muc/index.js';
+import { getStorageKeys } from './utils.js';
 
 const { Strophe, stx } = converse.env;
 
+/**
+ * @extends {Collection<Bookmark>}
+ */
 class Bookmarks extends Collection {
     get idAttribute() {
         return 'jid';
@@ -33,19 +37,18 @@ class Bookmarks extends Collection {
                 .then((bm) => this.markRoomAsBookmarked(bm))
                 .catch((e) => log.fatal(e))
         );
-        this.on('remove', this.leaveRoom, this);
         this.on('change:autojoin', this.onAutoJoinChanged, this);
         this.on(
             'remove',
-            /** @param {Bookmark} bookmark */
-            (_, bookmark) => this.sendBookmarkStanza(bookmark),
-            this
+            /** @param { Bookmark } bookmark }*/ (bookmark) => {
+                this.sendRemoveBookmarkStanza(bookmark);
+                this.leaveRoom(bookmark);
+            }
         );
 
-        const { session } = _converse;
-        const cache_key = `converse.room-bookmarks${session.get('bare_jid')}`;
-        this.fetched_flag = cache_key + 'fetched';
-        initStorage(this, cache_key);
+        const { storage_key, fetched_flag_key } = getStorageKeys();
+        this.fetched_flag = fetched_flag_key;
+        initStorage(this, storage_key);
 
         await this.fetchBookmarks();
 
@@ -87,7 +90,7 @@ class Bookmarks extends Collection {
 
     fetchBookmarks() {
         const deferred = getOpenPromise();
-        if (window.sessionStorage.getItem(this.fetched_flag)) {
+        if (_converse.state.session.get(this.fetched_flag)) {
             this.fetch({
                 success: () => deferred.resolve(),
                 error: () => deferred.resolve(),
@@ -101,9 +104,9 @@ class Bookmarks extends Collection {
     /**
      * @param {import('./types').BookmarkAttrs} attrs
      * @param {boolean} [create=true]
-     * @param {object} [options]
+     * @param {import('@converse/skeletor').FetchOrCreateOptions} [options]
      */
-    setBookmark(attrs, create = true, options = {}) {
+    async setBookmark(attrs, create = true, options = {}) {
         if (!attrs.jid) return log.warn('No JID provided for setBookmark');
 
         let send_stanza = false;
@@ -119,21 +122,52 @@ class Bookmarks extends Collection {
                 send_stanza = true;
             }
         } else if (create) {
-            bookmark = this.create(attrs, options);
+            bookmark = await this.create(attrs, options);
             send_stanza = true;
         }
-        if (send_stanza) {
+
+        if (bookmark && send_stanza) {
             this.sendBookmarkStanza(bookmark).catch((iq) => this.onBookmarkError(iq));
         }
     }
 
     /**
-     * @param {'urn:xmpp:bookmarks:1'|'storage:bookmarks'} node
      * @param {Bookmark} bookmark
+     * @returns {Promise<void|Element>}
+     */
+    async sendRemoveBookmarkStanza(bookmark) {
+        const bare_jid = _converse.session.get('bare_jid');
+        const node = (await api.disco.supports(`${Strophe.NS.BOOKMARKS2}#compat`, bare_jid))
+            ? Strophe.NS.BOOKMARKS2
+            : Strophe.NS.BOOKMARKS;
+
+        if (node === Strophe.NS.BOOKMARKS2) {
+            const stanza = stx`
+                <iq from="${bare_jid}"
+                    to="${bare_jid}"
+                    type="set"
+                    xmlns="jabber:client">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <retract node="${node}" notify="true">
+                        <item id="${bookmark.get('jid')}"/>
+                    </retract>
+                </pubsub>
+                </iq>`;
+            return api.sendIQ(stanza);
+        }
+
+        return this.sendBookmarkStanza().catch((iq) => this.onBookmarkError(iq));
+    }
+
+    /**
+     * @param {'urn:xmpp:bookmarks:1'|'storage:bookmarks'} node
+     * @param {Bookmark} [bookmark]
      * @returns {Stanza|Stanza[]}
      */
     getPublishedItems(node, bookmark) {
         if (node === Strophe.NS.BOOKMARKS2) {
+            if (!bookmark) throw new Error('getPublishedItems: missing bookmark');
+
             const extensions = bookmark.get('extensions') ?? [];
             return stx`<item id="${bookmark.get('jid')}">
                         <conference xmlns="${Strophe.NS.BOOKMARKS2}"
@@ -165,7 +199,7 @@ class Bookmarks extends Collection {
     }
 
     /**
-     * @param {Bookmark} bookmark
+     * @param {Bookmark} [bookmark]
      * @returns {Promise<void|Element>}
      */
     async sendBookmarkStanza(bookmark) {
@@ -186,7 +220,7 @@ class Bookmarks extends Collection {
      * @param {Element} iq
      */
     onBookmarkError(iq) {
-        log.error('Error while trying to add bookmark');
+        log.error('Error while trying to update bookmarks');
         log.error(iq);
     }
 
@@ -258,7 +292,7 @@ class Bookmarks extends Collection {
      */
     async onBookmarksReceived(deferred, iq) {
         await this.setBookmarksFromStanza(iq);
-        window.sessionStorage.setItem(this.fetched_flag, 'true');
+        _converse.state.session.set(this.fetched_flag, true);
         if (deferred !== undefined) {
             return deferred.resolve();
         }
@@ -284,7 +318,7 @@ class Bookmarks extends Collection {
             const e = await parseErrorStanza(iq);
             if (e instanceof errors.ItemNotFoundError) {
                 // Not an exception, the user simply doesn't have any bookmarks.
-                window.sessionStorage.setItem(this.fetched_flag, 'true');
+                _converse.state.session.set(this.fetched_flag, true);
                 deferred?.resolve();
             } else {
                 log.error('Error while fetching bookmarks');

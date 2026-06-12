@@ -4,8 +4,6 @@ import mock from '../../../tests/mock.js';
 const { stx, u } = converse.env;
 
 describe('MUC presence history element', function () {
-    beforeAll(() => jasmine.addMatchers({ toEqualStanza: jasmine.toEqualStanza }));
-
     it(
         'includes history when maxstanzas is set',
         mock.initConverse(['statusInitialized'], { muc_history_max_stanzas: 5 }, async function (_converse) {
@@ -19,14 +17,14 @@ describe('MUC presence history element', function () {
             let sent_stanza = await u.waitUntil(() =>
                 sent_stanzas
                     .filter((s) => s.nodeName === 'presence' && s.getAttribute('to') === `${muc_jid}/${nick}`)
-                    .pop()
+                    .pop(),
             );
             expect(sent_stanza).toEqualStanza(stx`
               <presence to="${muc_jid}/${nick}" xmlns="jabber:client" id="${sent_stanza.getAttribute('id')}" from="${jid}">
                 <x xmlns="http://jabber.org/protocol/muc">
                   <history maxstanzas="5"/>
                 </x>
-                <c xmlns="http://jabber.org/protocol/caps" hash="sha-1" node="https://conversejs.org" ver="t7NrIuCRhg80cJKAq33v3LKogjI="/>
+                <c xmlns="http://jabber.org/protocol/caps" hash="sha-1" node="https://conversejs.org" ver="5xpk8wyeMSdAjnSeIv3fwIjd1r0="/>
               </presence>`);
 
             api.settings.set('muc_history_max_stanzas', 0);
@@ -36,13 +34,13 @@ describe('MUC presence history element', function () {
             sent_stanza = await u.waitUntil(() =>
                 sent_stanzas
                     .filter((s) => s.nodeName === 'presence' && s.getAttribute('to') === `${muc2_jid}/${nick}`)
-                    .pop()
+                    .pop(),
             );
             expect(sent_stanza).toEqualStanza(stx`
               <presence to="${muc2_jid}/${nick}" xmlns="jabber:client" id="${sent_stanza.getAttribute('id')}" from="${jid}">
-                <x xmlns="http://jabber.org/protocol/muc"/>
-                <c xmlns="http://jabber.org/protocol/caps" hash="sha-1" node="https://conversejs.org" ver="t7NrIuCRhg80cJKAq33v3LKogjI="/>
+                <x xmlns="http://jabber.org/protocol/muc"><history maxstanzas="0"/></x>
+                <c xmlns="http://jabber.org/protocol/caps" hash="sha-1" node="https://conversejs.org" ver="5xpk8wyeMSdAjnSeIv3fwIjd1r0="/>
               </presence>`);
-        })
+        }),
     );
 });

@@ -1,6 +1,6 @@
 /**
  * @module:shared.converse
- * @typedef {import('@converse/skeletor').Storage} Storage
+ * @typedef {import('@converse/skeletor').BrowserStorage} BrowserStorage
  * @typedef {import('@converse/skeletor').Collection} Collection
  * @typedef {import('../plugins/disco/index').DiscoState} DiscoState
  * @typedef {import('../plugins/status/profile').default} Profile
@@ -86,7 +86,7 @@ export class ConversePrivateGlobal extends EventEmitter(Object) {
 
         this.templates = {};
 
-        this.storage = /** @type {Record<string, Storage.LocalForage>} */{};
+        this.storage = /** @type {Record<string, BrowserStorage.LocalForage>} */{};
 
         this.promises = {
             initialized: getOpenPromise(),
@@ -147,10 +147,11 @@ export class ConversePrivateGlobal extends EventEmitter(Object) {
     }
 
     initSession () {
-        this.session?.destroy();
-        this.session = new Model();
+        this.state.session?.destroy();
+        this.state.session = new Model();
 
         // XXX DEPRECATED
+        this.session = this.state.session;
         Object.assign(
             this, {
                 jid: undefined,

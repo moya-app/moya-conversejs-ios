@@ -4,7 +4,7 @@ import api from '../../shared/api/index.js';
 import converse from '../../shared/api/public.js';
 import { parseCommandResult, parseForCommands } from './utils.js';
 
-const { Strophe, $iq, u, stx } = converse.env;
+const { Strophe, u, stx } = converse.env;
 
 
 export default {
@@ -46,14 +46,10 @@ export default {
          * @returns {Promise<AdHocCommandResult>}
          */
         async fetchCommandForm (jid, node) {
-            const stanza = $iq({
-                type: 'set',
-                to: jid
-            }).c('command', {
-                xmlns: Strophe.NS.ADHOC,
-                action: 'execute',
-                node,
-            });
+            const stanza = stx`
+                <iq type="set" to="${jid}" xmlns="jabber:client">
+                    <command xmlns="${Strophe.NS.ADHOC}" action="execute" node="${node}"></command>
+                </iq>`;
             return parseCommandResult(await api.sendIQ(stanza));
         },
 
@@ -71,7 +67,10 @@ export default {
                     <command sessionid="${sessionid}" node="${node}" action="${action}" xmlns="${Strophe.NS.ADHOC}">
                         ${ !['cancel', 'prev'].includes(action) ? stx`
                             <x xmlns="${Strophe.NS.XFORM}" type="submit">
-                                ${ inputs.map(({ name, value }) => stx`<field var="${name}"><value>${value}</value></field>`) }
+                                ${ inputs.map(({ name, value }) => stx`<field var="${name}">
+                                    ${ Array.isArray(value)
+                                        ? value.map(v => stx`<value>${v}</value>`) : stx`<value>${value}</value>` }
+                                </field>`) }
                             </x>` : '' }
                     </command>
                 </iq>`;
@@ -91,9 +90,10 @@ export default {
 
             const command = result.querySelector('command');
             const status = command?.getAttribute('status');
+            const resultData = command?.querySelector('x[type=result]');
             return {
                 status,
-                ...(status === 'executing' ? parseCommandResult(result) : {}),
+                ...(status === 'executing' || (status === 'completed' && resultData) ? parseCommandResult(result) : {}),
                 note: result.querySelector('note')?.textContent
             }
         }

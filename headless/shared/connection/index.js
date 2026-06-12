@@ -31,13 +31,13 @@ export class Connection extends Strophe.Connection {
     }
 
     /** @param {Element} body */
-    xmlInput (body) {
-        log.debug(body.outerHTML, 'color: darkgoldenrod');
+    xmlInput(body) {
+        log.debug('%c%s', 'color: darkgoldenrod', body.outerHTML);
     }
 
     /** @param {Element} body */
-    xmlOutput (body) {
-        log.debug(body.outerHTML, 'color: darkcyan');
+    xmlOutput(body) {
+        log.debug('%c%s', 'color: darkcyan', body.outerHTML);
     }
 
     async bind () {
@@ -74,11 +74,11 @@ export class Connection extends Strophe.Connection {
     }
 
     /**
-     * Adds support for XEP-0156 by quering the XMPP server for alternate
+     * Adds support for XEP-0156 by querying the XMPP server for alternate
      * connection methods. This allows users to use the websocket or BOSH
      * connection of their own XMPP server instead of a proxy provided by the
      * host of Converse.js.
-     * @method Connnection.discoverConnectionMethods
+     * @method Connection.discoverConnectionMethods
      * @param {string} domain
      */
     async discoverConnectionMethods (domain) {
@@ -216,7 +216,11 @@ export class Connection extends Strophe.Connection {
         const { api } = _converse;
 
         delete this.reconnecting;
-        this.flush(); // Solves problem of returned PubSub BOSH response not received by browser
+        if (this.isType('bosh')) {
+            // Solves problem of returned PubSub BOSH response not received by browser
+            this.flush();
+        }
+
         await setUserJID(this.jid);
 
         // Save the current JID in persistent storage so that we can attempt to
@@ -336,7 +340,8 @@ export class Connection extends Strophe.Connection {
                 this.disconnection_cause === LOGOUT ||
                 reason === Strophe.ErrorCondition.NO_AUTH_MECH ||
                 reason === "host-unknown" ||
-                reason === "remote-connection-failed"
+                reason === "remote-connection-failed" ||
+                reason === "not-well-formed"
             ) {
                 return this.finishDisconnection();
             }
@@ -369,16 +374,16 @@ export class Connection extends Strophe.Connection {
             this.worker_attach_promise?.resolve(true);
 
             this.setDisconnectionCause();
+            if (this.restored) {
+                // No need to send an initial presence stanza when
+                // we're restoring an existing session (e.g. via SMACKS resume).
+                this.send_initial_presence = false;
+            }
             if (this.reconnecting) {
                 log.debug(status === Strophe.Status.CONNECTED ? 'Reconnected' : 'Reattached');
                 this.onConnected(true);
             } else {
                 log.debug(status === Strophe.Status.CONNECTED ? 'Connected' : 'Attached');
-                if (this.restored) {
-                    // No need to send an initial presence stanza when
-                    // we're restoring an existing session.
-                    this.send_initial_presence = false;
-                }
                 this.onConnected();
             }
         } else if (status === Strophe.Status.DISCONNECTED) {

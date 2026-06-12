@@ -3,6 +3,8 @@
  */
 import { sprintf } from 'sprintf-js';
 import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
+import localizedFormat from 'dayjs/plugin/localizedFormat';
 import sizzle from 'sizzle';
 import { Stanza, Strophe, $build, $iq, $msg, $pres, stx } from 'strophe.js';
 import { Collection, Model } from "@converse/skeletor";
@@ -20,9 +22,6 @@ import { isTestEnv } from '../../utils/session.js';
 import { TimeoutError } from '../errors.js';
 import { initAppSettings } from '../settings/utils.js';
 import * as errors from '../errors.js';
-
-_converse.api = api;
-
 import {
     cleanup,
     initClientConfig,
@@ -30,6 +29,11 @@ import {
     initSessionStorage,
     registerGlobalEventHandlers,
 } from '../../utils/init.js';
+
+_converse.api = api;
+
+dayjs.extend(advancedFormat);
+dayjs.extend(localizedFormat);
 
 const env = /** @type {import('./types').ConverseEnv} */ {
     $build,
@@ -84,7 +88,7 @@ const converse = Object.assign(/** @type {ConversePrivateGlobal} */(window).conv
      * @async
      * @memberOf converse
      * @method initialize
-     * @param { object } settings A map of [configuration-settings](https://conversejs.org/docs/html/configuration.html#configuration-settings).
+     * @param { object } settings A map of [configuration-settings](https://conversejs.org/docs/configuration/#configuration-settings).
      * @example
      * converse.initialize({
      *     auto_list_rooms: false,
@@ -154,7 +158,8 @@ const converse = Object.assign(/** @type {ConversePrivateGlobal} */(window).conv
      * Exposes methods for adding and removing plugins. You'll need to write a plugin
      * if you want to have access to the private API methods defined further down below.
      *
-     * For more information on plugins, read the documentation on [writing a plugin](/docs/html/plugin_development.html).
+     * For more information on plugins, read the documentation on
+     * [writing a plugin](https://conversejs.org/docs/development/plugin-development/).
      * @namespace plugins
      * @memberOf converse
      */

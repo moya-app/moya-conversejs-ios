@@ -6,7 +6,6 @@ export default {
     /**
      * Lets you trigger events, which can be listened to via
      * {@link _converse.api.listen.on} or {@link _converse.api.listen.once}
-     * (see [_converse.api.listen](http://localhost:8000/docs/html/api/-_converse.api.listen.html)).
      *
      * Some events also double as promises and can be waited on via {@link _converse.api.waitUntil}.
      *
@@ -41,7 +40,7 @@ export default {
     /**
      * Triggers a hook which can be intercepted by registered listeners via
      * {@link _converse.api.listen.on} or {@link _converse.api.listen.once}.
-     * (see [_converse.api.listen](http://localhost:8000/docs/html/api/-_converse.api.listen.html)).
+     *
      * A hook is a special kind of event which allows you to intercept a data
      * structure in order to modify it, before passing it back.
      * @async
@@ -49,15 +48,16 @@ export default {
      * @param {...any} context - The context to which the hook applies
      *  (could be for example, a {@link _converse.ChatBox}).
      * @param {...any} data - The data structure to be intercepted and modified by the hook listeners.
+     * @param {...any} extra_args - Additional passthrough arguments for hook listeners.
      * @returns {Promise<any>} - A promise that resolves with the modified data structure.
      */
-    hook (name, context, data) {
+    hook (name, context, data, ...extra_args) {
         const events = _converse._events[name] || [];
         if (events.length) {
             // Create a chain of promises, with each one feeding its output to
             // the next. The first input is a promise with the original data
             // sent to this hook.
-            return events.reduce((o, e) => o.then(d => e.callback(context, d)), Promise.resolve(data));
+            return events.reduce((o, e) => o.then(d => e.callback(context, d, ...extra_args)), Promise.resolve(data));
         } else {
             return data;
         }

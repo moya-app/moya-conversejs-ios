@@ -9,6 +9,9 @@ import { rejectPresenceSubscription } from './utils.js';
 
 const { Strophe, sizzle, stx, u, Stanza } = converse.env;
 
+/**
+ * @extends {Collection<RosterContact>}
+ */
 class RosterContacts extends Collection {
     constructor() {
         super();
@@ -19,7 +22,9 @@ class RosterContacts extends Collection {
     initialize() {
         const bare_jid = _converse.session.get('bare_jid');
         const id = `roster.state-${bare_jid}-${this.get('jid')}`;
-        this.state = new Model({ id, 'collapsed_groups': [] });
+        this.state = new Model(
+            /** @type {import('./types').ContactsStateAttrs} */ ({ id, 'collapsed_groups': [] })
+        );
         initStorage(this.state, id);
         this.state.fetch();
         api.listen.on(
@@ -111,7 +116,7 @@ class RosterContacts extends Collection {
 
         if (_converse.session.get('roster_cached')) {
             /**
-             * The contacts roster has been retrieved from the local cache (`sessionStorage`).
+             * The contacts roster has been retrieved from the local cache
              * @event _converse#cachedRoster
              * @type {RosterContacts}
              * @example _converse.api.listen.on('cachedRoster', (items) => { ... });
@@ -206,7 +211,7 @@ class RosterContacts extends Collection {
             { sort: false }
         );
 
-        if (subscribe) contact.subscribe(message);
+        if (contact && subscribe) contact.subscribe(message);
 
         return contact;
     }
@@ -332,7 +337,7 @@ class RosterContacts extends Collection {
         /**
          * When the roster has been received from the XMPP server.
          * See also the `cachedRoster` event further up, which gets called instead of
-         * `roster` if its already in `sessionStorage`.
+         * `roster` if its already in the cache.
          * @event _converse#roster
          * @type {Element}
          * @example _converse.api.listen.on('roster', iq => { ... });
@@ -356,7 +361,7 @@ class RosterContacts extends Collection {
 
         const ask = item.getAttribute('ask');
         const nickname = item.getAttribute('name');
-        const groups = [...new Set(sizzle('group', item).map((e) => e.textContent))];
+        const groups = [...new Set(sizzle('group', item).map((e) => e.textContent?.trim()).filter((n) => n))];
 
         if (contact) {
             // We only find out about requesting contacts via the

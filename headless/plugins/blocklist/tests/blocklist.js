@@ -1,23 +1,23 @@
 /*global converse */
-import mock from "../../../tests/mock.js";
+import mock from '../../../tests/mock.js';
 
 const { u, stx } = converse.env;
 
 describe('A blocklist', function () {
     beforeEach(() => {
-        jasmine.addMatchers({ toEqualStanza: jasmine.toEqualStanza });
-        window.sessionStorage.removeItem('converse.blocklist-romeo@montague.lit-fetched');
     });
 
     it(
         'is automatically fetched from the server once the user logs in',
         mock.initConverse(['discoInitialized'], {}, async function (_converse) {
-            const { api } = _converse;
+            const { api, state } = _converse;
+            state.session.set('converse.blocklist-romeo@montague.lit-fetched', undefined);
+
             await mock.waitUntilDiscoConfirmed(
                 _converse,
                 _converse.domain,
                 [{ 'category': 'server', 'type': 'IM' }],
-                ['urn:xmpp:blocking']
+                ['urn:xmpp:blocking'],
             );
             await mock.waitForRoster(_converse, 'current', 0);
 
@@ -44,18 +44,20 @@ describe('A blocklist', function () {
             const blocklist = await api.waitUntil('blocklistInitialized');
             expect(blocklist.length).toBe(2);
             expect(blocklist.models.map((m) => m.get('jid'))).toEqual(['iago@shakespeare.lit', 'juliet@capulet.lit']);
-        })
+        }),
     );
 
     it(
         'is updated when the server sends IQ stanzas',
         mock.initConverse(['discoInitialized'], {}, async function (_converse) {
-            const { api, domain } = _converse;
+            const { api, domain, state } = _converse;
+            state.session.set('converse.blocklist-romeo@montague.lit-fetched', undefined);
+
             await mock.waitUntilDiscoConfirmed(
                 _converse,
                 domain,
                 [{ 'category': 'server', 'type': 'IM' }],
-                ['urn:xmpp:blocking']
+                ['urn:xmpp:blocking'],
             );
             await mock.waitForRoster(_converse, 'current', 0);
 
@@ -87,8 +89,8 @@ describe('A blocklist', function () {
                     <block xmlns='urn:xmpp:blocking'>
                         <item jid='juliet@capulet.lit'/>
                     </block>
-                </iq>`
-                )
+                </iq>`,
+                ),
             );
             await u.waitUntil(() => blocklist.length === 2);
             expect(blocklist.models.map((m) => m.get('jid'))).toEqual(['iago@shakespeare.lit', 'juliet@capulet.lit']);
@@ -104,23 +106,25 @@ describe('A blocklist', function () {
                     <unblock xmlns='urn:xmpp:blocking'>
                         <item jid='juliet@capulet.lit'/>
                     </unblock>
-                </iq>`
-                )
+                </iq>`,
+                ),
             );
             await u.waitUntil(() => blocklist.length === 1);
             expect(blocklist.models.map((m) => m.get('jid'))).toEqual(['iago@shakespeare.lit']);
-        })
+        }),
     );
 
     it(
         'can be updated via the api',
         mock.initConverse(['discoInitialized'], {}, async function (_converse) {
-            const { api, domain } = _converse;
+            const { api, domain, state } = _converse;
+            state.session.set('converse.blocklist-romeo@montague.lit-fetched', undefined);
+
             await mock.waitUntilDiscoConfirmed(
                 _converse,
                 domain,
                 [{ 'category': 'server', 'type': 'IM' }],
-                ['urn:xmpp:blocking']
+                ['urn:xmpp:blocking'],
             );
             await mock.waitForRoster(_converse, 'current', 0);
 
@@ -136,8 +140,8 @@ describe('A blocklist', function () {
                     <blocklist xmlns='urn:xmpp:blocking'>
                         <item jid='iago@shakespeare.lit'/>
                     </blocklist>
-                </iq>`
-                )
+                </iq>`,
+                ),
             );
 
             const blocklist = await api.waitUntil('blocklistInitialized');
@@ -157,8 +161,8 @@ describe('A blocklist', function () {
                 .get()
                 ._dataRecv(
                     mock.createRequest(
-                        stx`<iq xmlns="jabber:client" type="result" id="${sent_stanza.getAttribute('id')}"/>`
-                    )
+                        stx`<iq xmlns="jabber:client" type="result" id="${sent_stanza.getAttribute('id')}"/>`,
+                    ),
                 );
 
             await u.waitUntil(() => blocklist.length === 2);
@@ -178,13 +182,13 @@ describe('A blocklist', function () {
                 .get()
                 ._dataRecv(
                     mock.createRequest(
-                        stx`<iq xmlns="jabber:client" type="result" id="${sent_stanza.getAttribute('id')}"/>`
-                    )
+                        stx`<iq xmlns="jabber:client" type="result" id="${sent_stanza.getAttribute('id')}"/>`,
+                    ),
                 );
 
             await u.waitUntil(() => blocklist.length === 1);
             expect(blocklist.models.map((m) => m.get('jid'))).toEqual(['iago@shakespeare.lit']);
-        })
+        }),
     );
 });
 
@@ -192,14 +196,17 @@ describe('A Chat Message', function () {
     it(
         "will show an error message if it's rejected due to being banned",
         mock.initConverse(['chatBoxesFetched'], {}, async function (_converse) {
-            const { api } = _converse;
+            const { api, state } = _converse;
+            state.session.set('converse.blocklist-romeo@montague.lit-fetched', undefined);
+
             await mock.waitForRoster(_converse, 'current', 1);
             const sender_jid = mock.cur_names[0].replace(/ /g, '.').toLowerCase() + '@montague.lit';
             const chat = await api.chats.open(sender_jid);
             const msg_text = 'This message will not be sent, due to an error';
             const message = await chat.sendMessage({ body: msg_text });
 
-            api.connection.get()._dataRecv(mock.createRequest(stx`
+            api.connection.get()._dataRecv(
+                mock.createRequest(stx`
                 <message xmlns="jabber:client"
                     to="${api.connection.get().jid}"
                     type="error"
@@ -209,10 +216,11 @@ describe('A Chat Message', function () {
                         <not-acceptable xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>
                         <blocked xmlns='urn:xmpp:blocking:errors'/>
                     </error>
-                </message>`));
+                </message>`),
+            );
 
             await u.waitUntil(() => message.get('is_error') === true);
             expect(message.get('error')).toBe('You are blocked from sending messages.');
-        })
+        }),
     );
 });

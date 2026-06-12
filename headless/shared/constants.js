@@ -1,7 +1,7 @@
 import { Strophe } from 'strophe.js';
 
 export const BOSH_WAIT = 59;
-export const VERSION_NAME = "v12.0.0";
+export const VERSION_NAME = "v13.0.1";
 
 export const PRES_SHOW_VALUES = ['chat', 'dnd', 'away', 'xa'];
 export const PRES_TYPE_VALUES = [
@@ -108,6 +108,7 @@ Strophe.addNamespace('RAI', 'urn:xmpp:rai:0');
 Strophe.addNamespace('RECEIPTS', 'urn:xmpp:receipts');
 Strophe.addNamespace('REFERENCE', 'urn:xmpp:reference:0');
 Strophe.addNamespace('REGISTER', 'jabber:iq:register');
+Strophe.addNamespace('REPLY', 'urn:xmpp:reply:0');
 Strophe.addNamespace('RETRACT', 'urn:xmpp:message-retract:1');
 Strophe.addNamespace('RETRACT0', 'urn:xmpp:message-retract:0');
 Strophe.addNamespace('ROSTERX', 'http://jabber.org/protocol/rosterx');
@@ -139,6 +140,7 @@ export const CORE_PLUGINS = [
     'converse-muc',
     'converse-ping',
     'converse-pubsub',
+    'converse-reactions',
     'converse-roster',
     'converse-smacks',
     'converse-status',
@@ -166,6 +168,7 @@ export const KEYCODES = {
 };
 
 export const XFORM_TYPE_MAP = {
+    'text-multi': 'textarea',
     'text-private': 'password',
     'text-single': 'text',
     'fixed': 'label',

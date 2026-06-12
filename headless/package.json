@@ -1,6 +1,6 @@
 {
   "name": "@converse/headless",
-  "version": "12.0.0",
+  "version": "13.0.1",
   "description": "Converse.js Headless build",
   "author": "JC Brand <jc@opkode.com>",
   "contributors": [
@@ -57,24 +57,24 @@
     "test": "karma start karma.conf.js",
     "types": "tsc -p tsconfig.json"
   },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  },
   "bugs": {
     "url": "https://github.com/conversejs/converse.js/issues"
   },
   "dependencies": {
     "@converse/log": "^0.0.1",
     "@converse/openpromise": "^0.0.4",
-    "@converse/skeletor": "^0.0.9",
+    "@converse/skeletor": "^3.0.0",
     "dayjs": "^1.11.8",
     "dompurify": "^3.0.8",
-    "filesize": "^10.0.7",
+    "filesize": "^11.0.13",
     "localforage-webextensionstorage-driver": "^3.0.0",
     "lodash-es": "^4.17.21",
     "pluggable.js": "3.0.1",
     "sizzle": "^2.3.5",
     "sprintf-js": "^1.1.2",
     "strophe.js": "4.0.0-rc0"
-  },
-  "devDependencies": {
-    "esbuild": "^0.27.2"
   }
 }

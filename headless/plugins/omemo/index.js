@@ -3,7 +3,8 @@ import Device from './device.js';
 import Devices from './devices.js';
 import DeviceList from './devicelist.js';
 import DeviceLists from './devicelists.js';
-import './plugin.js';
+/*! TOFIND */ // Dropped v13 OMEMO plugin auto-registration - iOS overlay owns the OMEMO surface (pluggable.js throws on duplicate name)
+// import './plugin.js';
 
 const { Strophe } = converse.env;
 

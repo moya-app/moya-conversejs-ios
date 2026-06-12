@@ -50,8 +50,17 @@ export function isErrorObject(o) {
 
 /**
  * @param {import('@converse/skeletor').Model} model
- * @returns {boolean}
+ * @returns {import('@converse/skeletor').BrowserStorage}
  */
 export function isPersistableModel(model) {
     return model.browserStorage || model.collection?.browserStorage;
+}
+
+/**
+ * Check if an object is empty (null, undefined, not an object, or has no own keys).
+ * @param {Object|undefined|null} obj
+ * @returns {boolean} True if the object is empty.
+ */
+export function isEmpty(obj) {
+    return obj === null || obj === undefined || typeof obj !== 'object' || Object.keys(obj).length === 0;
 }
