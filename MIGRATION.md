@@ -552,6 +552,33 @@ Per AGENTS.md § 4 and `MIGRATION.md` § 3 Step 12. Each one drops a TOFIND patc
 
 Skeletor 3.1.0 (unreleased on master) adds `subscribe()` and computed-properties APIs. Not in 3.0.1 yet but worth watching — they'd let iOS replace manual `model.on('change', …)` plumbing with `useSyncExternalStore`-compatible subscriptions, potentially simplifying chat-side state observation.
 
+#### 6.2.7 Migrate stanza authoring from `$msg`/`$iq`/`$build` to the `stx` tagged template literal
+
+`stx` is the v10+ tagged template literal for inline XML stanza authoring, available on `converse.env.stx` and used throughout the v13 headless source (e.g. `headless/shared/actions.js:44-52` for chat markers). The older `$msg`/`$iq`/`$pres`/`$build` builders still work in v13 and stay on `converse.env`, but `stx` is the idiomatic v13 form.
+
+**Why it's worth doing:**
+
+- **Readability.** Stanza shape is inline XML; no `.c().t(...).up().up().c(...)` chain to mentally unwind. Diff-friendly when adding child elements.
+- **Auto-escaping.** Interpolated `${value}` is escaped where it's a text node; `Stanza.unsafeXML(...)` is the explicit opt-out for raw XML (e.g. dynamic element names).
+- **XEP-spec parity.** XEP docs show XML literals; `stx` lets call sites match the spec verbatim, easier to verify.
+- **Upstream alignment.** v13 internals use `stx` extensively; staying on the older builders perpetuates a divergence with no benefit. Future upstream merges land more cleanly.
+
+**iOS surface to migrate** (all currently go through `ConverseAdapter.getBuilders(converseRoot)`):
+
+| File | Stanzas | Effort |
+|---|---|---|
+| `src/app/xmpp/stanza/reactions.builder.ts` | 1 outbound reaction `<message>` | ~1 hr |
+| `src/app/submodules/chat/services/xmpp/converse-plugins/omemo/helpers/omemo-stanza.helper.ts` | 2 stanzas (unencrypted fallback + OMEMO envelope) | 1–2 hr including spec updates |
+| `src/app/submodules/chat/services/xmpp/converse-plugins/omemo/models/omemo-store.model.ts` | 1 PEP `<item>` for `publishBundle` | ~30 min |
+| `src/app/submodules/chat/services/xmpp/converse-plugins/omemo/models/omemo-device.model.ts` | 3 IQs + 1 PEP item (`fetchBundleFromServer`, `fetchDevicesFromServer`, `publishDevices`) | ~2 hr |
+| Outbound chat-side helpers (grep `$msg\|$iq\|$pres\|$build` outside the above) | TBD — audit needed | ~1 hr |
+
+**Adapter contract impact:** add one new seam — `ConverseAdapter.getStx(root)` returning the tagged template function — and (for the dynamic-element case) `ConverseAdapter.getStanzaUnsafeXML(root)` returning `converse.env.Stanza.unsafeXML`. iOS call sites pull these from `converseRoot` deps they already receive (per the Phase 4 Slice 6 wiring), so the migration is mechanical within the existing chokepoint — no new boundary surface.
+
+**Why this is opportunistic, not blocking:** the existing builder calls work correctly under v13. The OMEMO bundle/devicelist files are the highest-value targets because the nested `.c().c().c()` chains there are exactly where stanza-shape bugs hide; reactions and the chat-side helpers are smaller, lower-stakes call sites.
+
+**Forward policy:** any net-new stanza-authoring code (e.g. when blocking/replies/native bookmarks land, or new chat features add stanzas) should use `stx` from day one rather than perpetuating the older idiom.
+
 ### 6.3 Performance opportunities
 
 These are wins the v13 swap enables but doesn't deliver automatically.

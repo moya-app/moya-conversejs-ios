@@ -18019,17 +18019,8 @@ var emojis = {
   async initialize() {
     if (!public_default.emojis.initialized) {
       public_default.emojis.initialized = true;
-      let json;
-      try {
-        const path = api_default4.settings.get("assets_path");
-        const response = await fetch(`${path}/emoji.json`);
-        if (!response.ok)
-          throw new Error("Failed to fetch emoji.json");
-        json = await response.json();
-      } catch (e4) {
-        console.error("Failed to load emoji.json:", e4);
-        json = {};
-      }
+      /*! TOFIND */
+      let json = {};
       json = await api_default4.hook("loadEmojis", {}, json);
       public_default.emojis.json = json;
       public_default.emojis.by_sn = Object.keys(json).reduce((result, cat) => Object.assign(result, json[cat]), {});

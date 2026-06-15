@@ -15,16 +15,8 @@ const emojis = {
         if (!converse.emojis.initialized) {
             converse.emojis.initialized = true;
 
-            let json;
-            try {
-                const path = api.settings.get('assets_path');
-                const response = await fetch(`${path}/emoji.json`);
-                if (!response.ok) throw new Error('Failed to fetch emoji.json');
-                json = await response.json();
-            } catch (e) {
-                console.error('Failed to load emoji.json:', e);
-                json = {};
-            }
+            /*! TOFIND */ // iOS client does its own emoji handling and does not ship emoji.json; fetching it only 404s. Resolve with an empty set so the emoji subsystem (and emojis.initialized_promise) still initialise without a failing network request.
+            let json = {};
 
             /**
              * *Hook* which allows plugins to modify emojis definition.
