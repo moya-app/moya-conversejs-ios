@@ -8,7 +8,7 @@ For background on the iOS source modifications, see `AGENTS.md`. For top-level o
 
 **Pinned skeletor version: `3.0.1` exact (no caret)** in both repos. Skeletor `3.0.0` is a broken release (`package.json` `module` field points to `src/index.ts`, no `dist/skeletor.esm.js` present — webpack reports "module has no exports"). `3.0.1` ships the proper built ESM + CJS files. Pinning exact prevents drift; bumps are coordinated across both `package.json` files (this repo's `headless/package.json` and `moya-client-ios/package.json`).
 
-A previous swap attempt targeted v12.0.0. That work is partially landed on `tay/testing` but is being **retargeted to v13.0.1** so we pick up:
+A previous swap attempt targeted v12.0.0. That work has since been **retargeted to v13.0.1** (now landed on `tay/testing`) so we pick up:
 
 - XEP-0444 Message Reactions (v13.0.0)
 - XEP-0461 Message Replies (v13.0.0)
@@ -24,9 +24,8 @@ A previous swap attempt targeted v12.0.0. That work is partially landed on `tay/
 
 ### This repo (`moya-conversejs-ios`)
 
-- Branch `tay/testing` carries an **in-flight v12.0.0 build** with 16 iOS modifications applied. `headless/dist/converse-headless.esm.js` is 619,982 bytes with 16 TOFIND markers.
+- Branch `tay/testing` carries the **v13.0.1 build** with **19** iOS modifications applied. `headless/dist/converse-headless.esm.js` is ~1.04 MB with 19 TOFIND markers (16 base + #17a OMEMO plugin auto-registration drop + #18 emoji.json fetch skip + #19 sendIQ timeout silence).
 - Branch `main` on the GitHub remote (`binuadmin/moya-conversejs-ios`) still points at the v7-era commit. `npm install github:binuadmin/moya-conversejs-ios` without a ref resolves to v7.
-- Tarball for v13.0.1 staged locally at `/Users/taylorvanderwesthuizen/Downloads/converse-headless-13.0.1.tgz` (3,582,504 bytes, 403 files, dist included).
 
 ### iOS app (`moya-client-ios`)
 
@@ -630,13 +629,15 @@ Angular 18+ signals (used elsewhere in iOS per `moya-client-ios/CLAUDE.md` § 7.
 When work lands, mark off here. Keep this list current as a single source of truth.
 
 **This repo (`moya-conversejs-ios`):**
-- [ ] Rename current `headless/` → `headless-v12/` (preserve as reference)
-- [ ] Extract v13.0.1 tarball into fresh `headless/`
-- [ ] Port `build.js` to v13 source tree
-- [ ] Re-apply 16 TOFIND mods onto v13 source
-- [ ] Add new TOFIND #17a (drop OMEMO plugin auto-registration)
-- [ ] `npm run build`, verify 17 TOFIND markers in dist
-- [ ] Update `AGENTS.md` mod table to reference v13 line numbers
+- [x] Rename current `headless/` → `headless-v12/` (preserve as reference)
+- [x] Extract v13.0.1 tarball into fresh `headless/`
+- [x] Port `build.js` to v13 source tree
+- [x] Re-apply 16 TOFIND mods onto v13 source
+- [x] Add new TOFIND #17a (drop OMEMO plugin auto-registration)
+- [x] Add TOFIND #18 (skip `emoji.json` fetch the iOS bundle doesn't ship)
+- [x] Add TOFIND #19 (silence `sendIQ` timeout console noise — orphaned `TimeoutError` unhandled rejection)
+- [x] `npm run build`, verify **19** TOFIND markers in dist
+- [x] Update `AGENTS.md` mod table to reference v13 line numbers
 - [ ] Decide reactions: native v13 vs iOS port (drop or keep)
 - [ ] Decide replies: native v13 vs iOS port (drop or keep)
 - [ ] Merge `tay/testing` → `main` (or pin iOS to branch)

@@ -4,7 +4,7 @@ Deep reference for AI agents and engineers working on the customised `@converse/
 
 For top-level orientation, see `CLAUDE.md`. For the iOS-side swap-in checklist and the full v7→v13.0.1 breaking-changes tracker, see `MIGRATION.md`.
 
-**Active target: v13.0.1** (retarget from in-flight v12.0.0). The 16 modifications below were verified against v12 source; line numbers and most file paths still apply to v13 but require re-verification when re-applying onto the v13 tree. A 17th mod (drop OMEMO plugin auto-registration) is added for v13. The "v12 Idiomatic Alternatives" analysis in § 4 still applies to v13 unchanged.
+**Active build: v13.0.1** (retarget from v12.0.0 completed on `tay/testing`). The 16 base modifications below were verified against v12 source; file paths still apply to v13 and line numbers are accurate post-retarget. v13 adds #17a (drop OMEMO plugin auto-registration), #18 (skip `emoji.json` fetch), and #19 (silence `sendIQ` timeout console noise) for a total of **19** TOFIND markers. The "v12 Idiomatic Alternatives" analysis in § 4 still applies to v13 unchanged.
 
 ---
 
@@ -12,15 +12,15 @@ For top-level orientation, see `CLAUDE.md`. For the iOS-side swap-in checklist a
 
 This repository is a GitHub-installable npm package that bundles three sibling libraries used by `moya-client-ios`:
 
-- `headless/` — `@converse/headless` (currently v12.0.0, **target v13.0.1**) with 16 iOS-specific source modifications (17 under v13)
-- `skeletor/` — `@converse/skeletor` v0.0.9 (peer-dep match for v12; **v13 requires v3.0.x**)
-- `openpromise/` — `@converse/openpromise` v0.0.1
+- `headless/` — `@converse/headless` v13.0.1 with **19** iOS-specific source modifications
+- `@converse/skeletor@3.0.1` is consumed as a normal npm dep of `headless/`; the sibling `skeletor/` directory was retired when v13 landed (only `skeletor-old/` archive remains)
+- `@converse/openpromise@^0.0.4` is consumed as a normal npm dep of `headless/`; the sibling `openpromise/` directory was retired alongside `skeletor/` when v13 landed
 
 The iOS app installs the whole repo via `"converse": "github:binuadmin/moya-conversejs-ios"` and uses `tsconfig.json` path-mapping (`"@converse/*": ["./node_modules/converse/*"]`) so imports resolve against the bundled subdirectories.
 
 ```
 moya-conversejs-ios/
-├── headless/                 # v12.0.0 — active, iOS-modified
+├── headless/                 # v13.0.1 — active, iOS-modified
 │   ├── index.js              # Entry: exports + converseInit wrapper
 │   ├── build.js              # esbuild script (preserves TOFIND legal comments)
 │   ├── plugins/              # chat, muc, omemo, roster, vcard, disco, ping, emoji, headlines, …
@@ -29,9 +29,7 @@ moya-conversejs-ios/
 │   ├── dist/                 # ESM + CJS bundles (.min and unminified)
 │   └── types/                # TS .d.ts declarations
 ├── headless-old/             # v7.0.6 — archived reference
-├── skeletor/                 # v0.0.9 — active
-├── skeletor-old/             # v0.0.5 — archived reference
-└── openpromise/              # v0.0.1
+└── skeletor-old/             # v0.0.5 — archived reference
 ```
 
 ---
@@ -92,9 +90,9 @@ const { $iq, $build, $msg, $pres, Strophe, sizzle, utils, stx } = converse.env;
 
 ---
 
-## 3. The 16 iOS-Specific Modifications
+## 3. The iOS-Specific Modifications (16 base, 19 under v13)
 
-Every modification is flagged in source with `/*! TOFIND */` (legal-comment form so esbuild preserves it). The custom `build.js` verifies 16 TOFIND markers survive into `dist/converse-headless.esm.js` after each build.
+Every modification is flagged in source with `/*! TOFIND */` (legal-comment form so esbuild preserves it). The custom `build.js` verifies markers survive into `dist/converse-headless.esm.js` after each build. v12 carries 16 mods; v13 adds #17a (OMEMO plugin auto-registration drop), #18 (emoji.json fetch skip), and #19 (sendIQ timeout silence) for a total of **19**.
 
 ### Why these modifications exist
 
@@ -126,16 +124,19 @@ The iOS client treats Converse as a passive XMPP engine. iOS owns:
 | 15 | Disable `vcard.update` | `headless/plugins/vcard/api.js` | 177 | Same |
 | 16 | Connection `mode: 'no-cors'` | `headless/shared/connection/index.js` | 87 | XEP-0156 host-meta fetch uses `no-cors` |
 | 17 | Custom DB naming | `headless/utils/init.js` | 126 | DB name stable for multi-instance isolation |
+| 17a | Drop OMEMO plugin auto-registration | `headless/plugins/omemo/index.js` | — | v13 only. Drops the `import './plugin.js'` side-effect register so pluggable.js doesn't throw a duplicate-name error when iOS registers its own OMEMO overlay |
+| 18 | Skip `emoji.json` fetch | `headless/plugins/emoji/api.js` | — | iOS bundle doesn't ship `emoji.json`; resolve to `{}` so `emojis.initialized_promise` still settles without a 404 |
+| 19 | Silence `sendIQ` timeout noise | `headless/shared/api/send.js` | 63 | Discarded `.catch` no longer calls `log.error(stanza)` or throws `TimeoutError` (orphaned on a discarded promise → unhandled rejection on every IQ timeout). Returned promise still rejects with `null`; callers branching on `e === null` unaffected |
 
 (Mod #5 in the original v7 plan — "Chat.get null check" — was intentionally skipped because the v12 code structure doesn't expose the same hot path.)
 
 ### Verification commands
 
 ```bash
-# Source: 16 markers across 13 files
+# Source: 19 markers across 16 files (v13 build)
 grep -rln "TOFIND" headless/ --include="*.js" | grep -vE "node_modules|dist"
 
-# Dist: 16 markers preserved
+# Dist: 19 markers preserved
 grep -c "TOFIND" headless/dist/converse-headless.esm.js
 ```
 
@@ -176,14 +177,14 @@ When the v12 swap actually lands in the iOS app, do the adapter rewrite first, t
 
 ## 5. Skeletor Dependency
 
-`@converse/skeletor` provides Backbone-like `Model` and `Collection` classes. v12 declares `^0.0.9` as its peer dep.
+`@converse/skeletor` provides Backbone-like `Model` and `Collection` classes. v13 pins `3.0.1` as a regular npm dependency of `headless/` (no sibling `skeletor/` directory anymore).
 
-| Directory | Version | Used by | Status |
-|-----------|---------|---------|--------|
-| `skeletor/` | 0.0.9 | headless v12 | Active |
+| Source | Version | Used by | Status |
+|--------|---------|---------|--------|
+| `headless/node_modules/@converse/skeletor` (npm) | 3.0.1 | headless v13 | Active |
 | `skeletor-old/` | 0.0.5 | headless-old v7 | Archived |
 
-**v0.0.9 keeps the `.extend()` API.** The iOS OMEMO models in `submodules/chat/services/xmpp/converse-plugins/omemo/models/{omemo-store,omemo-device}.model.ts` still use `Model.extend({...})` / `Collection.extend({...})` and continue to work as-is. Earlier migration drafts that called for ES6-class refactors were based on a never-adopted skeletor v3.0.0 plan; ignore that guidance.
+**Skeletor 3.x removed `.extend()`.** The iOS OMEMO models in `submodules/chat/services/xmpp/converse-plugins/omemo/models/{omemo-store,omemo-device}.model.ts` were rewritten as ES6 `class` declarations alongside the v13 swap. Also note: `Storage` → `BrowserStorage`, and `Model.clone()` was removed.
 
 ---
 
