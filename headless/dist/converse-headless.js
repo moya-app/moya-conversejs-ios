@@ -12926,231 +12926,6 @@ var promise_default = {
   }
 };
 
-// shared/errors.js
-var errors_exports = {};
-__export(errors_exports, {
-  BadRequestError: () => BadRequestError,
-  ConflictError: () => ConflictError,
-  FeatureNotImplementedError: () => FeatureNotImplementedError,
-  ForbiddenError: () => ForbiddenError,
-  GoneError: () => GoneError,
-  IQError: () => IQError,
-  InternalServerError: () => InternalServerError,
-  ItemNotFoundError: () => ItemNotFoundError,
-  JIDMalformedError: () => JIDMalformedError,
-  MethodNotImplementedError: () => MethodNotImplementedError,
-  NotAcceptableError: () => NotAcceptableError,
-  NotAllowedError: () => NotAllowedError,
-  NotAuthorizedError: () => NotAuthorizedError,
-  PaymentRequiredError: () => PaymentRequiredError,
-  RecipientUnavailableError: () => RecipientUnavailableError,
-  RedirectError: () => RedirectError,
-  RegistrationRequiredError: () => RegistrationRequiredError,
-  RemoteServerNotFoundError: () => RemoteServerNotFoundError,
-  RemoteServerTimeoutError: () => RemoteServerTimeoutError,
-  ResourceConstraintError: () => ResourceConstraintError,
-  ServiceUnavailableError: () => ServiceUnavailableError,
-  StanzaError: () => StanzaError,
-  StanzaParseError: () => StanzaParseError,
-  SubscriptionRequiredError: () => SubscriptionRequiredError,
-  TimeoutError: () => TimeoutError,
-  UndefinedConditionError: () => UndefinedConditionError,
-  UnexpectedRequestError: () => UnexpectedRequestError,
-  UserFacingError: () => UserFacingError
-});
-var MethodNotImplementedError = class extends Error {
-  static {
-    __name(this, "MethodNotImplementedError");
-  }
-};
-var UserFacingError = class extends Error {
-  static {
-    __name(this, "UserFacingError");
-  }
-  /**
-   * @param {string} message
-   */
-  constructor(message) {
-    super(message);
-    this.name = "UserFacingError";
-    this.user_facing = true;
-  }
-};
-var IQError = class extends Error {
-  static {
-    __name(this, "IQError");
-  }
-  /**
-   * @param {string} message
-   * @param {Element} iq
-   */
-  constructor(message, iq) {
-    super(message);
-    this.name = "IQError";
-    this.iq = iq;
-  }
-};
-var TimeoutError = class extends Error {
-  static {
-    __name(this, "TimeoutError");
-  }
-  /**
-   * @param  {string} message
-   */
-  constructor(message) {
-    super(message);
-    this.retry_event_id = null;
-  }
-};
-var StanzaError = class extends Error {
-  static {
-    __name(this, "StanzaError");
-  }
-  /**
-   * @typedef {import("./types").ErrorName} ErrorName
-   * @typedef {import("./types").ErrorType} ErrorType
-   * @typedef {import("./types").ErrorExtra} ErrorExtra
-   */
-  /**
-   * @param {ErrorName|'unknown'} name
-   * @param {Element} e - The <error> element from a stanza
-   * @param {Object} extra - Extra properties from plugin parsers
-   */
-  constructor(name, e3, extra) {
-    super(e3.querySelector("text")?.textContent ?? "");
-    this.name = name;
-    this.message = name;
-    this.type = /** @type {ErrorType} */
-    e3.getAttribute("type");
-    this.el = e3;
-    this.extra = extra;
-  }
-};
-var StanzaParseError = class extends Error {
-  static {
-    __name(this, "StanzaParseError");
-  }
-  /**
-   * @param {Element} stanza
-   * @param {string} [message]
-   */
-  constructor(stanza, message) {
-    super(message);
-    this.name = "StanzaParseError";
-    this.stanza = stanza;
-  }
-};
-var BadRequestError = class extends StanzaError {
-  static {
-    __name(this, "BadRequestError");
-  }
-};
-var ConflictError = class extends StanzaError {
-  static {
-    __name(this, "ConflictError");
-  }
-};
-var FeatureNotImplementedError = class extends StanzaError {
-  static {
-    __name(this, "FeatureNotImplementedError");
-  }
-};
-var ForbiddenError = class extends StanzaError {
-  static {
-    __name(this, "ForbiddenError");
-  }
-};
-var GoneError = class extends StanzaError {
-  static {
-    __name(this, "GoneError");
-  }
-};
-var InternalServerError = class extends StanzaError {
-  static {
-    __name(this, "InternalServerError");
-  }
-};
-var ItemNotFoundError = class extends StanzaError {
-  static {
-    __name(this, "ItemNotFoundError");
-  }
-};
-var JIDMalformedError = class extends StanzaError {
-  static {
-    __name(this, "JIDMalformedError");
-  }
-};
-var NotAcceptableError = class extends StanzaError {
-  static {
-    __name(this, "NotAcceptableError");
-  }
-};
-var NotAllowedError = class extends StanzaError {
-  static {
-    __name(this, "NotAllowedError");
-  }
-};
-var NotAuthorizedError = class extends StanzaError {
-  static {
-    __name(this, "NotAuthorizedError");
-  }
-};
-var PaymentRequiredError = class extends StanzaError {
-  static {
-    __name(this, "PaymentRequiredError");
-  }
-};
-var RecipientUnavailableError = class extends StanzaError {
-  static {
-    __name(this, "RecipientUnavailableError");
-  }
-};
-var RedirectError = class extends StanzaError {
-  static {
-    __name(this, "RedirectError");
-  }
-};
-var RegistrationRequiredError = class extends StanzaError {
-  static {
-    __name(this, "RegistrationRequiredError");
-  }
-};
-var RemoteServerNotFoundError = class extends StanzaError {
-  static {
-    __name(this, "RemoteServerNotFoundError");
-  }
-};
-var RemoteServerTimeoutError = class extends StanzaError {
-  static {
-    __name(this, "RemoteServerTimeoutError");
-  }
-};
-var ResourceConstraintError = class extends StanzaError {
-  static {
-    __name(this, "ResourceConstraintError");
-  }
-};
-var ServiceUnavailableError = class extends StanzaError {
-  static {
-    __name(this, "ServiceUnavailableError");
-  }
-};
-var SubscriptionRequiredError = class extends StanzaError {
-  static {
-    __name(this, "SubscriptionRequiredError");
-  }
-};
-var UndefinedConditionError = class extends StanzaError {
-  static {
-    __name(this, "UndefinedConditionError");
-  }
-};
-var UnexpectedRequestError = class extends StanzaError {
-  static {
-    __name(this, "UnexpectedRequestError");
-  }
-};
-
 // shared/api/send.js
 var send_default = {
   /**
@@ -13205,11 +12980,10 @@ var send_default = {
       timeout = timeout || api3.settings.get("stanza_timeout");
       if (reject) {
         promise = new Promise((resolve, reject2) => connection2.sendIQ(el, resolve, reject2, timeout));
+        /*! TOFIND */
         promise.catch((e3) => {
-          if (e3 === null) {
-            log_default.error(el);
-            throw new TimeoutError(`Timeout error after ${timeout}ms for IQ stanza`);
-          }
+          if (e3 === null)
+            log_default.debug(`IQ timeout after ${timeout}ms`);
         });
       } else {
         promise = new Promise((resolve) => connection2.sendIQ(el, resolve, resolve, timeout));
@@ -16353,6 +16127,231 @@ var utils_default = Object.assign(
   },
   u3
 );
+
+// shared/errors.js
+var errors_exports = {};
+__export(errors_exports, {
+  BadRequestError: () => BadRequestError,
+  ConflictError: () => ConflictError,
+  FeatureNotImplementedError: () => FeatureNotImplementedError,
+  ForbiddenError: () => ForbiddenError,
+  GoneError: () => GoneError,
+  IQError: () => IQError,
+  InternalServerError: () => InternalServerError,
+  ItemNotFoundError: () => ItemNotFoundError,
+  JIDMalformedError: () => JIDMalformedError,
+  MethodNotImplementedError: () => MethodNotImplementedError,
+  NotAcceptableError: () => NotAcceptableError,
+  NotAllowedError: () => NotAllowedError,
+  NotAuthorizedError: () => NotAuthorizedError,
+  PaymentRequiredError: () => PaymentRequiredError,
+  RecipientUnavailableError: () => RecipientUnavailableError,
+  RedirectError: () => RedirectError,
+  RegistrationRequiredError: () => RegistrationRequiredError,
+  RemoteServerNotFoundError: () => RemoteServerNotFoundError,
+  RemoteServerTimeoutError: () => RemoteServerTimeoutError,
+  ResourceConstraintError: () => ResourceConstraintError,
+  ServiceUnavailableError: () => ServiceUnavailableError,
+  StanzaError: () => StanzaError,
+  StanzaParseError: () => StanzaParseError,
+  SubscriptionRequiredError: () => SubscriptionRequiredError,
+  TimeoutError: () => TimeoutError,
+  UndefinedConditionError: () => UndefinedConditionError,
+  UnexpectedRequestError: () => UnexpectedRequestError,
+  UserFacingError: () => UserFacingError
+});
+var MethodNotImplementedError = class extends Error {
+  static {
+    __name(this, "MethodNotImplementedError");
+  }
+};
+var UserFacingError = class extends Error {
+  static {
+    __name(this, "UserFacingError");
+  }
+  /**
+   * @param {string} message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "UserFacingError";
+    this.user_facing = true;
+  }
+};
+var IQError = class extends Error {
+  static {
+    __name(this, "IQError");
+  }
+  /**
+   * @param {string} message
+   * @param {Element} iq
+   */
+  constructor(message, iq) {
+    super(message);
+    this.name = "IQError";
+    this.iq = iq;
+  }
+};
+var TimeoutError = class extends Error {
+  static {
+    __name(this, "TimeoutError");
+  }
+  /**
+   * @param  {string} message
+   */
+  constructor(message) {
+    super(message);
+    this.retry_event_id = null;
+  }
+};
+var StanzaError = class extends Error {
+  static {
+    __name(this, "StanzaError");
+  }
+  /**
+   * @typedef {import("./types").ErrorName} ErrorName
+   * @typedef {import("./types").ErrorType} ErrorType
+   * @typedef {import("./types").ErrorExtra} ErrorExtra
+   */
+  /**
+   * @param {ErrorName|'unknown'} name
+   * @param {Element} e - The <error> element from a stanza
+   * @param {Object} extra - Extra properties from plugin parsers
+   */
+  constructor(name, e3, extra) {
+    super(e3.querySelector("text")?.textContent ?? "");
+    this.name = name;
+    this.message = name;
+    this.type = /** @type {ErrorType} */
+    e3.getAttribute("type");
+    this.el = e3;
+    this.extra = extra;
+  }
+};
+var StanzaParseError = class extends Error {
+  static {
+    __name(this, "StanzaParseError");
+  }
+  /**
+   * @param {Element} stanza
+   * @param {string} [message]
+   */
+  constructor(stanza, message) {
+    super(message);
+    this.name = "StanzaParseError";
+    this.stanza = stanza;
+  }
+};
+var BadRequestError = class extends StanzaError {
+  static {
+    __name(this, "BadRequestError");
+  }
+};
+var ConflictError = class extends StanzaError {
+  static {
+    __name(this, "ConflictError");
+  }
+};
+var FeatureNotImplementedError = class extends StanzaError {
+  static {
+    __name(this, "FeatureNotImplementedError");
+  }
+};
+var ForbiddenError = class extends StanzaError {
+  static {
+    __name(this, "ForbiddenError");
+  }
+};
+var GoneError = class extends StanzaError {
+  static {
+    __name(this, "GoneError");
+  }
+};
+var InternalServerError = class extends StanzaError {
+  static {
+    __name(this, "InternalServerError");
+  }
+};
+var ItemNotFoundError = class extends StanzaError {
+  static {
+    __name(this, "ItemNotFoundError");
+  }
+};
+var JIDMalformedError = class extends StanzaError {
+  static {
+    __name(this, "JIDMalformedError");
+  }
+};
+var NotAcceptableError = class extends StanzaError {
+  static {
+    __name(this, "NotAcceptableError");
+  }
+};
+var NotAllowedError = class extends StanzaError {
+  static {
+    __name(this, "NotAllowedError");
+  }
+};
+var NotAuthorizedError = class extends StanzaError {
+  static {
+    __name(this, "NotAuthorizedError");
+  }
+};
+var PaymentRequiredError = class extends StanzaError {
+  static {
+    __name(this, "PaymentRequiredError");
+  }
+};
+var RecipientUnavailableError = class extends StanzaError {
+  static {
+    __name(this, "RecipientUnavailableError");
+  }
+};
+var RedirectError = class extends StanzaError {
+  static {
+    __name(this, "RedirectError");
+  }
+};
+var RegistrationRequiredError = class extends StanzaError {
+  static {
+    __name(this, "RegistrationRequiredError");
+  }
+};
+var RemoteServerNotFoundError = class extends StanzaError {
+  static {
+    __name(this, "RemoteServerNotFoundError");
+  }
+};
+var RemoteServerTimeoutError = class extends StanzaError {
+  static {
+    __name(this, "RemoteServerTimeoutError");
+  }
+};
+var ResourceConstraintError = class extends StanzaError {
+  static {
+    __name(this, "ResourceConstraintError");
+  }
+};
+var ServiceUnavailableError = class extends StanzaError {
+  static {
+    __name(this, "ServiceUnavailableError");
+  }
+};
+var SubscriptionRequiredError = class extends StanzaError {
+  static {
+    __name(this, "SubscriptionRequiredError");
+  }
+};
+var UndefinedConditionError = class extends StanzaError {
+  static {
+    __name(this, "UndefinedConditionError");
+  }
+};
+var UnexpectedRequestError = class extends StanzaError {
+  static {
+    __name(this, "UnexpectedRequestError");
+  }
+};
 
 // shared/api/public.js
 converse_default.api = api_default4;

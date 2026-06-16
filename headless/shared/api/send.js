@@ -1,7 +1,6 @@
 import _converse from '../_converse.js';
 import log from '@converse/log';
 import { Strophe } from 'strophe.js';
-import { TimeoutError } from '../errors.js';
 
 export default {
     /**
@@ -60,12 +59,8 @@ export default {
             timeout = timeout || api.settings.get('stanza_timeout');
             if (reject) {
                 promise = new Promise((resolve, reject) => connection.sendIQ(el, resolve, reject, timeout));
-                promise.catch((e) => {
-                    if (e === null) {
-                        log.error(el);
-                        throw new TimeoutError(`Timeout error after ${timeout}ms for IQ stanza`);
-                    }
-                });
+                /*! TOFIND */ // demote IQ-timeout noise: returned promise already rejects with null; don't log stanza at error or create an unhandled TimeoutError
+                promise.catch((e) => { if (e === null) log.debug(`IQ timeout after ${timeout}ms`); });
             } else {
                 promise = new Promise((resolve) => connection.sendIQ(el, resolve, resolve, timeout));
             }
