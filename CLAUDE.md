@@ -38,13 +38,20 @@ moya-conversejs-ios/
 cd headless && npm run build     # esbuild → dist/converse-headless.{esm,}.{,min.}js
 cd headless && npm test          # Karma/Jasmine in Chrome
 cd headless && npm run types     # Emit TS declarations into types/
+
+# Regression specs that import the built ESM bundle directly (karma.conf.js's
+# own suite currently fails at bootstrap — it expects a global the fork's
+# bundle doesn't expose). Needs karma + karma-jasmine + karma-chrome-launcher
+# + jasmine-core installed; none are in devDependencies.
+cd headless && CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  npx karma start karma.regression.conf.js
 ```
 
-The build script verifies that all TOFIND legal comments survive into `dist/converse-headless.esm.js`. esbuild strips ordinary comments, so all custom mods use `/*! TOFIND */ // …` form to be preserved. Expected marker count: **19** on the current v13.0.1 build. The 16 base mods carry over from the v12 build; v13 added #17a (drop OMEMO plugin auto-registration so iOS's overlay doesn't trip pluggable.js's duplicate-name throw), #18 (short-circuit the `emoji.json` fetch the iOS bundle doesn't ship), and #19 (silence the discarded `sendIQ` timeout `.catch` that emitted a maroon stanza dump plus an orphaned `TimeoutError` unhandled rejection).
+The build script verifies that all TOFIND legal comments survive into `dist/converse-headless.esm.js`. esbuild strips ordinary comments, so all custom mods use `/*! TOFIND */ // …` form to be preserved. Expected marker count: **21** on the current v13.0.1 build. The 16 base mods carry over from the v12 build; v13 added #17a (drop OMEMO plugin auto-registration so iOS's overlay doesn't trip pluggable.js's duplicate-name throw), #18 (short-circuit the `emoji.json` fetch the iOS bundle doesn't ship), and #19 (silence the discarded `sendIQ` timeout `.catch` that emitted a maroon stanza dump plus an orphaned `TimeoutError` unhandled rejection). #20 and #21 guard reads of a connection that `finishDisconnection()` destroyed while a login was in flight.
 
 ## iOS-Specific Customisations
 
-The v13.0.1 headless build carries **19** modifications, all flagged with `/*! TOFIND */`. 16 came across from the v12 build; #17a (drop OMEMO plugin auto-registration), #18 (skip `emoji.json` fetch), and #19 (silence `sendIQ` timeout console noise) landed during and after the v13 retarget. They exist because the iOS client manages presence, receipts, markers, vcards, subscriptions, MUC join, and emoji handling **manually** — Converse must be a passive XMPP engine, not an opinionated chat client.
+The v13.0.1 headless build carries **21** modifications, all flagged with `/*! TOFIND */`. 16 came across from the v12 build; #17a (drop OMEMO plugin auto-registration), #18 (skip `emoji.json` fetch), #19 (silence `sendIQ` timeout console noise), #20 (optional-chain the connection in `restoreBOSHSession`) and #21 (re-init a connection destroyed mid-login in `connect()`) landed during and after the v13 retarget. They exist because the iOS client manages presence, receipts, markers, vcards, subscriptions, MUC join, and emoji handling **manually** — Converse must be a passive XMPP engine, not an opinionated chat client.
 
 See `AGENTS.md` for the full mod list with file/line citations and rationale. The short version:
 
@@ -57,6 +64,7 @@ See `AGENTS.md` for the full mod list with file/line citations and rationale. Th
 - Multi-instance: `converseInit(index)` wrapper exposing `window.converse${index}`
 - Connection: `mode: 'no-cors'` on host-meta fetch
 - Storage: deterministic IndexedDB name for multi-instance isolation
+- Guard: connection reads in `restoreBOSHSession()` and `connect()` survive a connection destroyed mid-login (upstream bug; regression spec in `headless/tests/regression/`)
 
 ## iOS App Integration Boundary
 

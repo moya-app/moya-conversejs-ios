@@ -108,7 +108,8 @@ export function clearSession() {
 export async function restoreBOSHSession() {
     const jid = (await initBOSHSession()).get('jid');
     const connection = api.connection.get();
-    if (jid && connection._proto instanceof Strophe.Bosh) {
+    /*! TOFIND */ // Optional-chain connection: api.user.login() awaits setUserJID() before firing the `login` hook, so a disconnect finishing in that window (finishDisconnection() -> api.connection.destroy()) leaves api.connection.get() undefined here, and `connection._proto` threw a TypeError out of login() that aborted it. `instanceof` on undefined is false, so a torn-down connection correctly reports "no BOSH session to restore". See also the matching guard in utils/init.js connect().
+    if (jid && connection?._proto instanceof Strophe.Bosh) {
         try {
             connection.restore(jid, connection.onConnectStatusChanged);
             return true;

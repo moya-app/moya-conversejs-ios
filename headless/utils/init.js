@@ -447,7 +447,8 @@ export async function savedLoginInfo(jid) {
 async function connect(credentials) {
     const { api } = _converse;
     const jid = _converse.session.get("jid");
-    const connection = api.connection.get();
+    /*! TOFIND */ // Re-init a connection destroyed mid-login: finishDisconnection() calls api.connection.destroy() (nulling the module-level connection) and a login already in flight resumes here after its awaits, so every read below (`connection.reconnecting`, reset(), connect()) hit undefined and threw a TypeError that aborted the login.
+    const connection = api.connection.get() ?? api.connection.init(jid);
     if ([ANONYMOUS, EXTERNAL].includes(api.settings.get("authentication"))) {
         if (!jid) {
             throw new Error(

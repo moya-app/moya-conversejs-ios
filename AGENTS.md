@@ -4,7 +4,7 @@ Deep reference for AI agents and engineers working on the customised `@converse/
 
 For top-level orientation, see `CLAUDE.md`. For the iOS-side swap-in checklist and the full v7→v13.0.1 breaking-changes tracker, see `MIGRATION.md`.
 
-**Active build: v13.0.1** (retarget from v12.0.0 completed on `tay/testing`). The 16 base modifications below were verified against v12 source; file paths still apply to v13 and line numbers are accurate post-retarget. v13 adds #17a (drop OMEMO plugin auto-registration), #18 (skip `emoji.json` fetch), and #19 (silence `sendIQ` timeout console noise) for a total of **19** TOFIND markers. The "v12 Idiomatic Alternatives" analysis in § 4 still applies to v13 unchanged.
+**Active build: v13.0.1** (retarget from v12.0.0 completed on `tay/testing`). The 16 base modifications below were verified against v12 source; file paths still apply to v13 and line numbers are accurate post-retarget. v13 adds #17a (drop OMEMO plugin auto-registration), #18 (skip `emoji.json` fetch), and #19 (silence `sendIQ` timeout console noise). #20 and #21 (guards against a connection destroyed mid-login) landed after the v13 swap, for a total of **21** TOFIND markers. The "v12 Idiomatic Alternatives" analysis in § 4 still applies to v13 unchanged.
 
 ---
 
@@ -90,9 +90,9 @@ const { $iq, $build, $msg, $pres, Strophe, sizzle, utils, stx } = converse.env;
 
 ---
 
-## 3. The iOS-Specific Modifications (16 base, 19 under v13)
+## 3. The iOS-Specific Modifications (16 base, 21 under v13)
 
-Every modification is flagged in source with `/*! TOFIND */` (legal-comment form so esbuild preserves it). The custom `build.js` verifies markers survive into `dist/converse-headless.esm.js` after each build. v12 carries 16 mods; v13 adds #17a (OMEMO plugin auto-registration drop), #18 (emoji.json fetch skip), and #19 (sendIQ timeout silence) for a total of **19**.
+Every modification is flagged in source with `/*! TOFIND */` (legal-comment form so esbuild preserves it). The custom `build.js` verifies markers survive into `dist/converse-headless.esm.js` after each build. v12 carries 16 mods; v13 adds #17a (OMEMO plugin auto-registration drop), #18 (emoji.json fetch skip), #19 (sendIQ timeout silence), #20 (BOSH restore connection guard) and #21 (connect() connection re-init) for a total of **21**.
 
 ### Why these modifications exist
 
@@ -127,16 +127,18 @@ The iOS client treats Converse as a passive XMPP engine. iOS owns:
 | 17a | Drop OMEMO plugin auto-registration | `headless/plugins/omemo/index.js` | — | v13 only. Drops the `import './plugin.js'` side-effect register so pluggable.js doesn't throw a duplicate-name error when iOS registers its own OMEMO overlay |
 | 18 | Skip `emoji.json` fetch | `headless/plugins/emoji/api.js` | — | iOS bundle doesn't ship `emoji.json`; resolve to `{}` so `emojis.initialized_promise` still settles without a 404 |
 | 19 | Silence `sendIQ` timeout noise | `headless/shared/api/send.js` | 63 | Discarded `.catch` no longer calls `log.error(stanza)` or throws `TimeoutError` (orphaned on a discarded promise → unhandled rejection on every IQ timeout). Returned promise still rejects with `null`; callers branching on `e === null` unaffected |
+| 20 | Optional-chain the connection in `restoreBOSHSession` | `headless/plugins/bosh/utils.js` | 111 | `connection?._proto instanceof Strophe.Bosh`. `api.connection.get()` is undefined when a login in flight resumes after `finishDisconnection()` destroyed the connection; the unguarded read threw a `TypeError` out of `api.user.login()` and aborted the login. Upstream bug, not fork-introduced |
+| 21 | Re-init a connection destroyed mid-login | `headless/utils/init.js` | 450 | `api.connection.get() ?? api.connection.init(jid)` in `connect()`. Same race one frame later: with #20 alone the login reaches `connect()` and throws on `connection.reconnecting`. Upstream bug, not fork-introduced |
 
 (Mod #5 in the original v7 plan — "Chat.get null check" — was intentionally skipped because the v12 code structure doesn't expose the same hot path.)
 
 ### Verification commands
 
 ```bash
-# Source: 19 markers across 16 files (v13 build)
+# Source: 21 markers across 17 files (v13 build)
 grep -rln "TOFIND" headless/ --include="*.js" | grep -vE "node_modules|dist"
 
-# Dist: 19 markers preserved
+# Dist: 21 markers preserved
 grep -c "TOFIND" headless/dist/converse-headless.esm.js
 ```
 
@@ -270,10 +272,10 @@ Produces in `headless/dist/`:
 ### Verification
 
 ```bash
-# Source: expect 16 markers in 13 files
+# Source: expect 21 markers in 17 files
 grep -rln "TOFIND" headless/ --include="*.js" | grep -vE "node_modules|dist" | wc -l
 
-# Dist: expect exactly 16
+# Dist: expect exactly 21
 grep -c "TOFIND" headless/dist/converse-headless.esm.js
 ```
 

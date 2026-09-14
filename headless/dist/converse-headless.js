@@ -12215,7 +12215,8 @@ __name(savedLoginInfo, "savedLoginInfo");
 async function connect(credentials) {
   const { api: api3 } = converse_default;
   const jid = converse_default.session.get("jid");
-  const connection2 = api3.connection.get();
+  /*! TOFIND */
+  const connection2 = api3.connection.get() ?? api3.connection.init(jid);
   if ([ANONYMOUS, EXTERNAL].includes(api3.settings.get("authentication"))) {
     if (!jid) {
       throw new Error(
@@ -25871,7 +25872,8 @@ __name(clearSession3, "clearSession");
 async function restoreBOSHSession() {
   const jid = (await initBOSHSession()).get("jid");
   const connection2 = api_default4.connection.get();
-  if (jid && connection2._proto instanceof Strophe.Bosh) {
+  /*! TOFIND */
+  if (jid && connection2?._proto instanceof Strophe.Bosh) {
     try {
       connection2.restore(jid, connection2.onConnectStatusChanged);
       return true;
